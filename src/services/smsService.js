@@ -3,9 +3,9 @@ const axios = require('axios');
 // MutluCell Credentials (from user request)
 // In production, these should be in process.env
 const SMS_CONFIG = {
-    username: 'incigungor',
-    password: 'LKSArsAgMXxYW71n',
-    org: '902129233987',
+    username: process.env.SMS_USERNAME, // MutluCell username
+    password: process.env.SMS_PASSWORD, // MutluCell password
+    org: process.env.SMS_ORG,         // MutluCell org/sender ID
     url: 'https://smsgw.mutlucell.com/smsgw-ws/sndblkex'
 };
 

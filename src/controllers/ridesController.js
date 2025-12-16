@@ -39,7 +39,7 @@ async function createRide(req, res) {
     payment_method
   } = req.body;
 
-  console.log('[createRide] vehicle_type payload:', vehicle_type);
+  // console.log('[createRide] vehicle_type payload:', vehicle_type);
 
   if (!start_lat || !start_lng || !vehicle_type || !payment_method) {
     return res.status(400).json({ message: 'Missing required fields' });
@@ -328,7 +328,7 @@ async function cancelRide(req, res) {
     ride.cancel_reason = reason || null;
     await ride.save({ transaction: t });
 
-    // FIX: Release driver if assigned
+    // Release driver if assigned
     if (ride.driver_id) {
       await Driver.update(
         { is_available: true },
@@ -339,7 +339,7 @@ async function cancelRide(req, res) {
     // Commit early so DB state is finalized before sockets
     await t.commit();
 
-    // FIX: Update Redis meta for driver availability
+    // Update Redis meta for driver availability
     if (ride.driver_id) {
       try {
         await redis.hset(`driver:${ride.driver_id}:meta`, 'available', '1');
@@ -572,7 +572,7 @@ async function getActiveRide(req, res) {
         rating: realRating
       };
 
-      // FIX: Inject current Redis location for instant map display
+      // Inject current Redis location for instant map display
       try {
         const vType = driverInfo.vehicle_type || 'sari';
         const geoKey = `drivers:geo:${vType}`;
