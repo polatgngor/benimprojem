@@ -9,6 +9,7 @@ const { rideTimeoutQueue } = require('../queues/rideTimeoutQueue');
 const { User, UserDevice, RideRequest } = require('../models');
 const { sendPushToTokens } = require('../lib/fcm');
 const { getDriverPrioritySeconds } = require('../services/levelService');
+const logger = require('../lib/logger');
 
 // config
 const DEFAULT_RADIUS_KM = 3;

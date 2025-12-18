@@ -6,16 +6,22 @@ const logger = pino({
   level: process.env.LOG_LEVEL || 'info',
   base: { service: 'taksibu-backend' },
   timestamp: pino.stdTimeFunctions.isoTime,
-  transport: isDev
-    ? {
+  transport: {
+    targets: [
+      {
         target: 'pino-pretty',
         options: {
           colorize: true,
           translateTime: 'SYS:standard',
           ignore: 'pid,hostname'
         }
+      },
+      {
+        target: 'pino/file',
+        options: { destination: `${__dirname}/../../logs/debug.log` }
       }
-    : undefined
+    ]
+  }
 });
 
 module.exports = logger;
