@@ -27,17 +27,17 @@ function generate4Code() {
 */
 async function createRide(req, res) {
   const userId = req.user.userId;
-  const {
-    start_lat,
-    start_lng,
-    start_address,
-    end_lat,
-    end_lng,
-    end_address,
+  let {
+    start_lat, start_lng, start_address,
+    end_lat, end_lng, end_address,
     vehicle_type,
-    options,
-    payment_method
+    payment_method,
+    fare_estimate,
+    options // { note, pet, luggage }
   } = req.body;
+
+  // Normalize vehicle type
+  if (vehicle_type) vehicle_type = vehicle_type.toLowerCase();
 
   // console.log('[createRide] vehicle_type payload:', vehicle_type);
 
