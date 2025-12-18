@@ -250,9 +250,8 @@ async function getRides(req, res) {
       order: [['created_at', 'DESC']],
       limit,
       offset,
-      // Optimize: Raw JSON without Model Instances
-      raw: true,
-      nest: true,
+      // Removed raw: true due to crash. 
+      // Sequelize raw mode with deep includes can be tricky or break virtual getters.
       include: [
         {
           model: User,
