@@ -29,6 +29,13 @@ module.exports = (sequelize) =>
       timestamps: true,
       createdAt: 'created_at',
       updatedAt: 'updated_at',
-      underscored: true
+      underscored: true,
+      // Performance: Indices for matchmaking
+      indexes: [
+        { fields: ['vehicle_type'] },
+        { fields: ['is_available'] },
+        { fields: ['working_region'] },
+        { fields: ['vehicle_type', 'is_available'] } // Critical for finding drivers
+      ]
     }
   );

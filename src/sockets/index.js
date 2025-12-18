@@ -501,9 +501,13 @@ module.exports = function initSockets(server) {
         await ride.save();
 
         // --- Set Driver Available Again & Restore GEO (Ghost Call Fix) ---
+        // --- Set Driver Available Again & Restore GEO (Ghost Call Fix) ---
+        // Parallelize independent updates
         try {
-          await Driver.update({ is_available: true }, { where: { user_id: userId } });
-          await redis.hset(`driver:${userId}:meta`, 'available', '1');
+          await Promise.all([
+            Driver.update({ is_available: true }, { where: { user_id: userId } }),
+            redis.hset(`driver:${userId}:meta`, 'available', '1')
+          ]);
 
           // Restore to GEO index immediately using last known location
           const meta = await redis.hgetall(`driver:${userId}:meta`);
@@ -834,10 +838,11 @@ module.exports = function initSockets(server) {
 
         // console.log(`[driver:update_location] user:${userId} key:${key} lat:${lat} lng:${lng}`);
 
-        // Fire and forget location updates
-        redis.geoadd(key, lng, lat, String(userId)).catch(e => { });
-        // Store last known location in meta for quick restoration (Ghost Call fix)
-        redis.hset(`driver:${userId}:meta`, 'last_loc_update', Date.now(), 'lat', lat, 'lng', lng).catch(e => { });
+        // Fire and forget location updates (Parallel)
+        Promise.all([
+          redis.geoadd(key, lng, lat, String(userId)),
+          redis.hset(`driver:${userId}:meta`, 'last_loc_update', Date.now(), 'lat', lat, 'lng', lng)
+        ]).catch(e => { });
 
         // if driver is in a ride room, broadcast to that room
         const rooms = Array.from(socket.rooms); // includes socket.id for sure

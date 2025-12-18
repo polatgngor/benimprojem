@@ -159,6 +159,21 @@ async function emitRideRequest(ride, opts = {}) {
     // Sort by priority
     driversWithLevel.sort((a, b) => a.prioritySeconds - b.prioritySeconds);
 
+    // 2b. Batch Fetch Devices for Push Notifications (N+1 Fix)
+    const allDevices = await UserDevice.findAll({
+      where: { user_id: newCandidates },
+      attributes: ['user_id', 'device_token']
+    });
+
+    // Group tokens by user_id
+    const deviceMap = new Map();
+    for (const d of allDevices) {
+      if (!deviceMap.has(String(d.user_id))) {
+        deviceMap.set(String(d.user_id), []);
+      }
+      deviceMap.get(String(d.user_id)).push(d.device_token);
+    }
+
     // 3. Process Batch
     let count = 0;
     for (const d of driversWithLevel) {
@@ -170,10 +185,6 @@ async function emitRideRequest(ride, opts = {}) {
       if (!meta || !meta.available || meta.available !== '1') {
         continue;
       }
-
-      // Late check: if we are too close to timeout, skip high priority delays? 
-      // Current logic: still apply prioritySeconds delay. 
-      // If delay > remaining time, driver won't really see it or will see it briefly.
 
       const socketId = meta.socketId;
       const delayMs = prioritySeconds * 1000;
@@ -189,14 +200,12 @@ async function emitRideRequest(ride, opts = {}) {
             });
           }
 
-          // Send Push
-          try {
-            const devices = await UserDevice.findAll({ where: { user_id: driverId } });
-            const tokens = devices.map((d) => d.device_token);
-            if (tokens.length > 0) {
-              await sendPushToTokens(tokens, { title: 'Yeni taksi çağrısı', body: 'Yeni bir yolculuk isteği aldınız.' }, { type: 'request_incoming', ride_id: String(ride.id), vehicle_type: vehicle_type });
-            }
-          } catch (e) { }
+          // Send Push (using pre-fetched tokens)
+          const tokens = deviceMap.get(String(driverId));
+          if (tokens && tokens.length > 0) {
+            // Fire and forget push
+            sendPushToTokens(tokens, { title: 'Yeni taksi çağrısı', body: 'Yeni bir yolculuk isteği aldınız.' }, { type: 'request_incoming', ride_id: String(ride.id), vehicle_type: vehicle_type }).catch(() => { });
+          }
         } catch (err) {
           console.warn('[matchService] emit failed', driverId, err);
         }
@@ -205,15 +214,14 @@ async function emitRideRequest(ride, opts = {}) {
       // Mark as sent
       sentDrivers.add(driverId);
 
-      try {
-        await RideRequest.create({
-          ride_id: ride.id,
-          driver_id: driverId,
-          sent_at: new Date(),
-          driver_response: 'no_response',
-          timeout: false
-        });
-      } catch (e) { }
+      // Fire and forget DB log
+      RideRequest.create({
+        ride_id: ride.id,
+        driver_id: driverId,
+        sent_at: new Date(),
+        driver_response: 'no_response',
+        timeout: false
+      }).catch(() => { });
 
       count++;
     }

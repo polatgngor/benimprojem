@@ -26,6 +26,13 @@ const sequelize = new Sequelize(
     define: {
       underscored: true,
       timestamps: true
+    },
+    // Performance: Connection Pooling
+    pool: {
+      max: 20,    // Increase max connections for higher load
+      min: 5,     // Keep some connections open
+      acquire: 30000,
+      idle: 10000
     }
   }
 );

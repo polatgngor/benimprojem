@@ -42,6 +42,13 @@ module.exports = (sequelize) =>
       timestamps: true,
       createdAt: 'created_at',
       updatedAt: 'updated_at',
-      underscored: true
+      underscored: true,
+      // Performance: Add indices for frequently queried fields
+      indexes: [
+        { fields: ['status'] },
+        { fields: ['driver_id'] },
+        { fields: ['passenger_id'] },
+        { fields: ['status', 'driver_id'] } // Composed index
+      ]
     }
   );
