@@ -18,7 +18,8 @@ const redis = new Redis({
 
 // Helper: redis GEO key per vehicle type
 function geoKeyForVehicle(vehicleType) {
-  return `drivers:geo:${vehicleType}`; // e.g., drivers:geo:sari
+  const type = vehicleType ? vehicleType.toLowerCase() : 'sari';
+  return `drivers:geo:${type}`;
 }
 
 module.exports = function initSockets(server) {
