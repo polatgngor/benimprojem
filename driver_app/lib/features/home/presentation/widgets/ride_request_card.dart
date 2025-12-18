@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../../core/services/socket_service.dart';
 import '../providers/incoming_requests_provider.dart';
+import '../providers/optimistic_ride_provider.dart';
 
 class RideRequestCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> request;
@@ -74,25 +75,131 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
 
   // ... map setup ...
 
+  void _setupMapData() {
+    final start = widget.request['start'];
+    final end = widget.request['end'];
+
+    _markers = {};
+    if (start != null && start['lat'] != null && start['lng'] != null) {
+      _markers.add(Marker(
+        markerId: const MarkerId('start'),
+        position: LatLng(double.parse(start['lat'].toString()), double.parse(start['lng'].toString())),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+      ));
+    }
+
+    if (end != null && end['lat'] != null && end['lng'] != null) {
+      _markers.add(Marker(
+        markerId: const MarkerId('end'),
+        position: LatLng(double.parse(end['lat'].toString()), double.parse(end['lng'].toString())),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+      ));
+    }
+    
+    // Add logic for polyline decoding
+    if (widget.request['polyline'] != null) {
+      final String encodedPolyline = widget.request['polyline'].toString();
+      final List<LatLng> decodedPoints = _decodePolyline(encodedPolyline);
+      
+      if (decodedPoints.isNotEmpty) {
+        _polylines.add(Polyline(
+          polylineId: const PolylineId('route'),
+          points: decodedPoints,
+          color: const Color(0xFF1A77F6), // Theme Blue
+          width: 5,
+        ));
+      }
+    } else if (_markers.length == 2) {
+       // Fallback: Straight line if no polyline data
+       _polylines.add(Polyline(
+          polylineId: const PolylineId('route_straight'),
+          points: _markers.map((m) => m.position).toList(),
+          color: const Color(0xFF1A77F6),
+          width: 4,
+          patterns: [PatternItem.dash(10), PatternItem.gap(5)], // Dashed for fallback
+       ));
+    }
+    
+    if (mounted) setState(() {});
+  }
+
+  // Simple Polyline Decoder (Google Encoded Polyline Algorithm)
+  List<LatLng> _decodePolyline(String encoded) {
+    List<LatLng> points = [];
+    int index = 0, len = encoded.length;
+    int lat = 0, lng = 0;
+
+    while (index < len) {
+      int b, shift = 0, result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lat += dlat;
+
+      shift = 0;
+      result = 0;
+      do {
+        b = encoded.codeUnitAt(index++) - 63;
+        result |= (b & 0x1f) << shift;
+        shift += 5;
+      } while (b >= 0x20);
+      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
+      lng += dlng;
+
+      points.add(LatLng(lat / 1E5, lng / 1E5));
+    }
+    return points;
+  }
+
   Future<void> _acceptRide() async {
     if (_isAccepting) return;
     
+    // Optimistic UI: Immediately disable button and visually indicate success
     setState(() {
       _isAccepting = true;
     });
 
     final rideId = widget.request['ride_id'];
-    // Emit and wait (fire and forget from UI perspective, global listener handles result)
+    
+    // Emit event
     ref.read(socketServiceProvider).socket.emit('driver:accept_request', {'ride_id': rideId});
     
-    // Safety timeout to reset button if server never responds (e.g. 5s)
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted && _isAccepting) {
-        setState(() {
-          _isAccepting = false;
-        });
-      }
-    });
+    // We don't wait for response. Optimistic UI FTW.
+    
+    // 1. Construct Optimistic Ride Object
+    final Map<String, dynamic> optimisticRide = {
+       'id': rideId,
+       'status': 'assigned',
+       'start_lat': widget.request['start']['lat'],
+       'start_lng': widget.request['start']['lng'],
+       'start_address': widget.request['start']['address'],
+       'end_lat': widget.request['end']['lat'],
+       'end_lng': widget.request['end']['lng'],
+       'end_address': widget.request['end']['address'],
+       'passenger': widget.request['passenger'] ?? {},
+       'fare_estimate': widget.request['fare_estimate'],
+       'distance_meters': widget.request['distance'],
+       'duration_seconds': widget.request['duration'],
+       'code4': widget.request['code4'] ?? '****', // Placeholder if not in request (usually not, but socket sends it)
+       // Add other necessary fields used by PassengerInfoSheet
+    };
+
+    // 2. Trigger Global Optimistic Update (HomeScreen will react instantly)
+    ref.read(optimisticRideProvider.notifier).setOptimistic(optimisticRide);
+
+    // 3. Clear requests to close sheet immediately
+    ref.read(incomingRequestsProvider.notifier).clearRequests();
+
+    // 4. Emit event (Background)
+    ref.read(socketServiceProvider).socket.emit('driver:accept_request', {'ride_id': rideId});
+    
+    // Safety reset not needed anymore as screen closes immediately
+    if (mounted) {
+       setState(() { _isAccepting = true; });
+    }
   }
 
    @override

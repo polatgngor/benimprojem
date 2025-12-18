@@ -70,6 +70,7 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
     socketService.off('ride:message');
     socketService.off('join_failed');
     socketService.off('ride:joined');
+    socketService.off('connect');
     
     _controller.dispose();
     _scrollController.dispose();
@@ -88,6 +89,12 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
 
   void _setupSocketListener() {
     final socketService = ref.read(socketServiceProvider);
+
+    // Force re-join on reconnect
+    socketService.on('connect', (_) {
+      debugPrint('[DriverChatScreen] Socket connected/reconnected. Joining room...');
+      if (mounted) _joinChatRoom();
+    });
 
     socketService.on('ride:message', (data) {
       if (!mounted) return; // Early exit safety

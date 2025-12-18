@@ -10,6 +10,8 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../features/auth/data/auth_service.dart';
 import '../screens/driver_chat_screen.dart';
 import 'driver_cancellation_sheet.dart';
+import 'package:pinput/pinput.dart';
+import '../providers/optimistic_ride_provider.dart';
 
 class PassengerInfoSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic> rideData;
@@ -33,9 +35,10 @@ class PassengerInfoSheet extends ConsumerStatefulWidget {
   ConsumerState<PassengerInfoSheet> createState() => _PassengerInfoSheetState();
 }
 
-import 'package:pinput/pinput.dart';
-// ... other imports
-
+class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
+  final TextEditingController _otpController = TextEditingController();
+  final FocusNode _otpFocusNode = FocusNode();
+  double _currentMaxHeight = 0.5;
   bool _isVerifying = false;
 
   @override
@@ -51,23 +54,20 @@ import 'package:pinput/pinput.dart';
     if (code.length == 4 && !_isVerifying) {
       final rideId = widget.rideData['ride_id']?.toString() ?? widget.rideData['id']?.toString();
       if (rideId != null) {
-        setState(() {
-          _isVerifying = true; // Show loading immediately
-        });
+        // Optimistic UI: Start immediately without spinner
+        FocusScope.of(context).unfocus(); // Hide keyboard
         
+        // Update global optimistic state to 'started' - this expands the sheet instantly
+        ref.read(optimisticRideProvider.notifier).updateStatus('started');
+
+        // Emit to server
         ref.read(socketServiceProvider).socket.emit('driver:start_ride', {
           'ride_id': rideId,
           'code': code,
         });
 
-        // Safety timeout to reset state if server doesn't respond quickly
-        Future.delayed(const Duration(seconds: 10), () {
-           if (mounted && _isVerifying) {
-             setState(() {
-               _isVerifying = false;
-             });
-           }
-        });
+        // Fail-safe: if server rejects (very rare), we rely on socket listeners to show error
+        // No local spinner state to manage.
       }
     }
   }

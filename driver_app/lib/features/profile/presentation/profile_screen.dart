@@ -5,10 +5,11 @@ import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../auth/data/auth_service.dart';
+import '../../auth/presentation/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../rides/data/ride_repository.dart';
 
-final driverProfileProvider = FutureProvider.autoDispose<Map<String, dynamic>>((ref) async {
+final driverProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final authService = ref.read(authServiceProvider);
   return authService.getProfile();
 });
@@ -145,188 +146,187 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         elevation: 0,
       ),
       body: profileAsync.when(
-        data: (data) {
-          final user = data['user'];
-          final driver = data['driver'];
-          
-          if (user == null) return const Center(child: Text('Kullanıcı bilgisi bulunamadı'));
-
-          // Initialize controllers once
-          if (!_isDataInitialized) {
-             _firstNameController.text = user['first_name'] ?? '';
-             _lastNameController.text = user['last_name'] ?? '';
-             _isDataInitialized = true;
+        loading: () {
+          // Optimistic UI: Try to use cached auth data while fetching fresh profile
+          final authState = ref.watch(authProvider);
+          if (authState.value != null && authState.value is Map && authState.value!['user'] != null) {
+            // Render with cached user data and placeholders for driver data
+            final user = authState.value!['user'];
+            return _buildProfileContent(context, user, authState.value!['driver']); 
           }
-
-          final profilePhoto = user['profile_photo'];
-
-          return ListView(
-            padding: const EdgeInsets.all(24),
-            children: [
-              const SizedBox(height: 10),
-              Center(
-                child: GestureDetector(
-                  onTap: _pickAndUploadImage,
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: 100,
-                        height: 100,
-                        decoration: BoxDecoration(
-                          color: primaryColor.withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: ClipOval(
-                          child: (profilePhoto != null && profilePhoto.isNotEmpty)
-                              ? Image.network(
-                                  profilePhoto.startsWith('http') ? profilePhoto : '${AppConstants.baseUrl}/$profilePhoto',
-                                  fit: BoxFit.cover,
-                                  width: 100,
-                                  height: 100,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Center(child: Icon(Icons.error, color: Colors.grey[400])),
-                                )
-                              : Center(
-                                  child: Text(
-                                    user['first_name'] != null ? user['first_name'][0].toUpperCase() : 'S',
-                                    style: TextStyle(fontSize: 40, color: primaryColor, fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: BoxDecoration(
-                            color: primaryColor,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: const Icon(Icons.edit, size: 16, color: Colors.white),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 30),
-
-               // --- Personal Info Section ---
-              Text(
-                'profile.personal_info'.tr(),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              
-              // Inline Editing Fields
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _firstNameController,
-                      label: 'profile.first_name'.tr(),
-                      icon: Icons.person_outline,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildTextField(
-                      controller: _lastNameController,
-                      label: 'profile.last_name'.tr(),
-                      icon: Icons.person_outline,
-                    ),
-                  ),
-                ],
-              ),
-              
-               // Save Button
-              AnimatedCrossFade(
-                firstChild: Container(),
-                secondChild: Padding(
-                  padding: const EdgeInsets.only(top: 16),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                       onPressed: _isLoading ? null : _saveProfile,
-                       style: ElevatedButton.styleFrom(
-                        backgroundColor: primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: _isLoading 
-                        ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                        : Text('profile.save_changes'.tr()),
-                    ),
-                  ),
-                ),
-                crossFadeState: _hasChanges ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 300),
-              ),
-
-              const SizedBox(height: 24),
-              const SizedBox(height: 24),
-              _buildInfoTile('profile.reference_code'.tr(), user['ref_code'] ?? '-', Icons.share_outlined, context),
-              _buildInfoTile(
-                'profile.plate'.tr(), 
-                driver?['vehicle_plate'] ?? '-', 
-                Icons.directions_car_outlined,
-                context,
-                onEdit: () => _showUpdatePlateDialog(context, ref, driver?['vehicle_plate']),
-              ),
-              _buildInfoTile('profile.vehicle_type'.tr(), driver?['vehicle_type'] ?? '-', Icons.category_outlined, context),
-              if (driver?['working_region'] != null)
-                 _buildInfoTile('profile.working_region'.tr(), '${driver?['working_region']} / ${driver?['working_district'] ?? '-'}', Icons.map_outlined, context),
-
-              const SizedBox(height: 20),
-              const Divider(),
-              const SizedBox(height: 20),
-              
-              // --- Security Section ---
-              Text(
-                'profile.security'.tr(),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-
-              _buildReadOnlyField(
-                 label: 'profile.phone'.tr(),
-                 value: user['phone'] ?? '-',
-                 actionLabel: 'profile.change'.tr(),
-                 onAction: () => context.push('/profile/change-phone'),
-                 icon: Icons.phone_android,
-                 context: context
-              ),
-              
-              const SizedBox(height: 16),
-
-              _buildActionTile(
-                context,
-                'profile.change_password'.tr(),
-                Icons.lock_outline,
-                Colors.black87,
-                () => context.push('/profile/change-password'),
-              ),
-              
-              const SizedBox(height: 32),
-
-              _buildActionTile(
-                context,
-                'profile.delete_account'.tr(),
-                Icons.delete_outline,
-                Colors.red,
-                () => _showDeleteAccountDialog(context, ref),
-              ),
-              const SizedBox(height: 40),
-            ],
-          );
+          return const Center(child: CircularProgressIndicator());
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        data: (data) => _buildProfileContent(context, data['user'], data['driver']),
         error: (err, stack) => Center(child: Text('Hata: $err')),
       ),
     );
+  }
+
+  Widget _buildProfileContent(BuildContext context, Map<String, dynamic> user, Map<String, dynamic>? driver) {
+    if (!_isDataInitialized) {
+       _firstNameController.text = user['first_name'] ?? '';
+       _lastNameController.text = user['last_name'] ?? '';
+       _isDataInitialized = true;
+    }
+
+    final profilePhoto = user['profile_photo'];
+    final primaryColor = Theme.of(context).primaryColor;
+
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        const SizedBox(height: 10),
+        Center(
+          child: GestureDetector(
+            onTap: _pickAndUploadImage,
+            child: Stack(
+              children: [
+                Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: primaryColor.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: ClipOval(
+                    child: (profilePhoto != null && profilePhoto.isNotEmpty)
+                        ? Image.network(
+                            profilePhoto.startsWith('http') ? profilePhoto : '${AppConstants.baseUrl}/$profilePhoto',
+                            fit: BoxFit.cover,
+                            width: 100,
+                            height: 100,
+                            errorBuilder: (context, error, stackTrace) =>
+                                Center(child: Text(user['first_name'] != null ? user['first_name'][0].toUpperCase() : 'S', style: TextStyle(fontSize: 40, color: primaryColor, fontWeight: FontWeight.bold))),
+                          )
+                        : Center(
+                            child: Text(
+                              user['first_name'] != null ? user['first_name'][0].toUpperCase() : 'S',
+                              style: TextStyle(fontSize: 40, color: primaryColor, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: primaryColor,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(Icons.edit, size: 16, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 30),
+
+         // --- Personal Info Section ---
+        Text(
+          'profile.personal_info'.tr(),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+        
+        // Inline Editing Fields
+        Row(
+          children: [
+            Expanded(
+              child: _buildTextField(
+                controller: _firstNameController,
+                label: 'profile.first_name'.tr(),
+                icon: Icons.person_outline,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _buildTextField(
+                controller: _lastNameController,
+                label: 'profile.last_name'.tr(),
+                icon: Icons.person_outline,
+              ),
+            ),
+          ],
+        ),
+        
+         // Save Button
+        AnimatedCrossFade(
+          firstChild: Container(),
+          secondChild: Padding(
+            padding: const EdgeInsets.only(top: 16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                 onPressed: _isLoading ? null : _saveProfile,
+                 style: ElevatedButton.styleFrom(
+                  backgroundColor: primaryColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: _isLoading 
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text('profile.save_changes'.tr()),
+              ),
+            ),
+          ),
+          crossFadeState: _hasChanges ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+          duration: const Duration(milliseconds: 300),
+        ),
+
+        const SizedBox(height: 24),
+        const SizedBox(height: 24),
+        _buildInfoTile('profile.reference_code'.tr(), user['ref_code'] ?? '-', Icons.share_outlined, context),
+        _buildInfoTile(
+          'profile.plate'.tr(), 
+          driver?['vehicle_plate'] ?? '-', 
+          Icons.directions_car_outlined,
+          context,
+          onEdit: driver != null ? () => _showUpdatePlateDialog(context, ref, driver['vehicle_plate']) : null,
+        ),
+        _buildInfoTile('profile.vehicle_type'.tr(), driver?['vehicle_type'] ?? '-', Icons.category_outlined, context),
+        if (driver?['working_region'] != null)
+           _buildInfoTile('profile.working_region'.tr(), '${driver?['working_region']} / ${driver?['working_district'] ?? '-'}', Icons.map_outlined, context),
+
+        const SizedBox(height: 20),
+        const Divider(),
+        const SizedBox(height: 20),
+        
+        // --- Security Section ---
+        Text(
+          'profile.security'.tr(),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 16),
+
+        _buildReadOnlyField(
+           label: 'profile.phone'.tr(),
+           value: user['phone'] ?? '-',
+           actionLabel: 'profile.change'.tr(),
+           onAction: () => context.push('/profile/change-phone'),
+           icon: Icons.phone_android,
+           context: context
+        ),
+        
+        const SizedBox(height: 16),
+        
+        const SizedBox(height: 32),
+
+        _buildActionTile(
+          context,
+          'profile.delete_account'.tr(),
+          Icons.delete_outline,
+          Colors.red,
+          () => _showDeleteAccountDialog(context, ref),
+        ),
+        const SizedBox(height: 40),
+      ],
+    );
+
   }
 
   Widget _buildTextField({

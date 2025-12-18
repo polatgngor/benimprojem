@@ -81,29 +81,44 @@ async function getEarnings(req, res) {
 
     console.log('[getEarnings] Constructed Where:', JSON.stringify(where, null, 2));
 
-    const rides = await Ride.findAll({
-      where,
-      attributes: ['id', 'created_at', 'fare_actual', 'start_address', 'end_address', 'payment_method'],
-      order: [['created_at', 'DESC']]
-    });
+    console.log('[getEarnings] Constructed Where:', JSON.stringify(where, null, 2));
+
+    // Parallel Fetching: Rides, User Stats, Rating
+    const [rides, user, ratingData] = await Promise.all([
+      Ride.findAll({
+        where,
+        attributes: ['id', 'created_at', 'fare_actual', 'start_address', 'end_address', 'payment_method'],
+        order: [['created_at', 'DESC']]
+      }),
+      User.findByPk(userId, { attributes: ['ref_count', 'level', 'role'] }),
+      Rating.findOne({
+        where: { rated_id: userId },
+        attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating']]
+      })
+    ]);
 
     console.log('[getEarnings] Found rides count:', rides.length);
-    if (rides.length > 0) {
-      console.log('[getEarnings] First ride sample:', JSON.stringify(rides[0], null, 2));
-    }
 
+    // if driver, include driver details
+    let driver = null;
+    if (user.role === 'driver') {
+      // Parallel Fetch: Driver Details + Wallet
+      const [driverRecord, wallet] = await Promise.all([
+        Driver.findOne({
+          where: { user_id: userId },
+          attributes: ['vehicle_plate', 'vehicle_type', 'status', 'is_available'],
+          raw: true
+        }),
+        Wallet.findOne({ where: { user_id: userId }, raw: true })
+      ]);
+
+      if (driverRecord) {
+        driver = driverRecord;
+        driver.wallet_balance = wallet ? wallet.balance : 0.00;
+      }
+    }
     const total = rides.reduce((s, r) => s + (parseFloat(r.fare_actual || 0) || 0), 0);
     const count = rides.length;
-
-    // Fetch driver level and ref_count
-    const { User, Rating } = require('../models');
-    const user = await User.findByPk(userId, { attributes: ['ref_count', 'level'] });
-
-    // Fetch average rating
-    const ratingData = await Rating.findOne({
-      where: { rated_id: userId },
-      attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating']]
-    });
     const avgRating = ratingData ? parseFloat(ratingData.dataValues.avg_rating || 0).toFixed(1) : "5.0";
 
     // Turkey Time Offset (UTC+3)

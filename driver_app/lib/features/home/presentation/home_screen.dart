@@ -13,6 +13,7 @@ import '../../auth/data/auth_service.dart';
 import 'widgets/driver_stats_sheet.dart';
 import 'screens/incoming_requests_screen.dart';
 import 'providers/incoming_requests_provider.dart';
+import 'providers/optimistic_ride_provider.dart';
 import 'widgets/passenger_info_sheet.dart';
 import 'widgets/driver_drawer.dart';
 import '../../rides/presentation/widgets/rating_dialog.dart';
@@ -83,15 +84,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     WidgetsBinding.instance.removeObserver(this);
     _positionSubscription?.cancel();
     _locationUpdateTimer?.cancel();
-    try {
-      ref.read(socketServiceProvider).disconnect();
-    } catch (_) {}
     WakelockPlus.disable();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    // Listen for Optimistic Updates (Zero Latency)
+    ref.listen(optimisticRideProvider, (previous, next) {
+      if (next != null) {
+        // We use Future.microtask to avoid setState during build if that ever happens, 
+        // though ref.listen callbacks are usually safe.
+        setState(() {
+          _activeRide = next;
+          _fetchAndDrawRoute(fitBounds: true);
+        });
+        debugPrint('Optimistic Ride Update applied: ${next['status']}');
+      }
+    });
+
     return Scaffold(
       drawer: const DriverDrawer(),
       body: LayoutBuilder(
@@ -329,10 +340,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     socket.on('request:accept_failed', (data) {
       if (mounted) {
         ref.read(ringtoneServiceProvider).stopRingtone();
+        
+        // Revert Optimistic UI
+        ref.read(optimisticRideProvider.notifier).clear();
+        setState(() {
+          _activeRide = null; 
+          _polylines.clear();
+        });
+        
         ref.read(incomingRequestsProvider.notifier).removeRequest(data['ride_id'].toString());
+        
+        // Show error
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Çağrı kabul edilemedi: ${data['reason'] ?? 'Bilinmeyen hata'}')),
+          SnackBar(
+            content: Text('Çağrı kabul edilemedi: ${data['reason'] ?? 'Başka sürücü aldı'}'),
+            backgroundColor: Colors.red,
+          )
         );
+        debugPrint('Çağrı kabul edilemedi: ${data['reason'] ?? 'Bilinmeyen hata'}');
+        
+        // Ensure we emit availability again so we can get new requests
+        _setDriverAvailable();
       }
     });
 
@@ -341,9 +369,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       if (mounted) {
         ref.read(ringtoneServiceProvider).stopRingtone();
         ref.read(incomingRequestsProvider.notifier).removeRequest(data['ride_id'].toString());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Çağrı zaman aşımına uğradı.')),
-        );
+        debugPrint('Çağrı zaman aşımına uğradı.');
       }
     });
 
@@ -370,9 +396,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           _polylines.clear();
         });
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Yolculuk iptal edildi. (${data['reason'] ?? 'Sebep belirtilmedi'})')),
-        );
+        debugPrint('Yolculuk iptal edildi. (${data['reason'] ?? 'Sebep belirtilmedi'})');
       }
     });
 
@@ -409,17 +433,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           _polylines.clear();
         });
 
-        _setDriverAvailable();
+        _setDriverAvailable(); // Force availability
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Yolculuk tamamlandı.')),
-        );
+        debugPrint('Yolculuk tamamlandı.');
+        
+        // Show Rating Dialog
         if (rideId != null) {
           showDialog(
             context: context,
             barrierDismissible: false,
             builder: (context) => DriverRatingDialog(rideId: rideId, passengerName: passengerName),
-          );
+          ).then((_) {
+             // Force sync state AGAIN after dialog closes to ensure we are back to "Searching" UI
+             _syncState(fitBounds: false);
+          });
         }
       }
     });
@@ -446,13 +473,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _isOnline = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Müsait duruma geçilemedi.'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 5),
-          ),
-        );
+         debugPrint('Müsait duruma geçilemedi: ${data['message']}');
       }
     });
 
@@ -468,12 +489,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     socket.on('start_ride_failed', (data) {
       if (mounted) {
         final reason = data['reason'] ?? 'unknown';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Yolculuğu başlatma hatası: $reason'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        debugPrint('Yolculuğu başlatma hatası: $reason');
       }
     });
 
@@ -481,12 +497,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     socket.on('end_ride_failed', (data) {
       if (mounted) {
         final reason = data['reason'] ?? 'unknown';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Yolculuğu bitirme hatası: $reason'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        debugPrint('Yolculuğu bitirme hatası: $reason');
       }
     });
 
@@ -494,12 +505,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     socket.on('request:reject_failed', (data) {
       if (mounted) {
         final reason = data['reason'] ?? 'unknown';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Çağrı reddetme hatası: $reason'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        debugPrint('Çağrı reddetme hatası: $reason');
       }
     });
 
@@ -514,9 +520,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     socket.on('message_failed', (data) {
       if (mounted) {
         final reason = data['reason'] ?? 'unknown';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Mesaj gönderilemedi: $reason')),
-        );
+        debugPrint('Mesaj gönderilemedi: $reason');
       }
     });
 
@@ -530,9 +534,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
         _setDriverAvailable();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Yolculuk başarıyla iptal edildi.')),
-        );
+        debugPrint('Yolculuk başarıyla iptal edildi.');
       }
     });
 
@@ -540,12 +542,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     socket.on('cancel_ride_failed', (data) {
       if (mounted) {
         final reason = data['reason'] ?? 'unknown';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('İptal işlemi başarısız: $reason'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        debugPrint('İptal işlemi başarısız: $reason');
       }
     });
   }
@@ -561,9 +558,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       controller.animateCamera(CameraUpdate.newLatLng(_currentPosition!));
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Konum hatası: $e')),
-        );
+        debugPrint('Konum hatası: $e');
       }
     }
   }
@@ -666,9 +661,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       });
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('home.you_are_online'.tr())),
-        );
+        debugPrint('Online notification displayed (snackbar removed)');
       }
     } else {
       // Go Offline
@@ -682,9 +675,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       FlutterBackgroundService().invoke("stopService");
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-           SnackBar(content: Text('home.you_are_offline'.tr())),
-        );
+        debugPrint('Offline notification displayed (snackbar removed)');
       }
     }
   }

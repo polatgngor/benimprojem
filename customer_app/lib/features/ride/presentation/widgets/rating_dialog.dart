@@ -42,33 +42,24 @@ class _RatingDialogState extends ConsumerState<RatingDialog> with SingleTickerPr
     super.dispose();
   }
 
-  Future<void> _submit() async {
+  void _submit() {
     if (_rating == 0) return;
-    setState(() => _isLoading = true);
-    try {
-      await ref.read(rideRepositoryProvider).rateRide(
-        widget.rideId,
-        _rating,
-        _commentController.text.trim().isEmpty ? null : _commentController.text.trim(),
-      );
-      if (mounted) {
-        // Show success animation or just close
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('rating.success'.tr())),
-        );
-        context.pop(); 
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('rating.error'.tr(args: [e.toString()]))),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    
+    // Optimistic UI: Close immediately, assume success
+    context.pop();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('rating.success'.tr())),
+    );
+
+    // Fire and forget (or handle error silently/later)
+    ref.read(rideRepositoryProvider).rateRide(
+      widget.rideId,
+      _rating,
+      _commentController.text.trim().isEmpty ? null : _commentController.text.trim(),
+    ).catchError((e) {
+       debugPrint('Rating failed: $e');
+       // Optionally show a toast if it fails later, but usually not needed for ratings
+    });
   }
 
   @override

@@ -29,7 +29,9 @@ async function sendOtp(req, res) {
 
         // 2. Store in Redis
         // Key: otp:{phone} -> value: {code}
-        const key = `otp:${phone}`;
+        // Sanitize phone for key consistency
+        const keyPhone = phone.replace(/\D/g, '');
+        const key = `otp:${keyPhone}`;
         await redis.set(key, otp, 'EX', OTP_TTL);
 
         // 3. Send SMS
@@ -69,8 +71,12 @@ async function verifyOtp(req, res) {
         phone = phone.trim();
         code = code.trim();
 
-        const key = `otp:${phone}`;
+        // Sanitize phone for key consistency: remove all non-digits
+        const keyPhone = phone.replace(/\D/g, '');
+        const key = `otp:${keyPhone}`;
         const storedOtp = await redis.get(key);
+
+        console.log(`[DEBUG] verifyOtp: phone='${phone}', code='${code}', key='${key}', storedOtp='${storedOtp}'`);
 
         if (!storedOtp) {
             return res.status(400).json({ message: 'OTP expired or not found' });

@@ -27,15 +27,17 @@ async function getProfile(req, res) {
     // if driver, include driver details
     let driver = null;
     if (user.role === 'driver') {
-      const driverRecord = await Driver.findOne({
-        where: { user_id: userId },
-        attributes: ['vehicle_plate', 'vehicle_type', 'status', 'is_available']
-      });
+      // Parallel Fetch: Driver Details + Wallet
+      const [driverRecord, wallet] = await Promise.all([
+        Driver.findOne({
+          where: { user_id: userId },
+          attributes: ['vehicle_plate', 'vehicle_type', 'status', 'is_available']
+        }),
+        Wallet.findOne({ where: { user_id: userId } })
+      ]);
 
       if (driverRecord) {
         driver = driverRecord.toJSON();
-        // Include wallet balance
-        const wallet = await Wallet.findOne({ where: { user_id: userId } });
         driver.wallet_balance = wallet ? wallet.balance : 0.00;
       }
     }
