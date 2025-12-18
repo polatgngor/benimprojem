@@ -33,43 +33,40 @@ class PassengerInfoSheet extends ConsumerStatefulWidget {
   ConsumerState<PassengerInfoSheet> createState() => _PassengerInfoSheetState();
 }
 
-class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
-  final List<TextEditingController> _otpControllers = List.generate(4, (_) => TextEditingController());
-  final List<FocusNode> _otpFocusNodes = List.generate(4, (_) => FocusNode());
-  double _currentMaxHeight = 0.5;
-  
+import 'package:pinput/pinput.dart';
+// ... other imports
+
+  bool _isVerifying = false;
+
   @override
   void dispose() {
-    for (var controller in _otpControllers) {
-      controller.dispose();
-    }
-    for (var node in _otpFocusNodes) {
-      node.dispose();
-    }
+    _otpController.dispose();
+    _otpFocusNode.dispose();
     super.dispose();
   }
 
-  void _onOtpDigitChanged(int index, String value) {
-    if (value.isNotEmpty) {
-      if (index < 3) {
-        _otpFocusNodes[index + 1].requestFocus();
-      } else {
-        _otpFocusNodes[index].unfocus();
-        _verifyAndStartRide();
-      }
-    } else if (value.isEmpty && index > 0) {
-      _otpFocusNodes[index - 1].requestFocus();
-    }
-  }
+  // Removed _onOtpDigitChanged as Pinput handles it internally
 
-  void _verifyAndStartRide() {
-    final code = _otpControllers.map((c) => c.text).join();
-    if (code.length == 4) {
+  void _verifyAndStartRide(String code) {
+    if (code.length == 4 && !_isVerifying) {
       final rideId = widget.rideData['ride_id']?.toString() ?? widget.rideData['id']?.toString();
       if (rideId != null) {
+        setState(() {
+          _isVerifying = true; // Show loading immediately
+        });
+        
         ref.read(socketServiceProvider).socket.emit('driver:start_ride', {
           'ride_id': rideId,
           'code': code,
+        });
+
+        // Safety timeout to reset state if server doesn't respond quickly
+        Future.delayed(const Duration(seconds: 10), () {
+           if (mounted && _isVerifying) {
+             setState(() {
+               _isVerifying = false;
+             });
+           }
         });
       }
     }
@@ -175,7 +172,12 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
               curve: Curves.easeInOut,
               alignment: Alignment.topCenter,
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 8, 20, 0), // Reduced bottom padding
+                padding: EdgeInsets.fromLTRB(
+                  20, 
+                  8, 
+                  20, 
+                  MediaQuery.of(context).viewPadding.bottom + 16 // System padding + extra
+                ), 
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -413,10 +415,7 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                         style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey),
                       ),
                        const SizedBox(height: 12),
-                       Row(
-                         mainAxisAlignment: MainAxisAlignment.center,
-                         children: List.generate(4, (index) => _buildOtpField(context, index)),
-                       ),
+                       _buildPinput(context),
                        const SizedBox(height: 24),
                        Row(
                          mainAxisAlignment: MainAxisAlignment.center,
@@ -492,42 +491,58 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
     );
   }
 
-  Widget _buildOtpField(BuildContext context, int index) {
-    return Container(
-      width: 50, // Square
-      height: 50, // Square
-      margin: const EdgeInsets.symmetric(horizontal: 8), 
+  Widget _buildPinput(BuildContext context) {
+    final defaultPinTheme = PinTheme(
+      width: 50,
+      height: 50,
+      textStyle: TextStyle(
+          fontSize: 24,
+          color: Theme.of(context).primaryColor,
+          fontWeight: FontWeight.bold),
       decoration: BoxDecoration(
         color: const Color(0xFFE3F2FD),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: _otpFocusNodes[index].hasFocus ? Theme.of(context).primaryColor : Colors.transparent,
-          width: 2,
-        ),
-      ),
-      child: Center(
-        child: TextField(
-          controller: _otpControllers[index],
-          focusNode: _otpFocusNodes[index],
-          keyboardType: TextInputType.number,
-          textAlign: TextAlign.center,
-          maxLength: 1,
-          style: TextStyle(
-            fontSize: 24, 
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).primaryColor,
-          ),
-          decoration: const InputDecoration(
-            counterText: '',
-            border: InputBorder.none,
-            focusedBorder: InputBorder.none,
-            enabledBorder: InputBorder.none,
-            contentPadding: EdgeInsets.zero, // Center text vertically
-          ),
-          onChanged: (value) => _onOtpDigitChanged(index, value),
-        ),
+        border: Border.all(color: Colors.transparent),
       ),
     );
+
+    final focusedPinTheme = defaultPinTheme.copyDecorationWith(
+      border: Border.all(color: Theme.of(context).primaryColor, width: 2),
+    );
+
+    final submittedPinTheme = defaultPinTheme.copyWith(
+      decoration: defaultPinTheme.decoration!.copyWith(
+        color: const Color(0xFFE3F2FD),
+      ),
+    );
+
+    return _isVerifying 
+        ? const Center(
+            child: Padding(
+              padding: EdgeInsets.all(12.0),
+              child: SizedBox(
+                height: 48,
+                width: 48,
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          )
+        : Pinput(
+            length: 4,
+            controller: _otpController, // You need to initialize this single controller
+            focusNode: _otpFocusNode,   // And this single focus node
+            defaultPinTheme: defaultPinTheme,
+            focusedPinTheme: focusedPinTheme,
+            submittedPinTheme: submittedPinTheme,
+            showCursor: true,
+            pinputAutovalidateMode: PinputAutovalidateMode.onSubmit,
+            onCompleted: (pin) => _verifyAndStartRide(pin),
+          );
+  }
+
+  // Helper placeholder to match replaced structure
+  Widget _buildOtpField(BuildContext context, int index) {
+      return const SizedBox.shrink();
   }
   
   // Note: _buildTimelineItem is unused in the build method above? 

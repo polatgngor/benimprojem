@@ -70,8 +70,11 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
 
     return Drawer(
       backgroundColor: Colors.white,
-      child: Column(
-        children: [
+      width: MediaQuery.of(context).size.width * 0.75, // %75 Width
+      child: SafeArea(
+        top: false, 
+        child: Column(
+          children: [
           // Header
           Container(
             width: double.infinity,
@@ -318,6 +321,7 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
           const SizedBox(height: 10),
         ],
       ),
+     ),
     );
   }
 

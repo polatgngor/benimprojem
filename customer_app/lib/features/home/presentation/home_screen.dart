@@ -496,8 +496,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                  padding: EdgeInsets.zero,
                   child: DraggableScrollableSheet(
                     controller: _sheetController,
-                    initialChildSize: _sheetMaxHeight < 0.45 ? _sheetMaxHeight : 0.45,
-                    minChildSize: _sheetMaxHeight / 2, 
+                    initialChildSize: _sheetMaxHeight, // Open at max height directly
+                    minChildSize: 0.2, // Minimum consistent size handling
                     maxChildSize: _sheetMaxHeight, 
                     snap: true, 
                     builder: (context, scrollController) {

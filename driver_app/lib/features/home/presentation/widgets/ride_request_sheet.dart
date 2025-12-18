@@ -22,7 +22,12 @@ class RideRequestSheet extends StatelessWidget {
     final dropoff = request['dropoff_address'] ?? 'Bilinmeyen Varış';
 
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.fromLTRB(
+        24, 
+        24, 
+        24, 
+        24 + MediaQuery.of(context).viewPadding.bottom
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),

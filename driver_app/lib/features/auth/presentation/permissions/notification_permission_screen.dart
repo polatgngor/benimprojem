@@ -11,8 +11,36 @@ class NotificationPermissionScreen extends ConsumerStatefulWidget {
   ConsumerState<NotificationPermissionScreen> createState() => _NotificationPermissionScreenState();
 }
 
-class _NotificationPermissionScreenState extends ConsumerState<NotificationPermissionScreen> {
+class _NotificationPermissionScreenState extends ConsumerState<NotificationPermissionScreen> with WidgetsBindingObserver {
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissionAndContinue();
+    }
+  }
+
+  Future<void> _checkPermissionAndContinue() async {
+    final status = await Permission.notification.status;
+    if (status.isGranted) {
+      if (mounted) {
+         await _completeOnboarding();
+      }
+    }
+  }
 
   Future<void> _completeOnboarding() async {
     await ref.read(onboardingProvider.notifier).complete();
@@ -23,12 +51,17 @@ class _NotificationPermissionScreenState extends ConsumerState<NotificationPermi
     setState(() => _isLoading = true);
     
     // Request notification permission
-    await Permission.notification.request();
+    final status = await Permission.notification.request();
 
-    setState(() => _isLoading = false);
+    if (status.isGranted) {
+      if (mounted) await _completeOnboarding();
+    } else if (status.isPermanentlyDenied) {
+      // Open settings if permanently denied
+      openAppSettings();
+    }
 
     if (mounted) {
-      await _completeOnboarding();
+      setState(() => _isLoading = false);
     }
   }
 

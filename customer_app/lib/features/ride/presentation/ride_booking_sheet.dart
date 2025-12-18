@@ -53,7 +53,12 @@ class RideBookingSheet extends ConsumerWidget {
           
           // Main Content
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4), // Reduced bottom padding
+            padding: EdgeInsets.fromLTRB(
+              16, 
+              0, 
+              16, 
+              4 + MediaQuery.of(context).viewPadding.bottom // Add system bottom padding
+            ), 
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),
               switchInCurve: Curves.easeInOut,

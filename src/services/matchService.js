@@ -68,21 +68,18 @@ async function emitRideRequest(ride, opts = {}) {
   const passenger_info = opts.passenger_info || {};
   const radiusKm = opts.radiusKm || DEFAULT_RADIUS_KM;
 
-  let nearby = opts.driverIds;
-  if (!nearby) {
-    nearby = await findNearbyDrivers(vehicle_type, lat, lng, radiusKm, MAX_CANDIDATES);
-  }
-
-  try {
-    // console.log(`[matchService] ride ${ride.id} nearby candidates:`, nearby);
-  } catch (e) { }
-
-  if (!nearby || nearby.length === 0) {
-    console.log(`[matchService] ride ${ride.id} - no nearby drivers found`);
-  }
+  // New: Calculate Absolute Expiry Time
+  const nowTs = Date.now();
+  const timeoutMs = Math.max(1000, ACCEPT_TIMEOUT_SECONDS * 1000);
+  const expiresAt = nowTs + timeoutMs;
 
   const io = socketProvider.getIO();
-  const sentDrivers = [];
+  const sentDrivers = new Set(); // Track unique drivers sent to
+
+  // Initial candidate list passed in?
+  if (opts.driverIds && opts.driverIds.length > 0) {
+    opts.driverIds.forEach(id => sentDrivers.add(String(id)));
+  }
 
   const payloadBase = {
     ride_id: ride.id,
@@ -95,170 +92,171 @@ async function emitRideRequest(ride, opts = {}) {
     distance: opts.distanceMeters,
     duration: opts.durationSeconds,
     polyline: opts.polyline,
-    payment_method: ride.payment_method
+    payment_method: ride.payment_method,
+    expires_at: expiresAt // SYNC FIX: Send absolute timeout
   };
 
-  // Check Time Window for Priority
-  const now = new Date();
-  const hour = now.getHours();
-  const isMorningPeak = (hour >= 6 && hour < 9);
-  const isEveningPeak = (hour >= 17 && hour < 21);
-  const isPeakHour = isMorningPeak || isEveningPeak;
-
-  // Determine Ride Destination Region
+  // Determine Ride Destination Region (for priority)
   const rideDestRegion = getRegion(ride.end_lat, ride.end_lng);
+  // Check Time Window for Priority
+  const hour = new Date().getHours();
+  const isPeakHour = (hour >= 6 && hour < 9) || (hour >= 17 && hour < 21);
 
-  // Driver'ların level'larını ve working_region'larını çek
-  let driversWithLevel = [];
-  if (nearby && nearby.length > 0) {
-    // We need Driver table for working_region
-    const { Driver } = require('../models'); // Lazy load to avoid circular dep if any
+  // We need Driver table for working_region
+  const { Driver } = require('../models');
 
+  // --- MATCHING LOOP FUNCTION ---
+  const attemptMatch = async (isFirstRun = false) => {
+    // If timeout passed, stop
+    if (Date.now() >= expiresAt) return;
+
+    // 1. Find nearby drivers
+    // Note: We search again to find NEW drivers who came online/entered zone
+    const nearby = await findNearbyDrivers(vehicle_type, lat, lng, radiusKm, MAX_CANDIDATES);
+
+    // Filter out already sent
+    const newCandidates = nearby.filter(id => !sentDrivers.has(String(id)));
+
+    if (newCandidates.length === 0) {
+      if (isFirstRun) console.log(`[matchService] ride ${ride.id} - no drivers found in first run`);
+      return;
+    }
+
+    // 2. Prepare Drivers with Level/Priority
     const users = await User.findAll({
-      where: { id: nearby },
+      where: { id: newCandidates },
       attributes: ['id', 'level']
     });
 
     const driversDetails = await Driver.findAll({
-      where: { user_id: nearby },
+      where: { user_id: newCandidates },
       attributes: ['user_id', 'working_region']
     });
 
     const levelMap = new Map();
-    for (const u of users) {
-      levelMap.set(String(u.id), u.level || 'standard');
-    }
+    for (const u of users) levelMap.set(String(u.id), u.level || 'standard');
 
     const regionMap = new Map();
-    for (const d of driversDetails) {
-      regionMap.set(String(d.user_id), d.working_region);
-    }
+    for (const d of driversDetails) regionMap.set(String(d.user_id), d.working_region);
 
-    driversWithLevel = nearby.map((driverId) => {
+    const driversWithLevel = newCandidates.map((driverId) => {
       const level = levelMap.get(String(driverId)) || 'standard';
-      let prioritySeconds = getDriverPrioritySeconds(level); // platinum 0, gold 1, silver 2, standard 3
+      let prioritySeconds = getDriverPrioritySeconds(level);
 
       // PRIORITY LOGIC
       if (isPeakHour && rideDestRegion) {
         const driverHomeRegion = regionMap.get(String(driverId));
-        // We need driver's current location to know if they are in opposite region.
-        // But here we only have 'nearby' list which came from GEO search around START point.
-        // So we can assume driver is near START point.
-        const driverCurrentRegion = getRegion(lat, lng);
-
-        // Condition: Driver is NOT in their home region AND Ride is going TO their home region
+        const driverCurrentRegion = getRegion(lat, lng); // Assume driver near start
         if (driverHomeRegion && driverCurrentRegion && driverHomeRegion !== driverCurrentRegion) {
           if (rideDestRegion === driverHomeRegion) {
-            // BINGO! Return Home Priority
-            console.log(`[matchService] Priority Boost for driver ${driverId} (Home: ${driverHomeRegion}, Current: ${driverCurrentRegion}) -> Dest: ${rideDestRegion}`);
             prioritySeconds = 0;
           }
         }
       }
-
-      return {
-        driverId: String(driverId),
-        level,
-        prioritySeconds
-      };
+      return { driverId: String(driverId), level, prioritySeconds };
     });
 
-    // Küçük prioritySeconds olan (platinum veya priority boost) önce işlenir
+    // Sort by priority
     driversWithLevel.sort((a, b) => a.prioritySeconds - b.prioritySeconds);
-  }
 
-  let count = 0;
-  for (const d of driversWithLevel) {
-    if (count >= BROADCAST_BATCH) break;
+    // 3. Process Batch
+    let count = 0;
+    for (const d of driversWithLevel) {
+      if (count >= BROADCAST_BATCH) break; // Throttle per tick if needed
 
-    const { driverId, level, prioritySeconds } = d;
-    const meta = await redis.hgetall(`driver:${driverId}:meta`);
+      const { driverId, prioritySeconds } = d;
+      const meta = await redis.hgetall(`driver:${driverId}:meta`);
 
-    if (!meta || !meta.available || meta.available !== '1') {
-      console.log(`[matchService] Skipping driver:${driverId} - not available or meta missing`);
-      continue;
-    }
-
-    const socketId = meta.socketId;
-    const delayMs = prioritySeconds * 1000;
-
-    setTimeout(async () => {
-      try {
-        if (socketId && io && io.to) {
-          console.log(`[matchService] emitting request:incoming to driver:${driverId} socket:${socketId}`);
-          io.to(socketId).emit('request:incoming', {
-            ...payloadBase,
-            sent_at: Date.now()
-          });
-        }
-
-        try {
-          const devices = await UserDevice.findAll({ where: { user_id: driverId } });
-          const tokens = devices.map((d) => d.device_token);
-          if (tokens.length > 0) {
-            await sendPushToTokens(
-              tokens,
-              {
-                title: 'Yeni taksi çağrısı',
-                body: 'Yeni bir yolculuk isteği aldınız.'
-              },
-              {
-                type: 'request_incoming',
-                ride_id: String(ride.id),
-                vehicle_type: vehicle_type
-              }
-            );
-          }
-        } catch (e) {
-          console.warn('[matchService] driver push failed', driverId, e.message || e);
-        }
-      } catch (err) {
-        console.warn('[matchService] emit to driver failed', driverId, err && err.message ? err.message : err);
+      if (!meta || !meta.available || meta.available !== '1') {
+        continue;
       }
-    }, delayMs);
 
-    sentDrivers.push(driverId);
-    count++;
+      // Late check: if we are too close to timeout, skip high priority delays? 
+      // Current logic: still apply prioritySeconds delay. 
+      // If delay > remaining time, driver won't really see it or will see it briefly.
 
-    try {
-      await RideRequest.create({
-        ride_id: ride.id,
-        driver_id: driverId,
-        sent_at: new Date(),
-        driver_response: 'no_response',
-        timeout: false
-      });
-    } catch (e) {
-      console.warn('[matchService] failed to create RideRequest record', e.message || e);
+      const socketId = meta.socketId;
+      const delayMs = prioritySeconds * 1000;
+
+      setTimeout(async () => {
+        // Double check availability key (unlocked?)
+        try {
+          if (socketId && io && io.to) {
+            console.log(`[matchService] emitting request:incoming to driver:${driverId} (Discovery)`);
+            io.to(socketId).emit('request:incoming', {
+              ...payloadBase,
+              sent_at: Date.now()
+            });
+          }
+
+          // Send Push
+          try {
+            const devices = await UserDevice.findAll({ where: { user_id: driverId } });
+            const tokens = devices.map((d) => d.device_token);
+            if (tokens.length > 0) {
+              await sendPushToTokens(tokens, { title: 'Yeni taksi çağrısı', body: 'Yeni bir yolculuk isteği aldınız.' }, { type: 'request_incoming', ride_id: String(ride.id), vehicle_type: vehicle_type });
+            }
+          } catch (e) { }
+        } catch (err) {
+          console.warn('[matchService] emit failed', driverId, err);
+        }
+      }, delayMs);
+
+      // Mark as sent
+      sentDrivers.add(driverId);
+
+      try {
+        await RideRequest.create({
+          ride_id: ride.id,
+          driver_id: driverId,
+          sent_at: new Date(),
+          driver_response: 'no_response',
+          timeout: false
+        });
+      } catch (e) { }
+
+      count++;
     }
-  }
+  };
 
-  try {
-    console.log(
-      `[matchService] ride ${ride.id} sentDrivers (with priority):`,
-      driversWithLevel.slice(0, count)
-    );
-  } catch (e) { }
+  // --- START EXECUTION ---
 
+  // 1. Initial Attempt
+  await attemptMatch(true);
+
+  // 2. Loop Interval (Every 5 seconds check for new drivers)
+  const DISCOVERY_INTERVAL_MS = 5000;
+  const intervalId = setInterval(async () => {
+    const remaining = expiresAt - Date.now();
+    if (remaining <= 500) { // Buffer
+      clearInterval(intervalId);
+      return;
+    }
+    await attemptMatch(false);
+  }, DISCOVERY_INTERVAL_MS);
+
+  // Ensure interval clears after timeout
+  setTimeout(() => clearInterval(intervalId), timeoutMs);
+
+  // Schedule Backend Timeout Logic (Status Update)
   const jobId = `ride_timeout_${ride.id}`;
-  const timeoutDelayMs = Math.max(1000, ACCEPT_TIMEOUT_SECONDS * 1000);
   try {
     await rideTimeoutQueue.add(
       'ride-timeout',
       { rideId: ride.id },
       {
         jobId,
-        delay: timeoutDelayMs,
+        delay: timeoutMs,
         removeOnComplete: true,
         removeOnFail: true
       }
     );
-    console.log(`[matchService] ride ${ride.id} scheduled timeout job ${jobId} delayMs=${timeoutDelayMs}`);
+    console.log(`[matchService] ride ${ride.id} scheduled timeout job ${jobId} delayMs=${timeoutMs}`);
   } catch (e) {
-    console.warn('[matchService] Could not schedule ride timeout job', e && e.message ? e.message : e);
+    console.warn('[matchService] job failed', e);
   }
 
-  return sentDrivers;
+  return Array.from(sentDrivers);
 }
 
 module.exports = { findNearbyDrivers, emitRideRequest };

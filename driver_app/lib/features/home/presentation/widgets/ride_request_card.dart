@@ -24,14 +24,45 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
   // Default timeout duration (reduced to sync with backend)
   static const int _timeoutSeconds = 15;
 
+  bool _isAccepting = false; // Optimistic UI state
+
   @override
   void initState() {
     super.initState();
     _setupMapData();
+    _setupTimer();
+  }
+
+  void _setupTimer() {
+    int durationSeconds = _timeoutSeconds;
+    
+    // Check for strict backend expiration
+    if (widget.request['expires_at'] != null) {
+      final expiresAt = int.tryParse(widget.request['expires_at'].toString());
+      if (expiresAt != null) {
+        final now = DateTime.now().millisecondsSinceEpoch;
+        final remainingMs = expiresAt - now;
+        if (remainingMs <= 0) {
+           durationSeconds = 0;
+           // Trigger immediate timeout handling if needed? 
+           // For now, let's just show 0 and allowed system to reap it via socket event or auto-close
+        } else {
+           durationSeconds = (remainingMs / 1000).ceil();
+        }
+      }
+    }
+
     _timerController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: _timeoutSeconds),
+      duration: Duration(seconds: durationSeconds > 0 ? durationSeconds : 1),
     )..reverse(from: 1.0);
+    
+    // Auto-timeout callback could be added here if needed
+    // _timerController.addStatusListener((status) {
+    //   if (status == AnimationStatus.dismissed) {
+    //      // Handle local timeout
+    //   }
+    // });
   }
 
   // ... (dispose and map setup unchanged) ...
@@ -41,73 +72,27 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
     super.dispose();
   }
 
-  void _setupMapData() {
-    final startLat = double.parse(widget.request['start']['lat'].toString());
-    final startLng = double.parse(widget.request['start']['lng'].toString());
-    final endLat = double.parse(widget.request['end']['lat'].toString());
-    final endLng = double.parse(widget.request['end']['lng'].toString());
+  // ... map setup ...
 
-    final startPos = LatLng(startLat, startLng);
-    final endPos = LatLng(endLat, endLng);
+  Future<void> _acceptRide() async {
+    if (_isAccepting) return;
+    
+    setState(() {
+      _isAccepting = true;
+    });
 
-    _markers = {
-      Marker(
-        markerId: const MarkerId('start'),
-        position: startPos,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      ),
-      Marker(
-        markerId: const MarkerId('end'),
-        position: endPos,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-      ),
-    };
-
-    if (widget.request['polyline'] != null) {
-      _polylines = {
-        Polyline(
-          polylineId: const PolylineId('route'),
-          points: _decodePolyline(widget.request['polyline']),
-          color: const Color(0xFF1A77F6),
-          width: 5,
-        ),
-      };
-    }
-  }
-
-  List<LatLng> _decodePolyline(String encoded) {
-    List<LatLng> points = [];
-    int index = 0, len = encoded.length;
-    int lat = 0, lng = 0;
-
-    while (index < len) {
-      int b, shift = 0, result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlat = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lat += dlat;
-
-      shift = 0;
-      result = 0;
-      do {
-        b = encoded.codeUnitAt(index++) - 63;
-        result |= (b & 0x1f) << shift;
-        shift += 5;
-      } while (b >= 0x20);
-      int dlng = ((result & 1) != 0 ? ~(result >> 1) : (result >> 1));
-      lng += dlng;
-
-      points.add(LatLng(lat / 1E5, lng / 1E5));
-    }
-    return points;
-  }
-
-  void _acceptRide() {
     final rideId = widget.request['ride_id'];
+    // Emit and wait (fire and forget from UI perspective, global listener handles result)
     ref.read(socketServiceProvider).socket.emit('driver:accept_request', {'ride_id': rideId});
+    
+    // Safety timeout to reset button if server never responds (e.g. 5s)
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted && _isAccepting) {
+        setState(() {
+          _isAccepting = false;
+        });
+      }
+    });
   }
 
    @override

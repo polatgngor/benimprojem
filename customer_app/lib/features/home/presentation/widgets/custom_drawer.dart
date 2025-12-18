@@ -54,10 +54,13 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
 
     return Drawer(
       backgroundColor: Colors.white,
-      child: Column(
-        children: [
-          // Header
-          Container(
+      width: MediaQuery.of(context).size.width * 0.75, // %75 Width
+      child: SafeArea(
+        top: false, // Allow header to go behind status bar
+        child: Column(
+          children: [
+            // Header
+            Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
             decoration: BoxDecoration(
@@ -288,6 +291,7 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
           const SizedBox(height: 10),
         ],
       ),
+     ),
     );
   }
 

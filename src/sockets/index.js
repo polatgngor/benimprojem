@@ -500,12 +500,17 @@ module.exports = function initSockets(server) {
 
         await ride.save();
 
-        // --- Set Driver Available Again ---
+        // --- Set Driver Available Again & Restore GEO (Ghost Call Fix) ---
         try {
           await Driver.update({ is_available: true }, { where: { user_id: userId } });
           await redis.hset(`driver:${userId}:meta`, 'available', '1');
-          // Note: We don't verify GEO here immediately. 
-          // The driver app's next location update will add them back to GEO key if available=1.
+
+          // Restore to GEO index immediately using last known location
+          const meta = await redis.hgetall(`driver:${userId}:meta`);
+          if (meta && meta.lat && meta.lng && meta.vehicle_type) {
+            const key = geoKeyForVehicle(meta.vehicle_type || 'sari');
+            await redis.geoadd(key, meta.lng, meta.lat, String(userId));
+          }
         } catch (avErr) {
           console.error('[end_ride] failed to set driver available', avErr);
         }
@@ -654,8 +659,14 @@ module.exports = function initSockets(server) {
           { is_available: true },
           { where: { user_id: userId } }
         );
-        // Sync Redis
+        // Sync Redis & Restore GEO (Ghost Call Fix)
         await redis.hset(`driver:${userId}:meta`, 'available', '1');
+        const meta = await redis.hgetall(`driver:${userId}:meta`);
+        if (meta && meta.lat && meta.lng) {
+          const vType = meta.vehicle_type || 'sari';
+          const key = geoKeyForVehicle(vType);
+          await redis.geoadd(key, meta.lng, meta.lat, String(userId));
+        }
 
         // Leave the room
         socket.leave(`ride:${ride.id}`);
@@ -825,7 +836,8 @@ module.exports = function initSockets(server) {
 
         // Fire and forget location updates
         redis.geoadd(key, lng, lat, String(userId)).catch(e => { });
-        redis.hset(`driver:${userId}:meta`, 'last_loc_update', Date.now()).catch(e => { });
+        // Store last known location in meta for quick restoration (Ghost Call fix)
+        redis.hset(`driver:${userId}:meta`, 'last_loc_update', Date.now(), 'lat', lat, 'lng', lng).catch(e => { });
 
         // if driver is in a ride room, broadcast to that room
         const rooms = Array.from(socket.rooms); // includes socket.id for sure

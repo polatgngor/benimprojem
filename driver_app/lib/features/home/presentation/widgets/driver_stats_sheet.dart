@@ -147,7 +147,12 @@ class _DriverStatsSheetState extends ConsumerState<DriverStatsSheet> {
                 ),
                 // Content
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+                  padding: EdgeInsets.fromLTRB(
+                    24, 
+                    0, 
+                    24, 
+                    24 + MediaQuery.of(context).viewPadding.bottom
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
