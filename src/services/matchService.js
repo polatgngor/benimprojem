@@ -15,23 +15,29 @@ const DEFAULT_RADIUS_KM = 3;
 const MAX_CANDIDATES = 10;
 const BROADCAST_BATCH = 5;
 const ACCEPT_TIMEOUT_SECONDS = parseInt(process.env.RIDE_ACCEPT_TIMEOUT_SECONDS || '20'); // seconds
+console.log(`[matchService] Configured ACCEPT_TIMEOUT_SECONDS: ${ACCEPT_TIMEOUT_SECONDS}`);
 
 function geoKeyForVehicle(vt) {
-  return `drivers:geo:${vt || 'sari'}`;
+  const type = vt ? vt.toLowerCase() : 'sari';
+  return `drivers:geo:${type}`;
 }
 
 async function findNearbyDrivers(vehicle_type, lat, lng, radiusKm = DEFAULT_RADIUS_KM, limit = MAX_CANDIDATES) {
   const key = geoKeyForVehicle(vehicle_type);
-  // console.log(`[findNearbyDrivers] searching key:${key} lat:${lat} lng:${lng} radius:${radiusKm} limit:${limit}`);
+  console.log(`[DEBUG] findNearbyDrivers: Inputs - type:${vehicle_type}, lat:${lat}, lng:${lng}, radius:${radiusKm}km, limit:${limit}`);
 
   const raw = await redis.georadius(key, lng, lat, radiusKm, 'km', 'WITHDIST', 'ASC', 'COUNT', limit);
+  console.log(`[DEBUG] findNearbyDrivers: Raw Redis results for ${vehicle_type} at ${lat},${lng}: Found ${raw ? raw.length : 0} drivers.`);
+
   if (!raw) return [];
-  return raw.map((item) => {
+  const candidates = raw.map((item) => {
     if (Array.isArray(item) && item.length > 0) {
       return String(item[0]);
     }
     return String(item);
   });
+  console.log(`[DEBUG] findNearbyDrivers: Final candidate list size: ${candidates.length}`);
+  return candidates;
 }
 
 // Helper: Determine region from coordinates (approximate)
@@ -192,12 +198,28 @@ async function emitRideRequest(ride, opts = {}) {
       setTimeout(async () => {
         // Double check availability key (unlocked?)
         try {
-          if (socketId && io && io.to) {
-            console.log(`[matchService] emitting request:incoming to driver:${driverId} (Discovery)`);
-            io.to(socketId).emit('request:incoming', {
-              ...payloadBase,
-              sent_at: Date.now()
+          // Emit socket event
+          if (socketProvider.getIO() && meta.socketId) {
+            console.log(`[DEBUG] Emitting 'ride:request' to driver ${driverId} (socket: ${meta.socketId})`);
+            socketProvider.getIO().to(meta.socketId).emit('ride:request', {
+              ride_id: ride.id,
+              passenger: passenger_info,
+              pickup: {
+                address: ride.start_address,
+                lat: ride.start_lat,
+                lng: ride.start_lng,
+                // distance: `${driver.dist.toFixed(1)} km` // `driver.dist` is not available here.
+              },
+              dropoff: {
+                address: ride.end_address,
+                lat: ride.end_lat,
+                lng: ride.end_lng
+              },
+              fare_estimate: ride.fare_estimate,
+              timeout: ACCEPT_TIMEOUT_SECONDS
             });
+          } else {
+            console.log(`[DEBUG] Cannot emit to driver ${driverId}: IO=${!!socketProvider.getIO()}, SocketId=${meta.socketId}`);
           }
 
           // Send Push (using pre-fetched tokens)
