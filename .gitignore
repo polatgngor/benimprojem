@@ -27,3 +27,6 @@ android/app/build/
 *.swp
 .DS_Store
 Thumbs.db
+firebase-service-account.json
+**/google-services.json
+**/GoogleService-Info.plist

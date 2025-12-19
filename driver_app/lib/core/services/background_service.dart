@@ -1,9 +1,11 @@
 import 'dart:async';
 import 'dart:ui';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
 import '../constants/app_constants.dart';
 
@@ -75,6 +77,49 @@ class BackgroundService {
           'available': true,
           'vehicle_type': 'sari', // Default, or pass via 'configure'
         });
+      });
+
+      // Listen for incoming requests to wake up app
+      socket.on('request:incoming', (_) async {
+         debugPrint('Background Service: Request Incoming! Waking up app...');
+         try {
+            // Android 10+ Restriction bypass: Use Full Screen Intent Notification
+            // This is the standard "Incoming Call" behavior
+            const AndroidNotificationDetails androidPlatformChannelSpecifics =
+                AndroidNotificationDetails(
+                    'incoming_request_channel', 
+                    'Incoming Requests',
+                    channelDescription: 'Notifications for incoming ride requests',
+                    importance: Importance.max,
+                    priority: Priority.high,
+                    ticker: 'Yeni Çağrı',
+                    fullScreenIntent: true, // This is the magic key
+                    category: AndroidNotificationCategory.call,
+                    visibility: NotificationVisibility.public,
+                    sound: RawResourceAndroidNotificationSound('notification'), // Ensure sound exists or remove
+                    playSound: true,
+                    enableVibration: true,
+                );
+            
+            const NotificationDetails platformChannelSpecifics =
+                NotificationDetails(android: androidPlatformChannelSpecifics);
+
+            await flutterLocalNotificationsPlugin.show(
+                999, // Unique ID
+                'Yeni Yolculuk Çağrısı',
+                'Müşteri bekliyor, kabul etmek için dokun!',
+                platformChannelSpecifics,
+                payload: 'request_incoming' // Handle in main app if needed
+            );
+
+            // Backup: Try deep link as well, just in case
+            final Uri url = Uri.parse('taksibudriver://open');
+            if (await canLaunchUrl(url)) {
+              await launchUrl(url);
+            }
+         } catch (e) {
+           debugPrint('Failed to notify/wake app: $e');
+         }
       });
 
       // Listen for stop command

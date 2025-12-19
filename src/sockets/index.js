@@ -52,9 +52,9 @@ module.exports = function initSockets(server) {
       // Fire and forget meta update
       redis.hset(`user:${userId}:meta`, 'socketId', socket.id, 'lastSeen', Date.now()).catch(e => console.error('Redis meta err', e));
 
-
       // Clear disconnect timestamp on connect
       if (role === 'driver') {
+        socket.join(`driver:${userId}`); // JOIN DRIVER SPECIFIC ROOM
         redis.hdel(`driver:${userId}:meta`, 'disconnected_ts').catch(e => { });
         redis.hset(`driver:${userId}:meta`, 'socketId', socket.id).catch(e => console.error('Redis driver meta err', e));
       }

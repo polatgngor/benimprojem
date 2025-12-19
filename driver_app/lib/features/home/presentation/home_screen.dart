@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -56,10 +57,75 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     ref.read(notificationServiceProvider).initialize();
     // Sync state on startup
     _syncState();
+    
+    // Check for Overlay Permission (Critical for background launch)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkOverlayPermission();
+    });
   }
 
   final DraggableScrollableController _statsSheetController = DraggableScrollableController();
   final DraggableScrollableController _passengerInfoController = DraggableScrollableController();
+
+  Future<void> _checkOverlayPermission() async {
+    // On Android 10+, special permission is needed to start activity from background
+    // or to show over other apps.
+    if (Theme.of(context).platform == TargetPlatform.android) {
+        final status = await Permission.systemAlertWindow.status;
+        if (!status.isGranted) {
+           // Show dialog explaining why
+           if (mounted) {
+             showDialog(
+               context: context,
+               builder: (ctx) => AlertDialog(
+                 title: const Text('İzin Gerekli'),
+                 content: const Text('Arka planda kapalıyken bile çağrı geldiğinde uygulamanın açılabilmesi için "Diğer uygulamaların üzerinde gösterim" iznine ihtiyacımız var. Lütfen açılan ekranda Taksibu Sürücü uygulamasını bulup izni açınız.'),
+                 actions: [
+                   TextButton(
+                     onPressed: () => Navigator.pop(ctx), 
+                     child: const Text('Daha Sonra')
+                   ),
+                   ElevatedButton(
+                     onPressed: () {
+                       Navigator.pop(ctx);
+                       Permission.systemAlertWindow.request();
+                     },
+                     child: const Text('İzni Ver'),
+                   ),
+                 ],
+               ),
+             );
+           }
+        }
+
+        // Also check for "Ignore Battery Optimizations" to ensure socket stays alive
+        final batteryStatus = await Permission.ignoreBatteryOptimizations.status;
+        if (!batteryStatus.isGranted) {
+           if (mounted) {
+             showDialog(
+               context: context,
+               builder: (ctx) => AlertDialog(
+                 title: const Text('Pil Optimizasyonu'),
+                 content: const Text('Uygulamanın arka planda kesintisiz çalışabilmesi ve çağrıları kaçırmamanız için "Pil Optimizasyonunu Yoksay" izni vermeniz gerekmektedir.'),
+                 actions: [
+                   TextButton(
+                     onPressed: () => Navigator.pop(ctx), 
+                     child: const Text('Daha Sonra')
+                   ),
+                   ElevatedButton(
+                     onPressed: () {
+                       Navigator.pop(ctx);
+                       Permission.ignoreBatteryOptimizations.request();
+                     },
+                     child: const Text('İzni Ver'),
+                   ),
+                 ],
+               ),
+             );
+           }
+        }
+    }
+  }
 
 
 

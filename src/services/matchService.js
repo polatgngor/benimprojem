@@ -192,9 +192,11 @@ async function emitRideRequest(ride, opts = {}) {
       setTimeout(async () => {
         // Double check availability key (unlocked?)
         try {
-          if (socketId && io && io.to) {
-            console.log(`[matchService] emitting request:incoming to driver:${driverId} (Discovery)`);
-            io.to(socketId).emit('request:incoming', {
+          // Fix: Broadcast to driver specific room (handles both UI and Background Service)
+          if (io && io.to) {
+            const room = `driver:${driverId}`;
+            console.log(`[matchService] emitting request:incoming to ROOM ${room} (Discovery)`);
+            io.to(room).emit('request:incoming', {
               ...payloadBase,
               sent_at: Date.now()
             });
