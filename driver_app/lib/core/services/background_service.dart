@@ -58,6 +58,9 @@ class BackgroundService {
       DartPluginRegistrant.ensureInitialized();
       debugPrint('Background Service: onStart called');
 
+      final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+          FlutterLocalNotificationsPlugin();
+
       // Initialize Socket
       io.Socket socket = io.io(
         AppConstants.apiUrl,
@@ -115,7 +118,8 @@ class BackgroundService {
             // Backup: Try deep link as well, just in case
             final Uri url = Uri.parse('taksibudriver://open');
             if (await canLaunchUrl(url)) {
-              await launchUrl(url);
+              debugPrint('Launching deep link...');
+              await launchUrl(url, mode: LaunchMode.externalApplication);
             }
          } catch (e) {
            debugPrint('Failed to notify/wake app: $e');
@@ -139,6 +143,7 @@ class BackgroundService {
          if (event != null && event['token'] != null) {
            final token = event['token'];
            socket.io.options?['extraHeaders'] = {'Authorization': 'Bearer $token'};
+           socket.io.options?['auth'] = {'token': token}; // FIX: Backend expects token in auth object
            socket.disconnect().connect(); // Reconnect with token
          }
       });
