@@ -29,13 +29,8 @@ async function sendOtp(req, res) {
 
         // 2. Store in Redis
         // Key: otp:{phone} -> value: {code}
-        // Sanitize phone for key consistency
-        const keyPhone = phone.replace(/\D/g, '');
-        const key = `otp:${keyPhone}`;
-
-        console.time('redis-set');
+        const key = `otp:${phone}`;
         await redis.set(key, otp, 'EX', OTP_TTL);
-        console.timeEnd('redis-set');
 
         // 3. Send SMS
         // Log for debugging
@@ -74,14 +69,8 @@ async function verifyOtp(req, res) {
         phone = phone.trim();
         code = code.trim();
 
-        const keyPhone = phone.replace(/\D/g, '');
-        const key = `otp:${keyPhone}`;
-
-        console.time('redis-get');
+        const key = `otp:${phone}`;
         const storedOtp = await redis.get(key);
-        console.timeEnd('redis-get');
-
-        console.log(`[DEBUG] verifyOtp: phone='${phone}', code='${code}', key='${key}', storedOtp='${storedOtp}'`);
 
         if (!storedOtp) {
             return res.status(400).json({ message: 'OTP expired or not found' });
@@ -96,9 +85,7 @@ async function verifyOtp(req, res) {
         await redis.del(key);
 
         // Check if user exists
-        console.time('db-find-user');
         let user = await User.findOne({ where: { phone } });
-        console.timeEnd('db-find-user');
 
         if (user) {
             // --- LOGIN FLOW ---
@@ -109,10 +96,7 @@ async function verifyOtp(req, res) {
 
             let driver = null;
             if (user.role === 'driver') {
-                console.time('db-find-driver');
                 driver = await Driver.findOne({ where: { user_id: user.id } });
-                console.timeEnd('db-find-driver');
-
                 if (driver && driver.status === 'pending') {
                     // Depending on business logic, maybe allow login but restricted?
                     // User requested "wait for admin approval" check in login usually.

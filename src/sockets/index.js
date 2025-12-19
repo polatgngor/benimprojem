@@ -18,8 +18,7 @@ const redis = new Redis({
 
 // Helper: redis GEO key per vehicle type
 function geoKeyForVehicle(vehicleType) {
-  const type = vehicleType ? vehicleType.toLowerCase() : 'sari';
-  return `drivers:geo:${type}`;
+  return `drivers:geo:${vehicleType}`; // e.g., drivers:geo:sari
 }
 
 module.exports = function initSockets(server) {
@@ -115,7 +114,7 @@ module.exports = function initSockets(server) {
           // 3. Update GEO if location provided
           (async () => {
             if (isAvailable && lat && lng) {
-              const vType = vehicle_type ? vehicle_type.toLowerCase() : 'sari';
+              const vType = vehicle_type || 'sari';
               const key = geoKeyForVehicle(vType);
               await redis.geoadd(key, lng, lat, String(userId));
               await redis.hset(`driver:${userId}:meta`, 'last_loc_update', Date.now());
