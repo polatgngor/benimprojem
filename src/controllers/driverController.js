@@ -1,4 +1,4 @@
-const { Driver, Ride, sequelize } = require('../models');
+const { Driver, Ride, Wallet, WalletTransaction, User, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 async function updatePlate(req, res) {

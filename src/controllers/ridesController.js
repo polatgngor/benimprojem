@@ -531,19 +531,18 @@ async function getActiveRide(req, res) {
     // If driver is assigned, fetch vehicle info
     let driverInfo = null;
     if (ride.driver) {
-      // Parallelize fetches: Driver Details, Average Rating, Geo Position
-      const [driverDetails, ratingData, geoRes] = await Promise.all([
+      // Parallelize fetches: Driver Details, Average Rating. 
+      // Note: We cannot defer geo fetch properly in parallel if it depends on vehicle_type from driverDetails.
+      // So detailed approach:
+      const [driverDetails, ratingData] = await Promise.all([
         Driver.findOne({ where: { user_id: ride.driver.id } }),
         Rating.findOne({
           attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating']],
           where: { rated_id: ride.driver.id }
-        }),
-        redis.geopos(`drivers:geo:${(driverDetails && driverDetails.vehicle_type) || 'sari'}`, String(ride.driver.id)) // Note: might fail if driverDetails not yet resolved, tricky.
-        // Actually, we need vehicle_type for the key. So we can't fully parallelize geo fetch if we don't know vehicle type.
-        // BUT, `ride` object *should* have vehicle_type in it? Yes, ride.vehicle_type is there!
-        // Or ride.driver.vehicle_type if we included it? No, ride model has vehicle_type.
-        // Let's use ride.vehicle_type as fallback or the default 'sari'.
+        })
       ]);
+
+      // redis.geopos moved after we have driverDetails (to know vehicle_type)
 
       // Re-fetch geo with correct key if needed is safer, but let's try parallel assuming ride.vehicle_type fits
       // Actually, driver vehicle type is what matters for the geo key.
