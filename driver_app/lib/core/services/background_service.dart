@@ -7,13 +7,18 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:socket_io_client/socket_io_client.dart' as io;
+import 'dart:io';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:android_intent_plus/flag.dart'; // Optional if we use int consts
+import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 
 @pragma('vm:entry-point')
 class BackgroundService {
   static Future<void> initializeService() async {
     final service = FlutterBackgroundService();
-
+    // ... existing initialization ...
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'my_foreground', // id
       'MY FOREGROUND SERVICE', // title
@@ -32,7 +37,7 @@ class BackgroundService {
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: onStart,
-        autoStart: false,
+        autoStart: true, // Changing to true to ensure sticky behavior
         isForegroundMode: true,
         notificationChannelId: 'my_foreground',
         initialNotificationTitle: 'Taksibu Sürücü',
@@ -40,7 +45,7 @@ class BackgroundService {
         foregroundServiceNotificationId: 888,
       ),
       iosConfiguration: IosConfiguration(
-        autoStart: false,
+        autoStart: true,
         onForeground: onStart,
         onBackground: onIosBackground,
       ),
@@ -57,17 +62,30 @@ class BackgroundService {
     try {
       DartPluginRegistrant.ensureInitialized();
       debugPrint('Background Service: onStart called');
+      
+      // Load Token Persistence
+      final prefs = await SharedPreferences.getInstance();
+      String? token = prefs.getString('auth_token');
+      debugPrint('Background Service: Loaded token: ${token != null ? "YES" : "NO"}');
 
       final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
           FlutterLocalNotificationsPlugin();
 
-      // Initialize Socket
+      // Initialize Socket with Token if available
+      final optionsBuilder = io.OptionBuilder()
+            .setTransports(['websocket'])
+            .setReconnectionAttempts(double.infinity)
+            .setReconnectionDelay(2000)
+            .enableAutoConnect();
+      
+      if (token != null) {
+          optionsBuilder.setExtraHeaders({'Authorization': 'Bearer $token'});
+          optionsBuilder.setAuth({'token': token});
+      }
+
       io.Socket socket = io.io(
         AppConstants.apiUrl,
-        io.OptionBuilder()
-            .setTransports(['websocket'])
-            .enableAutoConnect()
-            .build(),
+        optionsBuilder.build(),
       );
 
       socket.connect();
@@ -83,15 +101,46 @@ class BackgroundService {
       });
 
       // Listen for incoming requests to wake up app
-      socket.on('request:incoming', (_) async {
-         debugPrint('Background Service: Request Incoming! Waking up app...');
+      //
+      // SOCKET EVENT LISTENERS
+      //
+      final audioPlayer = AudioPlayer();
+
+      // Ensure duplicate listeners are removed first if any (though this is onStart)
+      
+      socket.on('request:incoming', (data) async {
+         debugPrint('Background Service received request:incoming. Launching app...');
+         
+         // 1. Play Ringtone IMMEDIATELY (Background Isolate)
          try {
-            // Android 10+ Restriction bypass: Use Full Screen Intent Notification
-            // This is the standard "Incoming Call" behavior
-            const AndroidNotificationDetails androidPlatformChannelSpecifics =
+            // Increase volume and set context
+            await audioPlayer.setVolume(1.0);
+            await audioPlayer.setReleaseMode(ReleaseMode.loop);
+            await audioPlayer.setAudioContext(AudioContext(
+              android: AudioContextAndroid(
+                 isSpeakerphoneOn: true,
+                 stayAwake: true,
+                 contentType: AndroidContentType.music,
+                 usageType: AndroidUsageType.notificationRingtone,
+                 audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+              ),
+              iOS: AudioContextIOS(
+                 category: AVAudioSessionCategory.playback,
+                 options: {AVAudioSessionOptions.duckOthers, AVAudioSessionOptions.mixWithOthers}, 
+              ),
+            ));
+            await audioPlayer.play(AssetSource('sounds/ringtone.mp3'));
+         } catch (e) {
+            debugPrint('Background audio error: $e');
+         }
+
+         // 2. Show Full Screen Notification (Heads-up)
+         try {
+             // Android 10+ Restriction bypass: Use Full Screen Intent Notification
+             const AndroidNotificationDetails androidPlatformChannelSpecifics =
                 AndroidNotificationDetails(
                     'incoming_request_channel', 
-                    'Incoming Requests',
+                    'Gelen Çağrılar', // Renamed for clarity
                     channelDescription: 'Notifications for incoming ride requests',
                     importance: Importance.max,
                     priority: Priority.high,
@@ -99,8 +148,7 @@ class BackgroundService {
                     fullScreenIntent: true, // This is the magic key
                     category: AndroidNotificationCategory.call,
                     visibility: NotificationVisibility.public,
-                    sound: RawResourceAndroidNotificationSound('notification'), // Ensure sound exists or remove
-                    playSound: true,
+                    playSound: true, // System sound backup
                     enableVibration: true,
                 );
             
@@ -108,23 +156,49 @@ class BackgroundService {
                 NotificationDetails(android: androidPlatformChannelSpecifics);
 
             await flutterLocalNotificationsPlugin.show(
-                999, // Unique ID
+                888, // Unique ID for call
                 'Yeni Yolculuk Çağrısı',
                 'Müşteri bekliyor, kabul etmek için dokun!',
                 platformChannelSpecifics,
-                payload: 'request_incoming' // Handle in main app if needed
+                payload: 'taksibudriver://open' // Redirect to open
             );
-
-            // Backup: Try deep link as well, just in case
-            final Uri url = Uri.parse('taksibudriver://open');
-            if (await canLaunchUrl(url)) {
-              debugPrint('Launching deep link...');
-              await launchUrl(url, mode: LaunchMode.externalApplication);
-            }
          } catch (e) {
-           debugPrint('Failed to notify/wake app: $e');
+             debugPrint('Notification show failed: $e');
          }
+
+          // 3. Force Launch App (Explicit Intent)
+          if (Platform.isAndroid) {
+             try {
+               debugPrint('Launching via AndroidIntent with FLAG_ACTIVITY_NEW_TASK...');
+               const intent = AndroidIntent(
+                  action: 'android.intent.action.VIEW',
+                  data: 'taksibudriver://open',
+                  package: 'com.taksibu.driver.driver_app',
+                  componentName: 'com.taksibu.driver.driver_app.MainActivity',
+                  flags: <int>[
+                    0x10000000, // FLAG_ACTIVITY_NEW_TASK
+                    0x20000000, // FLAG_ACTIVITY_SINGLE_TOP
+                    0x00020000, // FLAG_ACTIVITY_REORDER_TO_FRONT
+                  ], 
+               );
+               await intent.launch();
+             } catch (e) {
+                debugPrint('Intent launch failed: $e');
+             }
+          }
       });
+
+      // Stop ringing listeners
+      void stopRinging() {
+         try {
+           audioPlayer.stop();
+         } catch (_) {}
+      }
+
+      socket.on('request:timeout', (_) => stopRinging());
+      socket.on('request:accept_failed', (_) => stopRinging());
+      socket.on('request:accepted_confirm', (_) => stopRinging());
+      socket.on('ride:cancelled', (_) => stopRinging());
 
       // Listen for stop command
       service.on('stopService').listen((event) {
@@ -142,9 +216,11 @@ class BackgroundService {
       service.on('setToken').listen((event) {
          if (event != null && event['token'] != null) {
            final token = event['token'];
+           prefs.setString('auth_token', token); // Persist Token
+           
            socket.io.options?['extraHeaders'] = {'Authorization': 'Bearer $token'};
-           socket.io.options?['auth'] = {'token': token}; // FIX: Backend expects token in auth object
-           socket.disconnect().connect(); // Reconnect with token
+           socket.io.options?['auth'] = {'token': token};
+           socket.disconnect().connect();
          }
       });
 

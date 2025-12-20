@@ -32,12 +32,47 @@ import 'features/splash/presentation/splash_screen.dart';
 
 
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:android_intent_plus/flag.dart'; // Optional if we use int consts
+import 'dart:io';
+
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  debugPrint("Handling a background message: ${message.messageId}");
+
+  if (message.data['type'] == 'request_incoming') {
+     // Force launch for incoming request
+     try {
+        if (Platform.isAndroid) {
+            const intent = AndroidIntent(
+              action: 'android.intent.action.VIEW',
+              data: 'taksibudriver://open',
+              package: 'com.taksibu.driver.driver_app',
+              componentName: 'com.taksibu.driver.driver_app.MainActivity',
+              flags: <int>[
+                0x10000000, // FLAG_ACTIVITY_NEW_TASK
+                0x20000000, // FLAG_ACTIVITY_SINGLE_TOP
+                0x00020000, // FLAG_ACTIVITY_REORDER_TO_FRONT
+              ], 
+            );
+            await intent.launch();
+            debugPrint("Launched from FCM Background Handler");
+        }
+     } catch (e) {
+        debugPrint("FCM Launch Error: $e");
+     }
+  }
+}
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   
   await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+  
   await EasyLocalization.ensureInitialized();
   await BackgroundService.initializeService();
   
@@ -68,6 +103,11 @@ final routerProvider = Provider<GoRouter>((ref) {
     refreshListenable: listenable,
     initialLocation: '/login',
     redirect: (context, state) {
+      // Handle Deep Link Redirect
+      if (state.uri.scheme == 'taksibudriver' || state.uri.toString().contains('taksibudriver://')) {
+          return '/home';
+      }
+
       final authState = ref.read(authProvider);
 
       if (authState.isLoading) return null; // Stay on "loading" (covered by splash)
