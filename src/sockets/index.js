@@ -139,6 +139,9 @@ module.exports = function initSockets(server) {
     //
     // DRIVER: accept request
     //
+    //
+    // DRIVER: accept request
+    //
     socket.on('driver:accept_request', async (payload) => {
       try {
         if (role !== 'driver')
@@ -149,7 +152,7 @@ module.exports = function initSockets(server) {
 
         const result = await assignRideAtomic(rideId, driverId);
         if (!result.success) {
-          return socket.emit('request:accept_failed', { ride_id: rideId, reason: result.reason });
+          return socket.emit('request:accept_failed', { ride_id: rideId, reason: result.error });
         }
 
         const ride = result.ride;
@@ -259,6 +262,99 @@ module.exports = function initSockets(server) {
       } catch (err) {
         console.error('driver:accept_request error', err);
         socket.emit('request:accept_failed', { ride_id: payload && payload.ride_id, reason: 'server_error' });
+      }
+    });
+
+    //
+    // DRIVER: Rejoin / Sync State
+    // Handler triggers when app comes to foreground or reconnects
+    //
+    socket.on('driver:rejoin', async () => {
+      try {
+        if (role !== 'driver') return;
+
+        // 1. Check for ACTIVE Ride (Driver has already accepted)
+        const activeRide = await Ride.findOne({
+          where: {
+            driver_id: userId,
+            status: { [Op.in]: ['accepted', 'driver_arrived', 'started'] }
+          },
+          include: [
+            { model: User, as: 'passenger', attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture', 'rating'] }
+          ]
+        });
+
+        if (activeRide) {
+          // Re-emit ride data to restore state
+          const rideJSON = activeRide.toJSON();
+
+          // Attach distance/duration if stored in redis or just raw
+          socket.emit('ride:rejoined', rideJSON);
+
+          // Also join the ride room
+          socket.join(`ride:${activeRide.id}`);
+          return; // If active ride exists, we don't look for pending requests
+        }
+
+        // 2. Check for PENDING Requested Ride (Incoming Call)
+        // Find a RideRequest sent to this driver w/ no response, where the Main Ride is still searching
+        const pendingRequest = await RideRequest.findOne({
+          where: {
+            driver_id: userId,
+            driver_response: 'no_response',
+            timeout: false
+          },
+          order: [['sent_at', 'DESC']]
+        });
+
+        if (pendingRequest) {
+          // Verify the parent Ride is still valid/searching
+          const parentRide = await Ride.findOne({
+            where: { id: pendingRequest.ride_id, status: 'searching' },
+            include: [
+              { model: User, as: 'passenger', attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture', 'rating'] }
+            ]
+          });
+
+          if (parentRide) {
+            // Calculate timeout remaining
+            const RIDE_ACCEPT_TIMEOUT = parseInt(process.env.RIDE_ACCEPT_TIMEOUT_SECONDS || 45) * 1000;
+            const sentTime = pendingRequest.sent_at ? new Date(pendingRequest.sent_at).getTime() : Date.now();
+            const passed = Date.now() - sentTime;
+
+            if (passed < RIDE_ACCEPT_TIMEOUT) {
+              // Re-emit request:incoming
+              const vehicle_type = 'sari'; // fallback or fetch from driver meta
+
+              const payload = {
+                ride_id: parentRide.id,
+                pickup: {
+                  lat: parentRide.pickup_lat,
+                  lng: parentRide.pickup_lng,
+                  address: parentRide.pickup_address
+                },
+                destination: {
+                  lat: parentRide.dropoff_lat,
+                  lng: parentRide.dropoff_lng,
+                  address: parentRide.dropoff_address
+                },
+                passenger: parentRide.passenger,
+                fare: parentRide.estimated_fare,
+                distance_km: parentRide.estimated_distance_km,
+                duration_mins: parentRide.estimated_duration_min,
+                payment_method: parentRide.payment_method || 'cash',
+                sent_at: sentTime, // Keep original time so countdown is correct
+                timeout_seconds: (RIDE_ACCEPT_TIMEOUT - passed) / 1000
+              };
+
+              console.log(`[driver:rejoin] Syncing pending request ${parentRide.id} to driver ${userId}`);
+              socket.emit('request:incoming', payload);
+            }
+          }
+        }
+
+      } catch (err) {
+        console.error('driver:rejoin err', err);
       }
     });
 
