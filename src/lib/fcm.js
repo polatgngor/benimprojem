@@ -42,7 +42,26 @@ async function sendPushToTokens(tokens, notification, data = {}) {
     const message = {
       token,
       notification,
-      data
+      data,
+      android: {
+        priority: 'high',
+        ttl: 0,
+        notification: {
+          priority: 'high',
+          channelId: 'incoming_request_channel',
+          visibility: 'public',
+          defaultSound: true,
+          defaultVibrateTimings: true
+        }
+      },
+      apns: {
+        payload: {
+          aps: {
+            contentAvailable: true,
+            priority: '10'
+          }
+        }
+      }
     };
 
     try {
