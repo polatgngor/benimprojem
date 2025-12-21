@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1004627488784",
+    "project_id": "taksibu-4877e",
+    "storage_bucket": "taksibu-4877e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1004627488784:android:8aa5eb63a9686a04891a95",
+        "android_client_info": {
+          "package_name": "com.taksibu.customer_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAXb2T3H7zRBBg-9W9OJZH0R15ondEYOkY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
