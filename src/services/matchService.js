@@ -186,32 +186,30 @@ async function emitRideRequest(ride, opts = {}) {
         continue;
       }
 
+      // DIRECT SEND - NO DELAY (ZINK MODE)
       const socketId = meta.socketId;
-      const delayMs = prioritySeconds * 1000;
+      // const delayMs = prioritySeconds * 1000; // DISABLED FOR IMMEDIATE DISPATCH
 
-      setTimeout(async () => {
-        // Double check availability key (unlocked?)
-        try {
-          // Fix: Broadcast to driver specific room (handles both UI and Background Service)
-          if (io && io.to) {
-            const room = `driver:${driverId}`;
-            console.log(`[matchService] emitting request:incoming to ROOM ${room} (Discovery)`);
-            io.to(room).emit('request:incoming', {
-              ...payloadBase,
-              sent_at: Date.now()
-            });
-          }
-
-          // Send Push (using pre-fetched tokens)
-          const tokens = deviceMap.get(String(driverId));
-          if (tokens && tokens.length > 0) {
-            // Fire and forget push
-            sendPushToTokens(tokens, { title: 'Yeni taksi çağrısı', body: 'Yeni bir yolculuk isteği aldınız.' }, { type: 'request_incoming', ride_id: String(ride.id), vehicle_type: vehicle_type }).catch(() => { });
-          }
-        } catch (err) {
-          console.warn('[matchService] emit failed', driverId, err);
+      try {
+        // Fix: Broadcast to driver specific room (handles both UI and Background Service)
+        if (io && io.to) {
+          const room = `driver:${driverId}`;
+          console.log(`[matchService] emitting request:incoming to ROOM ${room} (Discovery) - IMMEDIATE`);
+          io.to(room).emit('request:incoming', {
+            ...payloadBase,
+            sent_at: Date.now()
+          });
         }
-      }, delayMs);
+
+        // Send Push (using pre-fetched tokens)
+        const tokens = deviceMap.get(String(driverId));
+        if (tokens && tokens.length > 0) {
+          // Fire and forget push
+          sendPushToTokens(tokens, { title: 'Yeni taksi çağrısı', body: 'Yeni bir yolculuk isteği aldınız.' }, { type: 'request_incoming', ride_id: String(ride.id), vehicle_type: vehicle_type }).catch(() => { });
+        }
+      } catch (err) {
+        console.warn('[matchService] emit failed', driverId, err);
+      }
 
       // Mark as sent
       sentDrivers.add(driverId);
