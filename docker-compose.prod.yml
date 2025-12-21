@@ -1,0 +1,66 @@
+version: '3.8'
+
+services:
+  # Node.js API Service
+  api:
+    build: .
+    container_name: taksibu-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      # DB Config
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME}
+      # Redis Config
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD}
+      # JWT Secrets (Load from .env)
+      - JWT_SECRET=${JWT_SECRET}
+      - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      # Firebase / Google Credentials
+      # You should mount the google-services.json or provide via ENV variable if possible
+      - GOOGLE_APPLICATION_CREDENTIALS=/usr/src/app/serviceAccountKey.json
+    volumes:
+      - ./uploads:/usr/src/app/uploads
+      # Mount service account key if it's not COPY-ed in Dockerfile or if it changes
+      - ./serviceAccountKey.json:/usr/src/app/serviceAccountKey.json
+    depends_on:
+      - mysql
+      - redis
+
+  # Database Service
+  mysql:
+    image: mysql:8.0
+    container_name: taksibu-mysql
+    restart: always
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
+      - MYSQL_DATABASE=${DB_NAME}
+      - MYSQL_USER=${DB_USER}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+    ports:
+      - "3306:3306" # Optional: expose to host only for debugging, remove for security in prod
+    volumes:
+      - mysql_data:/var/lib/mysql
+      # Initialize DB with sql files if needed
+      # - ./veritabani.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # Redis Cache Service
+  redis:
+    image: redis:6-alpine
+    container_name: taksibu-redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:
