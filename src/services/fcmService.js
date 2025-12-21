@@ -40,6 +40,34 @@ async function sendNotification(token, title, body, data = {}) {
     }
 
     const message = {
+        // Platform specific overrides for High Priority
+        android: {
+            priority: 'high',
+            ttl: 0, // 0 = Immediate delivery
+            notification: {
+                channelId: 'incoming_request_channel',
+                priority: 'max',
+                defaultSound: true,
+                visibility: 'public',
+            },
+            data: {
+                ...data,
+                click_action: 'FLUTTER_NOTIFICATION_CLICK',
+                type: 'request_incoming', // Ensure this is set for the handler
+            }
+        },
+        apns: {
+            headers: {
+                'apns-priority': '10', // 10 = Immediate
+                'apns-push-type': 'alert',
+            },
+            payload: {
+                aps: {
+                    contentAvailable: true, // critical for background fetch
+                    sound: 'default',
+                }
+            }
+        },
         notification: {
             title,
             body,
@@ -47,6 +75,7 @@ async function sendNotification(token, title, body, data = {}) {
         data: {
             ...data,
             click_action: 'FLUTTER_NOTIFICATION_CLICK',
+            type: 'request_incoming',
         },
         token,
     };

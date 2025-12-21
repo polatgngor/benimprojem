@@ -12,6 +12,7 @@ import 'package:android_intent_plus/android_intent.dart';
 import 'package:android_intent_plus/flag.dart'; // Optional if we use int consts
 import 'package:audioplayers/audioplayers.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
 import '../constants/app_constants.dart';
 
 @pragma('vm:entry-point')
@@ -21,9 +22,17 @@ class BackgroundService {
     // ... existing initialization ...
     const AndroidNotificationChannel channel = AndroidNotificationChannel(
       'my_foreground', // id
-      'MY FOREGROUND SERVICE', // title
-      description: 'This channel is used for important notifications.', // description
-      importance: Importance.low,
+      'Taksibu Sürücü Servisi', // title
+      description: 'Arkaplan servis bildirim kanalı', // description
+      importance: Importance.low, // Keep low for persistent service notification (user won't be annoyed)
+    );
+
+    const AndroidNotificationChannel highImportanceChannel = AndroidNotificationChannel(
+      'incoming_request_channel',
+      'Gelen Çağrılar',
+      description: 'Yeni yolculuk çağrıları için kullanılır',
+      importance: Importance.max, // Crucial for Heads-up
+      playSound: true,
     );
 
     final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -33,15 +42,20 @@ class BackgroundService {
         .resolvePlatformSpecificImplementation<
             AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
+        
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(highImportanceChannel); // Register High Importance Channel
 
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: onStart,
-        autoStart: true, // Changing to true to ensure sticky behavior
+        autoStart: true, // Auto start on boot
         isForegroundMode: true,
         notificationChannelId: 'my_foreground',
         initialNotificationTitle: 'Taksibu Sürücü',
-        initialNotificationContent: 'Arka planda konum güncelleniyor',
+        initialNotificationContent: 'Sürücü modu aktif',
         foregroundServiceNotificationId: 888,
       ),
       iosConfiguration: IosConfiguration(
@@ -63,19 +77,34 @@ class BackgroundService {
       DartPluginRegistrant.ensureInitialized();
       debugPrint('Background Service: onStart called');
       
+      // Prevent CPU from sleeping
+      await WakelockPlus.enable();
+      
       // Load Token Persistence
       final prefs = await SharedPreferences.getInstance();
       String? token = prefs.getString('auth_token');
       debugPrint('Background Service: Loaded token: ${token != null ? "YES" : "NO"}');
 
+      // Re-add plugin initialization (Fixed: previously undefined)
       final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
           FlutterLocalNotificationsPlugin();
 
+      // FORCE NOTIFICATION IMMEDIATELY to verify service is alive
+      if (service is AndroidServiceInstance) {
+          service.setAsForegroundService();
+          service.setForegroundNotificationInfo(
+            title: "Taksibu Sürücü",
+            content: "Sürücü modu aktif (Arkaplan Servisi)",
+          );
+      }
+
       // Initialize Socket with Token if available
+      // AGGRESSIVE RECONNECTION STRATEGY
       final optionsBuilder = io.OptionBuilder()
             .setTransports(['websocket'])
-            .setReconnectionAttempts(double.infinity)
-            .setReconnectionDelay(2000)
+            .setReconnectionAttempts(double.infinity) // Infinite attempts
+            .setReconnectionDelay(1000) // Fast retry (1s)
+            .setReconnectionDelayMax(5000) // Max wait 5s
             .enableAutoConnect();
       
       if (token != null) {
@@ -91,13 +120,31 @@ class BackgroundService {
       socket.connect();
 
       socket.onConnect((_) {
-        debugPrint('Background Service: Socket Connected');
+        debugPrint('Background Service: Socket Connected to ${AppConstants.apiUrl}');
         socket.emit('driver:rejoin', {});
         // Ensure we are marked as available in the background
         socket.emit('driver:set_availability', {
           'available': true,
           'vehicle_type': 'sari', // Default, or pass via 'configure'
         });
+        
+        // Update notification to show "Connected"
+        if (service is AndroidServiceInstance) {
+          service.setForegroundNotificationInfo(
+            title: "Taksibu Sürücü",
+            content: "Bağlandı - Çağrı bekleniyor",
+          );
+        }
+      });
+      
+      socket.onDisconnect((_) {
+         debugPrint('Background Service: Socket Disconnected. Reconnecting...');
+         if (service is AndroidServiceInstance) {
+          service.setForegroundNotificationInfo(
+            title: "Taksibu Sürücü",
+            content: "Bağlantı koptu - Yeniden bağlanılıyor...",
+          );
+        }
       });
 
       // Listen for incoming requests to wake up app
@@ -109,14 +156,46 @@ class BackgroundService {
       // Ensure duplicate listeners are removed first if any (though this is onStart)
       
       socket.on('request:incoming', (data) async {
-         debugPrint('Background Service received request:incoming. Launching app...');
-         
-         // 1. Play Ringtone IMMEDIATELY (Background Isolate)
+         debugPrint('Background Service received request:incoming. Executing IMMEDIATE LAUNCH sequence...');
+
+         // 1. ACTION: FORCE SCREEN OPEN (Priority #1)
+         // Fire & Forget - Do not wait for this to complete
+         if (Platform.isAndroid) {
+            try {
+               // STRATEGY A: Native Receiver (CallStyle Notification + FullScreenIntent)
+               const AndroidIntent broadcastIntent = AndroidIntent(
+                  action: 'com.taksibu.driver.WAKE_UP',
+                  package: 'com.taksibu.driver.driver_app',
+                  componentName: 'com.taksibu.driver.driver_app.WakeUpReceiver', 
+               );
+               await broadcastIntent.sendBroadcast();
+               debugPrint('Broadcast sent to WakeUpReceiver');
+               
+               // STRATEGY B: Direct Launcher Intent (Brute Force - if permission allowed)
+               const AndroidIntent directIntent = AndroidIntent(
+                  action: 'android.intent.action.MAIN',
+                  category: 'android.intent.category.LAUNCHER',
+                  package: 'com.taksibu.driver.driver_app',
+                  componentName: 'com.taksibu.driver.driver_app.MainActivity',
+                  flags: <int>[
+                    0x10000000, // FLAG_ACTIVITY_NEW_TASK
+                    0x20000000, // FLAG_ACTIVITY_SINGLE_TOP
+                    0x04000000, // FLAG_ACTIVITY_CLEAR_TOP
+                    0x00020000, // FLAG_ACTIVITY_REORDER_TO_FRONT
+                  ], 
+               );
+               directIntent.launch().catchError((e) => debugPrint('Direct Launch error: $e'));
+            } catch (e) {
+               debugPrint('Intent creation/sending failed: $e');
+            }
+         }
+
+         // 2. ACTION: PLAY SOUND (Priority #2)
+         // Fire & Forget
          try {
-            // Increase volume and set context
-            await audioPlayer.setVolume(1.0);
-            await audioPlayer.setReleaseMode(ReleaseMode.loop);
-            await audioPlayer.setAudioContext(AudioContext(
+            audioPlayer.setVolume(1.0);
+            audioPlayer.setReleaseMode(ReleaseMode.loop);
+            audioPlayer.setAudioContext(AudioContext(
               android: AudioContextAndroid(
                  isSpeakerphoneOn: true,
                  stayAwake: true,
@@ -129,63 +208,46 @@ class BackgroundService {
                  options: {AVAudioSessionOptions.duckOthers, AVAudioSessionOptions.mixWithOthers}, 
               ),
             ));
-            await audioPlayer.play(AssetSource('sounds/ringtone.mp3'));
+            audioPlayer.play(AssetSource('sounds/ringtone.mp3')).catchError((e) => debugPrint('Audio play error: $e'));
          } catch (e) {
-            debugPrint('Background audio error: $e');
+            debugPrint('Audio setup failed: $e');
          }
 
-         // 2. Show Full Screen Notification (Heads-up)
-         try {
-             // Android 10+ Restriction bypass: Use Full Screen Intent Notification
-             const AndroidNotificationDetails androidPlatformChannelSpecifics =
-                AndroidNotificationDetails(
-                    'incoming_request_channel', 
-                    'Gelen Çağrılar', // Renamed for clarity
-                    channelDescription: 'Notifications for incoming ride requests',
-                    importance: Importance.max,
-                    priority: Priority.high,
-                    ticker: 'Yeni Çağrı',
-                    fullScreenIntent: true, // This is the magic key
-                    category: AndroidNotificationCategory.call,
-                    visibility: NotificationVisibility.public,
-                    playSound: true, // System sound backup
-                    enableVibration: true,
-                );
-            
-            const NotificationDetails platformChannelSpecifics =
-                NotificationDetails(android: androidPlatformChannelSpecifics);
+         // 3. ACTION: SHOW NOTIFICATION (Priority #3)
+         // Fire & Forget
+         // On Android, the WakeUpReceiver handles the notification with FullScreenIntent.
+         // On iOS, we use the local notification plugin as usual.
+         if (!Platform.isAndroid) {
+            try {
+                const AndroidNotificationDetails androidPlatformChannelSpecifics =
+                    AndroidNotificationDetails(
+                        'incoming_request_channel', 
+                        'Gelen Çağrılar',
+                        channelDescription: 'Notifications for incoming ride requests',
+                        importance: Importance.max,
+                        priority: Priority.high,
+                        ticker: 'Yeni Çağrı',
+                        fullScreenIntent: true,
+                        category: AndroidNotificationCategory.call,
+                        visibility: NotificationVisibility.public,
+                        playSound: true,
+                        enableVibration: true,
+                    );
+                
+                const NotificationDetails platformChannelSpecifics =
+                    NotificationDetails(android: androidPlatformChannelSpecifics);
 
-            await flutterLocalNotificationsPlugin.show(
-                888, // Unique ID for call
-                'Yeni Yolculuk Çağrısı',
-                'Müşteri bekliyor, kabul etmek için dokun!',
-                platformChannelSpecifics,
-                payload: 'taksibudriver://open' // Redirect to open
-            );
-         } catch (e) {
-             debugPrint('Notification show failed: $e');
+                flutterLocalNotificationsPlugin.show(
+                    888,
+                    'Yeni Yolculuk Çağrısı',
+                    'Müşteri bekliyor, kabul etmek için dokun!',
+                    platformChannelSpecifics,
+                    payload: 'taksibudriver://open'
+                ).catchError((e) => debugPrint('Notification error: $e'));
+            } catch (e) {
+                debugPrint('Notification setup failed: $e');
+            }
          }
-
-          // 3. Force Launch App (Explicit Intent)
-          if (Platform.isAndroid) {
-             try {
-               debugPrint('Launching via AndroidIntent with FLAG_ACTIVITY_NEW_TASK...');
-               const intent = AndroidIntent(
-                  action: 'android.intent.action.VIEW',
-                  data: 'taksibudriver://open',
-                  package: 'com.taksibu.driver.driver_app',
-                  componentName: 'com.taksibu.driver.driver_app.MainActivity',
-                  flags: <int>[
-                    0x10000000, // FLAG_ACTIVITY_NEW_TASK
-                    0x20000000, // FLAG_ACTIVITY_SINGLE_TOP
-                    0x00020000, // FLAG_ACTIVITY_REORDER_TO_FRONT
-                  ], 
-               );
-               await intent.launch();
-             } catch (e) {
-                debugPrint('Intent launch failed: $e');
-             }
-          }
       });
 
       // Stop ringing listeners
@@ -226,10 +288,10 @@ class BackgroundService {
 
       // Location Stream
       final locationSettings = AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
+        accuracy: LocationAccuracy.bestForNavigation, // Highest accuracy
+        distanceFilter: 0, // Report ALL movements (Aggressive)
         forceLocationManager: true, // Use legacy location manager if fused provider is problematic in background
-        intervalDuration: const Duration(seconds: 10),
+        intervalDuration: const Duration(seconds: 5), // More frequent updates
         foregroundNotificationConfig: const ForegroundNotificationConfig(
           notificationTitle: "Taksibu Sürücü",
           notificationText: "Konum servisleri aktif",

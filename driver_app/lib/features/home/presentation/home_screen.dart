@@ -58,6 +58,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     // Sync state on startup
     _syncState();
     
+    // Start Service if not running (Resurrection)
+    FlutterBackgroundService().isRunning().then((isRunning) {
+      if (!isRunning) {
+        FlutterBackgroundService().startService();
+      }
+    });
+
     // Check for Overlay Permission (Critical for background launch)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkOverlayPermission();
@@ -96,6 +103,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                ),
              );
            }
+        }
+
+        // Check for Notification Permission (Android 13+)
+        // Critical for WakeUpReceiver to post the FullScreenIntent Notification
+        final notifStatus = await Permission.notification.status;
+        if (!notifStatus.isGranted) {
+           await Permission.notification.request();
         }
 
         // Also check for "Ignore Battery Optimizations" to ensure socket stays alive

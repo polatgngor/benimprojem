@@ -22,9 +22,14 @@
         <meta-data
             android:name="com.google.android.geo.API_KEY"
             android:value="AIzaSyBiFIf0b9O4EM7khvcK6Z6I25vfmwzv3Vw"/>
+            
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
 
         <service
             android:name="id.flutter.flutter_background_service.BackgroundService"
+            android:stopWithTask="false"
             android:foregroundServiceType="location"
         />
 
@@ -54,6 +59,13 @@
                 <data android:scheme="taksibudriver" android:host="open" />
             </intent-filter>
         </activity>
+
+        <receiver android:name=".WakeUpReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="com.taksibu.driver.WAKE_UP" />
+            </intent-filter>
+        </receiver>
+
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
