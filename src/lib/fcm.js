@@ -42,24 +42,18 @@ async function sendPushToTokens(tokens, notification, data = {}) {
   const promises = tokens.map(async (token) => {
     const message = {
       token,
-      notification,
       data,
       android: {
         priority: 'high',
         ttl: 0,
-        notification: {
-          priority: 'max', // MAX AGGRESSION
-          channelId: 'incoming_request_channel',
-          visibility: 'public',
-          defaultSound: true,
-          defaultVibrateTimings: true,
-          defaultLightSettings: true
-        }
       },
       apns: {
         headers: {
-          'apns-priority': '10', // Immediate
-          'apns-push-type': 'alert',
+          'apns-priority': '10',
+          'apns-push-type': 'alert', // Might need 'background' for silent, but 'alert' is safer for wake-up? 'background' is usually for silent sync. Let's stick to alert or conditional. 
+          // For iOS, if we want NO banner but wake up, it's tricky. But user emphasized Android ("zink").
+          // For now, let's keep APNS as is or make it conditional too if needed.
+          // User asked for Android specifically "androidde bize o push bildirim hiç gözükmese".
         },
         payload: {
           aps: {
@@ -69,6 +63,23 @@ async function sendPushToTokens(tokens, notification, data = {}) {
         }
       }
     };
+
+    // If visible notification is requested
+    if (notification) {
+      message.notification = notification;
+      message.android.notification = {
+        priority: 'max', // MAX AGGRESSION when showing
+        channelId: 'incoming_request_channel',
+        visibility: 'public',
+        defaultSound: true,
+        defaultVibrateTimings: true,
+        defaultLightSettings: true
+      };
+    } else {
+      // Data-Only Message (Silent)
+      // We rely on 'data' and Priority High to wake up the app
+      // console.log('Preparing Silent Data-Only Message');
+    }
 
     try {
       const response = await admin.messaging().send(message);
