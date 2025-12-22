@@ -1,0 +1,96 @@
+import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
+
+
+class MatchProcessingSheet extends StatelessWidget {
+  final String? statusMessage;
+  final bool isError;
+
+  const MatchProcessingSheet({
+    super.key,
+    this.statusMessage,
+    this.isError = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.25,
+      minChildSize: 0.20,
+      maxChildSize: 0.35,
+      builder: (context, scrollController) {
+        return Container(
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+             boxShadow: [
+               BoxShadow(
+                 color: Colors.black12,
+                 blurRadius: 15,
+                 spreadRadius: 2,
+                 offset: Offset(0, -2),
+               ),
+             ],
+          ),
+          child: SingleChildScrollView(
+            controller: scrollController,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle Bar
+                const SizedBox(height: 12),
+                Container(
+                  width: 40,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                if (isError)
+                  const Icon(Icons.error_outline, size: 50, color: Colors.red)
+                else
+                  const SizedBox(
+                    height: 50,
+                    width: 50,
+                    child: CircularProgressIndicator(strokeWidth: 3),
+                  ),
+                
+                const SizedBox(height: 24),
+                
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    isError 
+                      ? (statusMessage ?? 'Hata oluştu') 
+                      : (statusMessage ?? 'Yolcuyla eşleştiriliyorsunuz...'),
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isError ? Colors.red : Colors.black87,
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 12),
+                
+                 if (!isError)
+                  Text(
+                    "Lütfen bekleyin...",
+                    style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                  ),
+                  
+                // Add safe area padding at bottom
+                SizedBox(height: 24 + MediaQuery.of(context).padding.bottom),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}

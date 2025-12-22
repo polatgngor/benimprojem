@@ -7,6 +7,7 @@ import '../../../../core/services/socket_service.dart';
 import '../providers/incoming_requests_provider.dart';
 import '../providers/optimistic_ride_provider.dart';
 
+
 class RideRequestCard extends ConsumerStatefulWidget {
   final Map<String, dynamic> request;
 
@@ -157,49 +158,15 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
   Future<void> _acceptRide() async {
     if (_isAccepting) return;
     
-    // Optimistic UI: Immediately disable button and visually indicate success
     setState(() {
       _isAccepting = true;
     });
 
-    final rideId = widget.request['ride_id'];
-    
-    // Emit event
-    ref.read(socketServiceProvider).socket.emit('driver:accept_request', {'ride_id': rideId});
-    
-    // We don't wait for response. Optimistic UI FTW.
-    
-    // 1. Construct Optimistic Ride Object
-    final Map<String, dynamic> optimisticRide = {
-       'id': rideId,
-       'status': 'assigned',
-       'start_lat': widget.request['start']['lat'],
-       'start_lng': widget.request['start']['lng'],
-       'start_address': widget.request['start']['address'],
-       'end_lat': widget.request['end']['lat'],
-       'end_lng': widget.request['end']['lng'],
-       'end_address': widget.request['end']['address'],
-       'passenger': widget.request['passenger'] ?? {},
-       'fare_estimate': widget.request['fare_estimate'],
-       'distance_meters': widget.request['distance'],
-       'duration_seconds': widget.request['duration'],
-       'code4': widget.request['code4'] ?? '****', // Placeholder if not in request (usually not, but socket sends it)
-       // Add other necessary fields used by PassengerInfoSheet
-    };
-
-    // 2. Trigger Global Optimistic Update (HomeScreen will react instantly)
-    ref.read(optimisticRideProvider.notifier).setOptimistic(optimisticRide);
-
-    // 3. Clear requests to close sheet immediately
+    // 1. Close this screen IMMEDIATELY ("Zınk" diye kapansın)
     ref.read(incomingRequestsProvider.notifier).clearRequests();
 
-    // 4. Emit event (Background)
-    ref.read(socketServiceProvider).socket.emit('driver:accept_request', {'ride_id': rideId});
-    
-    // Safety reset not needed anymore as screen closes immediately
-    if (mounted) {
-       setState(() { _isAccepting = true; });
-    }
+    // 2. Trigger Global Logic (Background)
+    ref.read(optimisticRideProvider.notifier).acceptRide(widget.request);
   }
 
    @override

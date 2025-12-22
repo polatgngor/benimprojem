@@ -27,6 +27,7 @@ import 'core/services/background_service.dart';
 import 'features/auth/presentation/pending_screen.dart';
 import 'features/auth/presentation/permissions/location_permission_screen.dart';
 import 'features/auth/presentation/permissions/notification_permission_screen.dart';
+import 'features/auth/presentation/permissions/background_permission_screen.dart';
 import 'core/providers/onboarding_provider.dart';
 import 'features/splash/presentation/splash_screen.dart';
 
@@ -143,10 +144,13 @@ final routerProvider = Provider<GoRouter>((ref) {
        
       final isCompleted = onboardingState.value ?? false;
       final isPermissionLoc = state.uri.toString() == '/permission-location';
+      final isPermissionBack = state.uri.toString() == '/permission-background';
       final isPermissionNotif = state.uri.toString() == '/permission-notification';
       
       if (!isCompleted) {
-         if (isPermissionLoc || isPermissionNotif) return null;
+         if (isPermissionLoc) return null;
+         if (isPermissionBack) return null;
+         if (isPermissionNotif) return null;
          return '/permission-location';
       }
 
@@ -233,6 +237,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/permission-location',
         builder: (context, state) => const LocationPermissionScreen(),
+      ),
+      GoRoute(
+        path: '/permission-background',
+        builder: (context, state) => const BackgroundPermissionScreen(),
       ),
       GoRoute(
         path: '/permission-notification',

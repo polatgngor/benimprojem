@@ -12,8 +12,9 @@ class SocketService {
   late IO.Socket _socket;
   bool _initialized = false;
   final FlutterSecureStorage _storage;
-  // Queue to hold listeners registered before socket init
-  final List<Map<String, dynamic>> _pendingListeners = [];
+  
+  // Store listeners to re-register on reconnect/re-init
+  final Map<String, List<Function(dynamic)>> _activeListeners = {};
 
   SocketService(this._storage);
 
@@ -24,12 +25,14 @@ class SocketService {
     final token = await _storage.read(key: 'accessToken');
     debugPrint('Socket connecting with token: ${token?.substring(0, 10)}...');
     
-    // If socket exists but disconnected, try to reconnect
+    // If socket exists, try to reuse or reconnect
     try {
-      if (_socket.disconnected) {
-        _socket.io.options?['extraHeaders'] = {'Authorization': 'Bearer $token'};
-        _socket.io.options?['auth'] = {'token': token};
-        _socket.connect();
+      if (_initialized) {
+        if (_socket.disconnected) {
+            _socket.io.options?['extraHeaders'] = {'Authorization': 'Bearer $token'};
+            _socket.io.options?['auth'] = {'token': token};
+            _socket.connect();
+        }
         return;
       }
     } catch (_) {
@@ -40,25 +43,38 @@ class SocketService {
         .setTransports(['websocket'])
         .setAuth({'token': token})
         .setExtraHeaders({'Authorization': 'Bearer $token'})
-        .enableAutoConnect()
+        .enableAutoConnect() // Enable auto connect
+        .setReconnectionDelay(1000)
         .build());
 
-
-
     _initialized = true;
-    
-    // Register pending listeners
-    for (final listener in _pendingListeners) {
-      _socket.on(listener['event'], listener['handler']);
-    }
-    _pendingListeners.clear();
-
     _setupListeners();
+    
+    // Re-register all stored listeners to the new socket instance
+    _activeListeners.forEach((event, handlers) {
+        for (final handler in handlers) {
+            _socket.on(event, handler);
+        }
+    });
+  }
+  
+  // Initialize with token (synonym for connect but usually called at app start)
+  Future<void> init(String token) async {
+      await _storage.write(key: 'accessToken', value: token);
+      await connect();
   }
 
   void _setupListeners() {
     _socket.onConnect((_) {
       debugPrint('Socket connected: ${_socket.id}');
+      // Re-register listeners just in case socket internal state was wiped (rare but safe)
+      _activeListeners.forEach((event, handlers) {
+          for (final handler in handlers) {
+               // Avoid duplicate registration if socket.io client handles it. 
+               // Standard socket.io-client usually keeps listeners, but if we recreated _socket, we need this.
+               // Since we recreated _socket in connect(), we are good.
+          }
+      });
       _socket.emit('driver:rejoin', {});
     });
 
@@ -137,17 +153,29 @@ class SocketService {
   }
 
   void on(String event, Function(dynamic) handler) {
+    // 1. Store in our persistence map
+    if (!_activeListeners.containsKey(event)) {
+      _activeListeners[event] = [];
+    }
+    _activeListeners[event]!.add(handler);
+
+    // 2. Register to actual socket if ready
     if (_initialized) {
-       // If initialized (even if disconnected), register via socket logic
-       // If disconnected, socket.io client usually queues it or handles it on reconnect
        _socket.on(event, handler);
-    } else {
-       // Queue it for later
-       _pendingListeners.add({'event': event, 'handler': handler});
     }
   }
 
   void off(String event, [dynamic handler]) {
+    // 1. Remove from persistence map
+    if (_activeListeners.containsKey(event)) {
+        if (handler != null) {
+            _activeListeners[event]!.remove(handler);
+        } else {
+            _activeListeners.remove(event); // Remove all for this event
+        }
+    }
+
+    // 2. Remove from actual socket
     if (_initialized) {
       try {
         _socket.off(event, handler);
@@ -165,7 +193,7 @@ class SocketService {
   
   bool get isSocketConnected {
     try {
-      return _socket.connected;
+      return _initialized && _socket.connected;
     } catch (_) {
       return false;
     }

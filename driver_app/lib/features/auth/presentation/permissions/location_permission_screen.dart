@@ -25,7 +25,7 @@ class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScr
 
     if (status.isGranted) {
       if (mounted) {
-        context.go('/permission-notification');
+        context.go('/permission-background');
       }
     } else if (status.isPermanentlyDenied) {
       openAppSettings();
@@ -97,7 +97,7 @@ class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScr
               // Or add a skip for testing
               TextButton(
                 onPressed: () {
-                   context.go('/permission-notification');
+                   context.go('/permission-background');
                 },
                 child: const Text('Şimdi Değil (Test Amaçlı)'),
               ),

@@ -5,6 +5,7 @@ import 'driver_assigned_sheet.dart';
 import 'widgets/searching_ride_sheet.dart';
 import 'widgets/no_driver_sheet.dart';
 import 'widgets/ride_request_sheet.dart';
+import 'widgets/driver_found_transition_sheet.dart';
 
 class RideBookingSheet extends ConsumerWidget {
   final ScrollController? scrollController;
@@ -81,7 +82,7 @@ class RideBookingSheet extends ConsumerWidget {
     // Content is now part of the ListView, so we don't need another ScrollView here
     // unless the content itself needs internal scrolling (nested).
     // For now, let's keep it simple content.
-    if (rideState.status == RideStatus.searching) {
+    if (rideState.status == RideStatus.searching || rideState.status == RideStatus.driverFoundTransition) {
       return const SearchingRideSheet();
     } else if (rideState.status == RideStatus.noDriverFound) {
       return const NoDriverSheet();

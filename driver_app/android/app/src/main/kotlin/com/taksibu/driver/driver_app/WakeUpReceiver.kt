@@ -35,7 +35,7 @@ class WakeUpReceiver : BroadcastReceiver() {
     }
 
     private fun showIncomingCallNotification(context: Context) {
-        val channelId = "incoming_request_channel"
+        val channelId = "incoming_request_v2"
         val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
 
         // Ensure channel exists (Duplicate safety)
@@ -50,7 +50,7 @@ class WakeUpReceiver : BroadcastReceiver() {
             // Critical for sound
              val audioAttributes = android.media.AudioAttributes.Builder()
                 .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION_RINGTONE)
+                .setUsage(android.media.AudioAttributes.USAGE_ALARM)
                 .build()
                 
             // Use default sound or custom if needed. Default is usually safest for "noise".

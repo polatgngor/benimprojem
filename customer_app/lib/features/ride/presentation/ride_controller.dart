@@ -221,7 +221,7 @@ class RideController extends _$RideController {
     _socketCleanup = cleanup;
 
     // Listen for driver assignment
-    socketService.on('ride:assigned', (data) {
+    socketService.on('ride:assigned', (data) async {
       debugPrint('Ride assigned: $data');
       if (!ref.mounted) return;
       
@@ -230,7 +230,17 @@ class RideController extends _$RideController {
         final code4 = data['code4'].toString();
         
         ref.read(rideProvider.notifier).setDriverInfo(driver, code4);
-        ref.read(rideProvider.notifier).setRideStatus(RideStatus.driverFound);
+        
+        // OPTIMISTIC UI: Show "Driver Found!" transition sheet first
+        ref.read(rideProvider.notifier).setRideStatus(RideStatus.driverFoundTransition);
+        
+        // Wait for 3 seconds to let the user see the "Zınk" animation
+        await Future.delayed(const Duration(seconds: 3));
+        
+        // Then switch to the actual Driver Info Sheet
+        if (ref.mounted) {
+           ref.read(rideProvider.notifier).setRideStatus(RideStatus.driverFound);
+        }
       }
     });
 

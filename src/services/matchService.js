@@ -150,9 +150,12 @@ async function emitRideRequest(ride, opts = {}) {
         if (driverHomeRegion && driverCurrentRegion && driverHomeRegion !== driverCurrentRegion) {
           if (rideDestRegion === driverHomeRegion) {
             prioritySeconds = 0;
+            console.log(`[matchService] Driver ${driverId} (Home Priority) -> 0s`);
           }
         }
       }
+
+      console.log(`[matchService] Driver ${driverId} Level: ${level} Priority: ${prioritySeconds}s`);
       return { driverId: String(driverId), level, prioritySeconds };
     });
 

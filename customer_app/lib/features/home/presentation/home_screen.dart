@@ -318,8 +318,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               case RideStatus.noDriverFound:
                 targetHeight = 0.27;
                 break;
+              case RideStatus.driverFoundTransition: // Zınk Phase
+                targetHeight = 0.35; // Enough for the transition message
+                break;
               case RideStatus.driverFound:
-                targetHeight = 0.48;
+                targetHeight = 0.27; // Matched with searching
                 break;
               case RideStatus.rideStarted:
                 targetHeight = 0.30;

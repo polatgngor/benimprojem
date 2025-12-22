@@ -7,6 +7,7 @@ part 'ride_state_provider.g.dart';
 enum RideStatus {
   idle,           // No active ride
   searching,      // Looking for driver
+  driverFoundTransition, // NEW: Optimistic transition state ("Zınk")
   driverFound,    // Driver assigned
   rideStarted,    // Ride in progress
   completed,      // Ride finished, show rating

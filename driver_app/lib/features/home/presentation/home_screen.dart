@@ -11,6 +11,7 @@ import '../../../core/services/location_service.dart';
 import '../../../core/services/socket_service.dart';
 import '../../../core/services/notification_service.dart';
 import '../../auth/data/auth_service.dart';
+import 'widgets/match_processing_sheet.dart';
 import 'widgets/driver_stats_sheet.dart';
 import 'screens/incoming_requests_screen.dart';
 import 'providers/incoming_requests_provider.dart';
@@ -172,14 +173,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   Widget build(BuildContext context) {
     // Listen for Optimistic Updates (Zero Latency)
     ref.listen(optimisticRideProvider, (previous, next) {
-      if (next != null) {
-        // We use Future.microtask to avoid setState during build if that ever happens, 
-        // though ref.listen callbacks are usually safe.
+      // Logic for Switching States
+      if (next.activeRide != null) {
+        // Optimistic Success: Switch to Ride
         setState(() {
-          _activeRide = next;
+          _activeRide = next.activeRide;
           _fetchAndDrawRoute(fitBounds: true);
         });
-        debugPrint('Optimistic Ride Update applied: ${next['status']}');
+        debugPrint('Optimistic Ride Update applied: ${next.activeRide!['status']}');
+      } else if (next.activeRide == null && !next.isMatching) {
+         // Cleared (e.g. failure reverting)
+         if (_activeRide != null && previous?.activeRide != null) {
+            // Only if we were in optimistic state, revert.
+             setState(() {
+               _activeRide = null;
+               _polylines.clear();
+             });
+         }
       }
     });
 
@@ -305,23 +315,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                        child: child,
                      );
                   },
-                  child: _activeRide != null
-                      ? PassengerInfoSheet(
+                  child: () {
+                     // 1. Optimistic Matching State ("Zınk" Transition Sheet)
+                     final optimisticState = ref.watch(optimisticRideProvider);
+                     
+                     if (optimisticState.isMatching) {
+                       return MatchProcessingSheet(
+                         key: const ValueKey('match_processing_sheet'),
+                       );
+                     }
+                     
+                     // 2. Active Ride (Passenger Info)
+                     if (_activeRide != null) {
+                       return PassengerInfoSheet(
                           key: const ValueKey('passenger_info_sheet'),
                           rideData: _activeRide!,
                           controller: _passengerInfoController,
                           driverLocation: _currentPosition,
                           currentDistanceMeters: _routeDistanceMeters,
                           currentDurationSeconds: _routeDurationSeconds,
-                        )
-                      : DriverStatsSheet(
+                        );
+                     }
+                     
+                     // 3. Default (Driver Stats)
+                     return DriverStatsSheet(
                           key: const ValueKey('driver_stats_sheet'),
                           refCount: 12, 
                           refCode: _refCode,
                           controller: _statsSheetController,
                           isOnline: _isOnline,
                           onStatusChanged: _toggleOnlineStatus,
-                        ),
+                        );
+                  }(),
                 ),
               ),
             ],
