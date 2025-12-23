@@ -12,7 +12,6 @@ const NotificationModel = require('./notification');
 const UserDeviceModel = require('./userDevice');
 const SavedPlaceModel = require('./savedPlace'); // NEW
 const WalletModel = require('./Wallet');
-const WalletModel = require('./Wallet');
 const WalletTransactionModel = require('./WalletTransaction');
 const VehicleChangeRequestModel = require('./vehicleChangeRequest');
 
@@ -51,7 +50,6 @@ const models = {
 
   UserDevice: UserDeviceModel(sequelize),
   SavedPlace: SavedPlaceModel(sequelize),
-  Wallet: WalletModel(sequelize),
   Wallet: WalletModel(sequelize),
   WalletTransaction: WalletTransactionModel(sequelize),
   VehicleChangeRequest: VehicleChangeRequestModel(sequelize)
