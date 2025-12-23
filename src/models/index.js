@@ -12,7 +12,9 @@ const NotificationModel = require('./notification');
 const UserDeviceModel = require('./userDevice');
 const SavedPlaceModel = require('./savedPlace'); // NEW
 const WalletModel = require('./Wallet');
+const WalletModel = require('./Wallet');
 const WalletTransactionModel = require('./WalletTransaction');
+const VehicleChangeRequestModel = require('./vehicleChangeRequest');
 
 const sequelize = new Sequelize(
   process.env.DB_NAME || 'taksibu',
@@ -50,12 +52,16 @@ const models = {
   UserDevice: UserDeviceModel(sequelize),
   SavedPlace: SavedPlaceModel(sequelize),
   Wallet: WalletModel(sequelize),
-  WalletTransaction: WalletTransactionModel(sequelize)
+  Wallet: WalletModel(sequelize),
+  WalletTransaction: WalletTransactionModel(sequelize),
+  VehicleChangeRequest: VehicleChangeRequestModel(sequelize)
 };
 
 // Associations
 models.Driver.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
 models.User.hasOne(models.Driver, { foreignKey: 'user_id', as: 'driver' });
+models.Driver.hasMany(models.VehicleChangeRequest, { foreignKey: 'driver_id', as: 'change_requests' });
+models.VehicleChangeRequest.belongsTo(models.Driver, { foreignKey: 'driver_id', as: 'driver' });
 
 models.Ride.belongsTo(models.User, { foreignKey: 'passenger_id', as: 'passenger' });
 models.Ride.belongsTo(models.User, { foreignKey: 'driver_id', as: 'driver' });

@@ -48,6 +48,12 @@ class NotificationService {
         debugPrint('Got a message whilst in the foreground!');
         debugPrint('Message data: ${message.data}');
 
+        // BLOCK Incoming Request Notification (Handled by WakeUpReceiver / Full Screen Intent)
+        if (message.data['type'] == 'request_incoming') {
+           debugPrint('Blocked notification for request_incoming (Silent WakeUp)');
+           return;
+        }
+
         if (message.notification != null) {
           _showLocalNotification(message);
         }
@@ -56,14 +62,15 @@ class NotificationService {
   }
 
   Future<void> _showLocalNotification(RemoteMessage message) async {
+    // Use a General Channel for all other notifications (Chat, Cancel, Info)
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
-      'ride_request_channel', // id
-      'Ride Requests', // title
+      'general_notification_channel', // id
+      'General Notifications', // title
       importance: Importance.max,
       priority: Priority.high,
-      sound: RawResourceAndroidNotificationSound('ringtone'),
       playSound: true,
+      // No custom sound (uses default system notification sound)
     );
     const NotificationDetails platformChannelSpecifics =
         NotificationDetails(android: androidPlatformChannelSpecifics);

@@ -14,6 +14,8 @@ module.exports = (sequelize) =>
       },
       driver_card_number: { type: DataTypes.STRING(100), allowNull: true },
       vehicle_plate: { type: DataTypes.STRING(20), allowNull: true },
+      vehicle_brand: { type: DataTypes.STRING(50), allowNull: true },
+      vehicle_model: { type: DataTypes.STRING(50), allowNull: true },
       vehicle_type: { type: DataTypes.ENUM('sari', 'turkuaz', 'vip', '8+1'), allowNull: false, defaultValue: 'sari' },
       vehicle_license_file: { type: DataTypes.STRING(255), allowNull: true },
       working_region: { type: DataTypes.ENUM('Anadolu', 'Avrupa'), allowNull: true },

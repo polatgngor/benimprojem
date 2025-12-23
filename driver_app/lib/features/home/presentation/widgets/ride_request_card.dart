@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../../core/services/socket_service.dart';
 import '../providers/incoming_requests_provider.dart';
 import '../providers/optimistic_ride_provider.dart';
@@ -23,6 +24,10 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
 
+  // Metrics (Driver -> Pickup)
+  String _pickupDistance = '...';
+  String _pickupDuration = '...';
+
   // Default timeout duration (reduced to sync with backend)
   static const int _timeoutSeconds = 15;
 
@@ -33,6 +38,41 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
     super.initState();
     _setupMapData();
     _setupTimer();
+    _calculatePickupMetrics();
+  }
+
+  Future<void> _calculatePickupMetrics() async {
+    try {
+      final start = widget.request['start'];
+      if (start != null && start['lat'] != null && start['lng'] != null) {
+        final pickupLat = double.parse(start['lat'].toString());
+        final pickupLng = double.parse(start['lng'].toString());
+
+        // Get Driver Location (Instant if possible)
+        Position? position = await Geolocator.getLastKnownPosition();
+        position ??= await Geolocator.getCurrentPosition();
+
+        final distMeters = Geolocator.distanceBetween(
+          position.latitude, 
+          position.longitude, 
+          pickupLat, 
+          pickupLng
+        );
+
+        final distKm = distMeters / 1000;
+        // Heuristic: 20km/h avg speed in city = ~3 mins per km + 2 min base
+        final durationMins = (distKm * 3) + 2; 
+
+        if (mounted) {
+          setState(() {
+            _pickupDistance = '${distKm.toStringAsFixed(1)} km';
+            _pickupDuration = '${durationMins.toStringAsFixed(0)} dk';
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('Error calculating pickup metrics: $e');
+    }
   }
 
   void _setupTimer() {
@@ -58,16 +98,8 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
       vsync: this,
       duration: Duration(seconds: durationSeconds > 0 ? durationSeconds : 1),
     )..reverse(from: 1.0);
-    
-    // Auto-timeout callback could be added here if needed
-    // _timerController.addStatusListener((status) {
-    //   if (status == AnimationStatus.dismissed) {
-    //      // Handle local timeout
-    //   }
-    // });
   }
 
-  // ... (dispose and map setup unchanged) ...
   @override
   void dispose() {
     _timerController.dispose();
@@ -171,12 +203,8 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
 
    @override
   Widget build(BuildContext context) {
-    final distance = widget.request['distance'] != null 
-        ? (widget.request['distance'] / 1000).toStringAsFixed(1) 
-        : '-';
-    final duration = widget.request['duration'] != null 
-        ? (widget.request['duration'] / 60).toStringAsFixed(0) 
-        : '-';
+    // Note: We use _pickupDistance/_pickupDuration calculated in initState
+    
     final fare = widget.request['fare_estimate'] ?? '-';
     final addressStart = widget.request['start']['address'] ?? 'incoming_request.start_location'.tr();
     final addressEnd = widget.request['end']['address'] ?? 'incoming_request.end_location'.tr();
@@ -234,56 +262,7 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
                    },
                  ),
                ),
-               // Info Badge on Map (Replacing "New Ride")
-               Positioned(
-                 top: 16,
-                 right: 16,
-                 child: Container(
-                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                   decoration: BoxDecoration(
-                     color: const Color(0xFF1A77F6), // Theme Blue
-                     borderRadius: BorderRadius.circular(30),
-                     boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF1A77F6).withOpacity(0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 4),
-                        )
-                     ],
-                   ),
-                   child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                         const Icon(Icons.access_time_filled, size: 14, color: Colors.white70),
-                         const SizedBox(width: 4),
-                         Text(
-                         '$duration dk',
-                         style: const TextStyle(
-                           color: Colors.white,
-                           fontWeight: FontWeight.bold,
-                           fontSize: 13,
-                         ),
-                       ),
-                       Container(
-                         height: 12, 
-                         width: 1, 
-                         color: Colors.white24, 
-                         margin: const EdgeInsets.symmetric(horizontal: 8),
-                       ),
-                       const Icon(Icons.directions_car, size: 14, color: Colors.white70),
-                       const SizedBox(width: 4),
-                       Text(
-                         '$distance km',
-                         style: const TextStyle(
-                           color: Colors.white,
-                           fontWeight: FontWeight.bold,
-                           fontSize: 13,
-                         ),
-                       ),
-                      ],
-                   ),
-                 ),
-               ),
+               // Removed Badge from here
              ],
            ),
 
@@ -292,68 +271,90 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
              padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
              child: Column(
                children: [
-                 // Price and Payment Method Row
+                 // Price | Payment | Badge Row
                  Row(
-                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                    crossAxisAlignment: CrossAxisAlignment.center,
                    children: [
                      Expanded(
                        child: Column(
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
+                           // Payment Method (Header) - Replaces "Estimated Earnings"
                            Text(
-                             'incoming_request.estimated_earnings'.tr(),
+                             isCash ? 'Nakit' : 'POS',
                              style: TextStyle(
-                               color: Colors.grey[600],
-                               fontSize: 12,
-                               fontWeight: FontWeight.w600,
+                               color: isCash ? const Color(0xFF2E7D32) : const Color(0xFF7B1FA2),
+                               fontWeight: FontWeight.w900,
+                               fontSize: 18, 
+                               letterSpacing: 0.5,
                              ),
-                             maxLines: 1,
-                             overflow: TextOverflow.ellipsis,
                            ),
                            const SizedBox(height: 4),
-                           Row(
-                             crossAxisAlignment: CrossAxisAlignment.center,
-                             children: [
-                               Flexible(
-                                 child: FittedBox(
-                                   fit: BoxFit.scaleDown,
-                                   alignment: Alignment.centerLeft,
-                                   child: Text(
-                                     '₺$fare',
-                                     style: const TextStyle(
-                                       fontSize: 34,
-                                       fontWeight: FontWeight.w900,
-                                       color: Colors.black87,
-                                       height: 1.0,
-                                       letterSpacing: -1.0,
-                                     ),
-                                   ),
-                                 ),
+                           // Price
+                           FittedBox(
+                             fit: BoxFit.scaleDown,
+                             alignment: Alignment.centerLeft,
+                             child: Text(
+                               '₺$fare',
+                               style: const TextStyle(
+                                 fontSize: 36, // Slightly larger
+                                 fontWeight: FontWeight.w900,
+                                 color: Colors.black87,
+                                 height: 1.0,
+                                 letterSpacing: -1.0,
                                ),
-                               const SizedBox(width: 12),
-                               // Payment Method Text ONLY (No Background)
-                               Text(
-                                 isCash ? 'Nakit' : 'POS',
-                                 style: TextStyle(
-                                   color: isCash ? const Color(0xFF2E7D32) : const Color(0xFF7B1FA2),
-                                   fontWeight: FontWeight.w900, // Extra bold
-                                   fontSize: 16, // Larger font
-                                   letterSpacing: 0.5,
-                                 ),
-                               ),
-                             ],
+                             ),
                            ),
                          ],
                        ),
                      ),
-                     // Removed old blue info box from here
+                     // New Badge (Driver -> Pickup)
+                     Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1A77F6), // Theme Blue
+                          borderRadius: BorderRadius.circular(30),
+                        ),
+                        child: Row(
+                           mainAxisSize: MainAxisSize.min,
+                           children: [
+                              const Icon(Icons.access_time_filled, size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Text(
+                                _pickupDuration,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                              Container(
+                                height: 12, 
+                                width: 1, 
+                                color: Colors.white24, 
+                                margin: const EdgeInsets.symmetric(horizontal: 8),
+                              ),
+                              const Icon(Icons.directions_car, size: 14, color: Colors.white70),
+                              const SizedBox(width: 4),
+                              Text(
+                                _pickupDistance,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 13,
+                                ),
+                              ),
+                           ],
+                        ),
+                     ),
                    ],
                  ),
                  
-                 // Options Chips (Taximeter / Pet) - Modern Thin Border
+                 // Removed "Tahmini Kazanç" Text row entirely
+                 
+                 // Options Chips
                  if (openTaximeter || hasPet) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         if (openTaximeter)

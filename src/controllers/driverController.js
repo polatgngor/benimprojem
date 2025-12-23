@@ -144,4 +144,70 @@ async function getEarnings(req, res) {
   }
 }
 
-module.exports = { updatePlate, getEarnings };
+async function requestVehicleChange(req, res) {
+  try {
+    const userId = req.user.userId;
+    const {
+      request_type,
+      new_plate,
+      new_brand,
+      new_model,
+      new_vehicle_type
+    } = req.body;
+
+    // Get Driver
+    const driver = await Driver.findOne({ where: { user_id: userId } });
+    if (!driver) return res.status(404).json({ message: 'Driver not found' });
+
+    // Pending request check? Maybe allow multiple? Let's allow for now but usually one active is better.
+    // For simplicity, just create new one.
+
+    const requestData = {
+      driver_id: driver.id,
+      request_type: request_type || 'change_taxi',
+      new_plate,
+      new_brand,
+      new_model,
+      new_vehicle_type: new_vehicle_type || 'sari',
+      status: 'pending'
+    };
+
+    // Handle Files
+    if (req.files) {
+      if (req.files['new_vehicle_license']) requestData.new_vehicle_license_file = req.files['new_vehicle_license'][0].path.replace(/\\/g, '/');
+      if (req.files['new_ibb_card']) requestData.new_ibb_card_file = req.files['new_ibb_card'][0].path.replace(/\\/g, '/');
+      if (req.files['new_driving_license']) requestData.new_driving_license_file = req.files['new_driving_license'][0].path.replace(/\\/g, '/');
+      if (req.files['new_identity_card']) requestData.new_identity_card_file = req.files['new_identity_card'][0].path.replace(/\\/g, '/');
+    }
+
+    const { VehicleChangeRequest } = require('../models');
+    await VehicleChangeRequest.create(requestData);
+
+    return res.status(201).json({ ok: true, message: 'Talebiniz alınmıştır. Yönetici onayı bekleniyor.' });
+
+  } catch (err) {
+    console.error('requestVehicleChange err', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
+async function getChangeRequests(req, res) {
+  try {
+    const userId = req.user.userId;
+    const driver = await Driver.findOne({ where: { user_id: userId } });
+    if (!driver) return res.status(404).json({ message: 'Driver not found' });
+
+    const { VehicleChangeRequest } = require('../models');
+    const requests = await VehicleChangeRequest.findAll({
+      where: { driver_id: driver.id },
+      order: [['created_at', 'DESC']]
+    });
+
+    return res.json({ ok: true, requests });
+  } catch (err) {
+    console.error('getChangeRequests err', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
+module.exports = { updatePlate, getEarnings, requestVehicleChange, getChangeRequests };

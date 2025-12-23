@@ -174,7 +174,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     // Listen for Optimistic Updates (Zero Latency)
     ref.listen(optimisticRideProvider, (previous, next) {
       // Logic for Switching States
-      if (next.activeRide != null) {
+      if (next.isCompleting) {
+        // Optimistic Completion: Clear sheet immediately ("Zınk")
+        setState(() {
+          _activeRide = null;
+          _polylines.clear();
+        });
+        debugPrint('Optimistic Completion Triggered');
+        // We don't need to do anything else, the socket 'end_ride_ok' will eventually confirm,
+        // but the user is already unblocked.
+        
+      } else if (next.activeRide != null) {
         // Optimistic Success: Switch to Ride
         setState(() {
           _activeRide = next.activeRide;
@@ -496,11 +506,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     socket.on('ride:cancelled', (data) {
       if (mounted) {
         ref.read(ringtoneServiceProvider).stopRingtone();
+        
+        // Clear Optimistic UI if any
+        ref.read(optimisticRideProvider.notifier).clear();
+        
         setState(() {
           _activeRide = null;
           _polylines.clear();
         });
-
+        
+        _setDriverAvailable(); // Auto-available in background
         debugPrint('Yolculuk iptal edildi. (${data['reason'] ?? 'Sebep belirtilmedi'})');
       }
     });

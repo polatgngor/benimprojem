@@ -681,6 +681,10 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                         
                         if (fare != null && fare >= 175) {
                           Navigator.pop(context);
+                          
+                          // OPTIMISTIC UI: Hide sheet instantly ('Zınk')
+                          ref.read(optimisticRideProvider.notifier).completeRide();
+                          
                           ref.read(socketServiceProvider).socket.emit('driver:end_ride', {
                             'ride_id': rideId,
                             'fare_actual': fare,

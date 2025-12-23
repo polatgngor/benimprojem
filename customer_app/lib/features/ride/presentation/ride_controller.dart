@@ -421,19 +421,25 @@ class RideController extends _$RideController {
 
     try {
       final repository = ref.read(rideRepositoryProvider);
-      await repository.cancelRide(_currentRideId!, reason: reason);
+      final rideIdToCancel = _currentRideId; // Capture ID locally
       
-      state = const AsyncData(null); // Reset state (idle)
+      // OPTIMISTIC UPDATE: Clear UI immediately
+      state = const AsyncData(null); 
       _currentRideId = null;
-      
-      stopListening();
       ref.read(rideProvider.notifier).resetRide();
+      stopListening();
       
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Arama iptal edildi.')),
         );
       }
+
+      // Fire and forget (almost)
+      if (rideIdToCancel != null) {
+        await repository.cancelRide(rideIdToCancel, reason: reason);
+      }
+
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

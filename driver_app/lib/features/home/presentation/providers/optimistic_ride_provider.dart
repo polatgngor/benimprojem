@@ -6,19 +6,23 @@ import 'incoming_requests_provider.dart';
 class OptimisticState {
   final Map<String, dynamic>? activeRide;
   final bool isMatching;
+  final bool isCompleting; // New flag to signal completion
 
   const OptimisticState({
     this.activeRide,
     this.isMatching = false,
+    this.isCompleting = false,
   });
 
   OptimisticState copyWith({
     Map<String, dynamic>? activeRide,
     bool? isMatching,
+    bool? isCompleting,
   }) {
     return OptimisticState(
       activeRide: activeRide ?? this.activeRide,
       isMatching: isMatching ?? this.isMatching,
+      isCompleting: isCompleting ?? this.isCompleting,
     );
   }
 }
@@ -30,8 +34,12 @@ class OptimisticRideNotifier extends Notifier<OptimisticState> {
   @override
   OptimisticState build() => const OptimisticState();
 
+  void completeRide() {
+     state = state.copyWith(isCompleting: true, activeRide: null);
+  }
+  
   void startMatching() {
-    state = state.copyWith(isMatching: true);
+    state = state.copyWith(isMatching: true, isCompleting: false);
   }
   
   void cancelMatching() {
@@ -40,7 +48,7 @@ class OptimisticRideNotifier extends Notifier<OptimisticState> {
 
   void setOptimistic(Map<String, dynamic> ride) {
     // When ride is set, we are done matching
-    state = state.copyWith(activeRide: ride, isMatching: false);
+    state = state.copyWith(activeRide: ride, isMatching: false, isCompleting: false);
   }
 
   void updateStatus(String status) {

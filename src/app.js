@@ -48,6 +48,7 @@ app.use('/api/notifications', notificationsRoutes);
 app.use('/api/driver', driverRoutes);
 app.use('/api/announcements', announcementsRoutes);
 app.use('/api/saved-places', savedPlacesRoutes); // NEW
+app.get('/api/vehicles/data', require('./controllers/vehicleController').getVehicleData);
 app.use('/api/support', require('./routes/support')); // Support System
 
 // health

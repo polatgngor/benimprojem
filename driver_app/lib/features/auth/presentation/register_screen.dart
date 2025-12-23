@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
 import 'auth_provider.dart';
+import '../data/vehicle_repository.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -42,7 +43,29 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   late String phone;
   late String verificationToken;
 
+  Map<String, List<String>> _vehicleData = {};
+  String? _selectedBrand;
+  String? _selectedModel;
   final List<String> _cityCodes = ['34', '06', '35', '07', '16', '41', '59']; // Common ones
+
+  @override
+  void initState() {
+    super.initState();
+    _loadVehicleData();
+  }
+
+  Future<void> _loadVehicleData() async {
+    try {
+      final data = await ref.read(vehicleRepositoryProvider).getVehicleData();
+      if (mounted) {
+        setState(() {
+          _vehicleData = data;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading vehicles: $e');
+    }
+  }
 
   @override
   void didChangeDependencies() {
@@ -101,6 +124,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         lastName: _lastNameController.text.trim(),
         verificationToken: verificationToken,
         vehiclePlate: fullPlate,
+        vehicleBrand: _selectedBrand!,
+        vehicleModel: _selectedModel!,
         vehicleType: _selectedVehicleType,
         driverCardNumber: null, // Removed form input
         workingRegion: _selectedRegion,
@@ -302,6 +327,45 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 //   controller: _driverCardController,
                 //   decoration: InputDecoration(labelText: 'auth.driver_card_label'.tr()),
                 // ),
+                const SizedBox(height: 16),
+
+                const SizedBox(height: 16),
+                
+                // Vehicle Brand Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedBrand,
+                  decoration: InputDecoration(
+                    labelText: 'Araç Markası',
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  items: _vehicleData.keys.map((brand) {
+                    return DropdownMenuItem(value: brand, child: Text(brand));
+                  }).toList(),
+                  onChanged: (val) {
+                    setState(() {
+                      _selectedBrand = val;
+                      _selectedModel = null; // Reset model
+                    });
+                  },
+                   validator: (v) => v == null ? 'Lütfen marka seçiniz' : null,
+                ),
+                const SizedBox(height: 16),
+
+                // Vehicle Model Dropdown
+                DropdownButtonFormField<String>(
+                  value: _selectedModel,
+                  decoration: InputDecoration(
+                    labelText: 'Araç Modeli',
+                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                  items: (_selectedBrand != null && _vehicleData.containsKey(_selectedBrand))
+                      ? _vehicleData[_selectedBrand]!.map((model) {
+                          return DropdownMenuItem(value: model, child: Text(model));
+                        }).toList()
+                      : [],
+                  onChanged: (val) => setState(() => _selectedModel = val),
+                  validator: (v) => v == null ? 'Lütfen model seçiniz' : null,
+                ),
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(

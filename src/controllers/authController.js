@@ -11,6 +11,8 @@ async function register(req, res) {
       role,
       ref_code,
       vehicle_plate,
+      vehicle_brand,
+      vehicle_model,
       vehicle_type,
       driver_card_number,
       verification_token // REQUIRED
@@ -79,6 +81,8 @@ async function register(req, res) {
         user_id: user.id,
         status: 'pending',
         vehicle_plate: vehicle_plate || null,
+        vehicle_brand: vehicle_brand || null,
+        vehicle_model: vehicle_model || null,
         vehicle_type: vehicle_type || 'sari',
         driver_card_number: driver_card_number || null,
         working_region: req.body.working_region || null,
