@@ -174,6 +174,10 @@ async function requestVehicleChange(req, res) {
     // OTP Valid - Delete it (optional, to prevent reuse)
     await redis.del(key);
 
+    // Get Driver
+    const driver = await Driver.findOne({ where: { user_id: userId } });
+    if (!driver) return res.status(404).json({ message: 'Driver not found' });
+
     const requestData = {
       driver_id: driver.id,
       request_type: request_type || 'change_taxi', // ensure matches ENUM
