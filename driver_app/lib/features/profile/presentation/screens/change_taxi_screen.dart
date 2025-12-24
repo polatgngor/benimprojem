@@ -8,7 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../auth/data/vehicle_repository.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../auth/data/auth_service.dart';
-import '../../auth/presentation/widgets/otp_sheet.dart';
+import 'package:driver_app/features/auth/presentation/widgets/otp_sheet.dart';
 
 class ChangeTaxiScreen extends ConsumerStatefulWidget {
   const ChangeTaxiScreen({super.key});
@@ -144,10 +144,16 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
       );
 
       if (mounted) {
-        context.pop(); // Return to previous screen
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Talebiniz başarıyla gönderildi.'), backgroundColor: Colors.green),
+          const SnackBar(content: Text('Talebiniz başarıyla gönderildi.')),
         );
+        // Refresh auth to catch pending status
+        // Invalidating provider to force re-build
+        ref.invalidate(authProvider);
+
+        if (mounted) {
+          context.pop(); 
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -199,6 +199,11 @@ async function requestVehicleChange(req, res) {
     const { VehicleChangeRequest } = require('../models');
     await VehicleChangeRequest.create(requestData);
 
+    // Update Driver Status to Pending (Lock out)
+    driver.status = 'pending';
+    driver.is_available = false;
+    await driver.save();
+
     return res.status(201).json({ ok: true, message: 'Talebiniz alınmıştır. Yönetici onayı bekleniyor.' });
 
   } catch (err) {

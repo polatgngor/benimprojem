@@ -5,7 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:driver_app/features/auth/data/vehicle_repository.dart';
 import 'package:driver_app/features/auth/presentation/auth_provider.dart';
-import '../../auth/presentation/widgets/otp_sheet.dart';
+import 'package:driver_app/features/auth/presentation/widgets/otp_sheet.dart';
 
 class UpdateDocumentsScreen extends ConsumerStatefulWidget {
   const UpdateDocumentsScreen({super.key});
@@ -23,6 +23,45 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
 
   bool _isLoading = false;
 
+  // Brand/Model
+  Map<String, List<String>> _vehicleData = {};
+  String? _selectedBrand;
+  String? _selectedModel;
+  String _selectedVehicleType = 'sari'; // Default
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    // Load Vehicle Data
+    try {
+      final data = await ref.read(vehicleRepositoryProvider).getVehicleData();
+      if (mounted) {
+        final authState = ref.read(authProvider);
+        final user = authState.value?['user'];
+        
+        setState(() {
+          _vehicleData = data;
+          // Pre-fill if exists
+          if (user != null) {
+              if (data.containsKey(user['vehicle_brand'])) {
+                  _selectedBrand = user['vehicle_brand'];
+                  if (data[user['vehicle_brand']]!.contains(user['vehicle_model'])) {
+                      _selectedModel = user['vehicle_model'];
+                  }
+              }
+              _selectedVehicleType = user['vehicle_type'] ?? 'sari';
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading vehicles: $e');
+    }
+  }
+
   Future<void> _pickFile(Function(File) onPicked) async {
     final result = await FilePicker.platform.pickFiles(type: FileType.image);
     if (result != null && result.files.single.path != null) {
@@ -34,15 +73,18 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
 
   Future<void> _submitRequest() async {
     // Basic validation
-    if (_vehicleLicenseFile == null &&
-        _ibbCardFile == null &&
-        _drivingLicenseFile == null &&
-        _identityCardFile == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen en az bir belge yükleyin.')),
+    // Require Brand/Model selection if we are showing them
+    if (_selectedBrand == null || _selectedModel == null) {
+       ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Lütfen araç marka ve modelini seçiniz.')),
       );
       return;
     }
+
+    // At least one file?? Or is it optional if just updating vehicle info?
+    // Let's keep it lenient: if files are null, they won't be updated.
+    // But since this is "Update Documents", maybe files are the focus?
+    // User requested "vehicle update" here too. Let's allow files to be null if vehicle info is changed.
 
     // Get Phone Number
     final authState = ref.read(authProvider);
@@ -84,8 +126,12 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
       // We pass request_type = 'update_info'
       await repo.requestVehicleChange(
         requestType: 'update_info',
-        otpCode: otpCode, // Send Verified Code
-        // plate, brand, model, vehicleType are null for this request type
+        otpCode: otpCode, 
+        // Pass selected dropdown values
+        brand: _selectedBrand!,
+        model: _selectedModel!,
+        vehicleType: _selectedVehicleType,
+        
         vehicleLicense: _vehicleLicenseFile,
         ibbCard: _ibbCardFile,
         drivingLicense: _drivingLicenseFile,
@@ -94,9 +140,14 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Belge güncelleme talebiniz başarıyla gönderildi.')),
+          const SnackBar(content: Text('Güncelleme talebiniz başarıyla gönderildi. Onay bekleniyor.')),
         );
-        Navigator.pop(context); // Return to Dashboard
+        // Force refresh of auth state to catch 'pending' status
+        await ref.read(authProvider.notifier).build(); 
+        
+        if (mounted) {
+           Navigator.pop(context); // Return
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -115,17 +166,15 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ... (Existing variables)
     final authState = ref.watch(authProvider);
     final user = authState.value?['user'];
     
-    // Safety check just in case, though likely user is logged in
     final currentPlate = user?['vehicle_plate'] ?? 'Bilinmiyor';
-    final currentBrand = user?['vehicle_brand'] ?? 'Bilinmiyor';
-    final currentModel = user?['vehicle_model'] ?? 'Bilinmiyor';
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Belgelerimi Güncelle'),
+        title: const Text('Bilgilerimi Güncelle'), // Renamed
         backgroundColor: const Color(0xFF1A77F6),
         foregroundColor: Colors.white,
       ),
@@ -147,22 +196,73 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const Text(
-                    "Mevcut Araç Bilgileri",
+                    "Mevcut Plaka",
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                   ),
-                  const SizedBox(height: 8),
-                  Text("Plaka: $currentPlate"),
-                  Text("Marka: $currentBrand"),
-                  Text("Model: $currentModel"),
+                  const SizedBox(height: 4),
+                  Text(currentPlate, style: const TextStyle(fontSize: 18)),
                   const SizedBox(height: 8),
                   const Text(
-                    "Not: Araç bilgilerinizi değiştirmeden sadece belgelerinizi güncellemek için bu formu kullanınız.",
+                    "Plaka değişikliği için lütfen 'Taksi Değiştir' menüsünü kullanınız.",
                     style: TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 24),
+
+            const Text('Araç Bilgileri', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+
+             // Vehicle Type Dropdown
+            DropdownButtonFormField<String>(
+              value: _selectedVehicleType,
+              decoration: InputDecoration(
+                labelText: 'Araç Tipi',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              items: [
+                DropdownMenuItem(value: 'sari', child: Text('Sarı Taksi')),
+                DropdownMenuItem(value: 'turkuaz', child: Text('Turkuaz Taksi')),
+                DropdownMenuItem(value: 'vip', child: Text('Siyah Taksi (VIP)')),
+                DropdownMenuItem(value: '8+1', child: Text('8+1 Taksi')),
+              ],
+              onChanged: (v) => setState(() => _selectedVehicleType = v!),
+            ),
+            const SizedBox(height: 16),
+
+             // Brand Dropdown
+            DropdownButtonFormField<String>(
+              value: _selectedBrand,
+              decoration: InputDecoration(
+                labelText: 'Araç Markası',
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              items: _vehicleData.keys.map((brand) {
+                return DropdownMenuItem(value: brand, child: Text(brand));
+              }).toList(),
+              onChanged: (val) => setState(() { _selectedBrand = val; _selectedModel = null; }),
+               validator: (v) => v == null ? 'Lütfen marka seçiniz' : null,
+            ),
+            const SizedBox(height: 16),
+
+            // Model Dropdown
+            DropdownButtonFormField<String>(
+              value: _selectedModel,
+              decoration: InputDecoration(
+                labelText: 'Araç Modeli',
+                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+              items: (_selectedBrand != null && _vehicleData.containsKey(_selectedBrand))
+                  ? _vehicleData[_selectedBrand]!.map((model) {
+                      return DropdownMenuItem(value: model, child: Text(model));
+                    }).toList()
+                  : [],
+              onChanged: (val) => setState(() => _selectedModel = val),
+              validator: (v) => v == null ? 'Lütfen model seçiniz' : null,
+            ),
+            
+            const SizedBox(height: 32),
             
             const Text(
               'Belgeler',
@@ -207,7 +307,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'Belgeleri Gönder',
+                        'Onaya Gönder',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
