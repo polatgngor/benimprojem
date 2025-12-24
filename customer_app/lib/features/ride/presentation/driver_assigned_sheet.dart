@@ -45,26 +45,15 @@ class DriverAssignedSheet extends ConsumerWidget {
       children: [
         // Drag Handle
         const SizedBox(height: 12),
-        const SizedBox(height: 12),
+        // Removed extra SizedBox(height: 12) here to reduce top spacing
 
-        // STATUS TEXT (User requested: "Sürücü yolda ... bilgilendirme yazısı")
-        Text(
-          isStarted ? 'ride.status.ride_started'.tr() : 'ride.status.driver_coming'.tr(),
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          isStarted 
-            ? 'ride.status.ride_started_desc'.tr() 
-            : 'ride.status.driver_coming_desc'.tr(),
-          textAlign: TextAlign.center,
-          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
-        ),
-        const SizedBox(height: 20),
+
+        // Status Text moved below profile header
+
 
         // HEADER: Driver Profile & Stats
         Padding(
-          padding: const EdgeInsets.only(bottom: 20),
+          padding: EdgeInsets.zero, // Removed bottom padding for precise spacing control
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start, // Align top
@@ -76,21 +65,23 @@ class DriverAssignedSheet extends ConsumerWidget {
                    children: [
                      // Avatar
                      // Avatar
-                     ClipOval(
-                       child: Container(
-                         width: 48,
-                         height: 48,
-                         color: Colors.grey[200],
-                         child: photoUrl.isNotEmpty
-                             ? Image.network(
-                                 photoUrl.startsWith('http') ? photoUrl : '${AppConstants.baseUrl}/$photoUrl',
-                                 fit: BoxFit.cover,
-                                 errorBuilder: (context, error, stackTrace) =>
-                                     Icon(Icons.person, size: 28, color: Colors.grey[400]),
-                               )
-                             : Icon(Icons.person, size: 28, color: Colors.grey[400]),
+                       ClipOval(
+                         child: Container(
+                           width: 60, // Increased from 48
+                           height: 60, // Increased from 48
+                           decoration: BoxDecoration(
+                               color: Colors.grey[200],
+                           ),
+                           child: photoUrl.isNotEmpty
+                               ? Image.network(
+                                   photoUrl.startsWith('http') ? photoUrl : '${AppConstants.baseUrl}/$photoUrl',
+                                   fit: BoxFit.cover,
+                                   errorBuilder: (context, error, stackTrace) =>
+                                       Icon(Icons.person, size: 36, color: Colors.grey[400]), // Incr size
+                                 )
+                               : Icon(Icons.person, size: 36, color: Colors.grey[400]), // Incr size
+                         ),
                        ),
-                     ),
                      const SizedBox(width: 12),
                      
                      // Name & Rating
@@ -98,17 +89,17 @@ class DriverAssignedSheet extends ConsumerWidget {
                        child: Column(
                          crossAxisAlignment: CrossAxisAlignment.start,
                          children: [
-                           Text(
-                             driverName,
-                             maxLines: 2,
-                             overflow: TextOverflow.ellipsis,
-                             style: const TextStyle(
-                               fontSize: 16,
-                               fontWeight: FontWeight.w900,
-                               color: Colors.black87,
-                               height: 1.1,
+                             Text(
+                               driverName,
+                               maxLines: 2,
+                               overflow: TextOverflow.ellipsis,
+                               style: const TextStyle(
+                                 fontSize: 20, // Increased from 16
+                                 fontWeight: FontWeight.w900,
+                                 color: Colors.black87,
+                                 height: 1.2,
+                               ),
                              ),
-                           ),
                            const SizedBox(height: 4),
                            // Rating
                            Row(
@@ -186,7 +177,25 @@ class DriverAssignedSheet extends ConsumerWidget {
         ),
 
 
-        const SizedBox(height: 24),
+        const SizedBox(height: 16), // Clear 16px gap between Profile and Status 
+
+        // STATUS TEXT (Moved here)
+        Text(
+          isStarted ? 'ride.status.ride_started'.tr() : 'ride.status.driver_coming'.tr(),
+          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          isStarted 
+            ? 'ride.status.ride_started_desc'.tr() 
+            : 'ride.status.driver_coming_desc'.tr(),
+          textAlign: TextAlign.center,
+          style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+        ),
+        const SizedBox(height: 20),
+
+        // Duplicate SizedBox(height: 24) removed
+
 
         // CODE (If not started)
         if (!isStarted) ...[

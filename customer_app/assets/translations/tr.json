@@ -10,7 +10,8 @@
         "terms": "Kullanım Koşulları",
         "privacy": "Gizlilik",
         "logout": "Çıkış Yap",
-        "support": "Destek & Yardım"
+        "support": "Destek & Yardım",
+        "legal_info": "Yasal Bilgiler"
     },
     "home": {
         "greeting": {
@@ -200,7 +201,9 @@
         "privacy_title": "Gizlilik Politikası",
         "terms_title": "Kullanım Koşulları",
         "privacy_text": "Taksibu olarak kişisel verilerinizin güvenliğine önem veriyoruz...",
-        "terms_text": "Taksibu uygulamasını kullanarak..."
+        "terms_text": "Taksibu uygulamasını kullanarak...",
+        "clarification_title": "Aydınlatma Metni",
+        "clarification_text": "KVKK ve ilgili yasal mevzuat kapsamında, kişisel verilerinizin işlenmesi, saklanması ve aktarılması konusunda sizi bilgilendirmek isteriz.\n\n1. Veri Sorumlusu\nŞirketimiz, kişisel verilerinizi veri sorumlusu sıfatıyla işlemektedir.\n\n2. Kişisel Verilerin İşlenme Amacı\nVerileriniz, hizmet kalitesini artırmak, yasal yükümlülükleri yerine getirmek ve güvenliği sağlamak amacıyla işlenmektedir.\n\n3. Veri Aktarımı\nVerileriniz, yasal zorunluluklar dışında üçüncü kişilerle paylaşılmamaktadır.\n\nDetaylı bilgi için lütfen web sitemizi ziyaret ediniz."
     },
     "notification": {
         "title": "Bildirimler",

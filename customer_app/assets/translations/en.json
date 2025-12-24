@@ -10,7 +10,8 @@
         "terms": "Terms of Use",
         "privacy": "Privacy Policy",
         "logout": "Logout",
-        "support": "Support & Help"
+        "support": "Support & Help",
+        "legal_info": "Legal Information"
     },
     "home": {
         "greeting": {
@@ -201,7 +202,9 @@
         "privacy_title": "Privacy Policy",
         "terms_title": "Terms of Use",
         "privacy_text": "At Taksibu, we value the security of your personal data...",
-        "terms_text": "By using the Taksibu app..."
+        "terms_text": "By using the Taksibu app...",
+        "clarification_title": "Clarification Text",
+        "clarification_text": "We would like to inform you about the processing, storage, and transfer of your personal data within the scope of KVKK (Personal Data Protection Law) and relevant legislation.\n\n1. Data Controller\nOur company processes your personal data as a data controller.\n\n2. Purpose of Processing Personal Data\nYour data is processed to improve service quality, fulfill legal obligations, and ensure security.\n\n3. Data Transfer\nYour data is not shared with third parties except for legal obligations.\n\nPlease visit our website for detailed information."
     },
     "notification": {
         "title": "Notifications",

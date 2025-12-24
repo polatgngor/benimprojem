@@ -517,7 +517,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           onVerified: (code) async {
              Navigator.pop(context); // Close sheet
              try {
-                await ref.read(authServiceProvider).deleteAccount(code);
+                // Use Notifier to ensure global state update (logout effect)
+                await ref.read(authProvider.notifier).deleteAccount(code);
                 if (context.mounted) {
                   context.go('/login');
                   ScaffoldMessenger.of(context).showSnackBar(

@@ -816,7 +816,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           markerId: const MarkerId('destination'),
           position: LatLng(endLat, endLng),
           infoWindow: InfoWindow(title: 'Varış', snippet: address),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue), // Blue (was Red)
         ));
       }
     } else {
@@ -829,7 +829,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           markerId: const MarkerId('pickup'),
           position: LatLng(startLat, startLng),
           infoWindow: InfoWindow(title: 'Yolcu', snippet: address),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue), // Blue (was Green)
         ));
       }
     }
@@ -879,7 +879,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 polylineId: const PolylineId('route'),
                 points: points,
                 color: Colors.blue,
-                width: 5,
+                width: 4, // Thinner (was 5)
+                jointType: JointType.round,
+                startCap: Cap.roundCap,
+                endCap: Cap.roundCap,
+                geodesic: true,
               ),
             };
             _routeDistanceMeters = dist;

@@ -196,20 +196,11 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                 ),
                 _buildDrawerItem(
                   context,
-                  icon: Icons.description_outlined,
-                  title: 'drawer.terms'.tr(),
+                  icon: Icons.gavel_rounded,
+                  title: 'drawer.legal_info'.tr(),
                   onTap: () {
                     Navigator.pop(context);
-                    context.push('/terms');
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'drawer.privacy'.tr(),
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/privacy');
+                    context.push('/legal');
                   },
                 ),
 

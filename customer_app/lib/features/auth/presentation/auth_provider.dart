@@ -91,7 +91,7 @@ class Auth extends _$Auth {
       }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-      return null;
+      throw e;
     }
   }
 
@@ -130,5 +130,11 @@ class Auth extends _$Auth {
     } catch (_) {}
     await _storage.deleteAll();
     state = const AsyncValue.data(null);
+  }
+
+  Future<void> deleteAccount(String code) async {
+    final repository = ref.read(authRepositoryProvider);
+    await repository.deleteAccount(code);
+    await logout(); // Logout ensures storage clear & state reset
   }
 }

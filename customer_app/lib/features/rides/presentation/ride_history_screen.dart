@@ -251,8 +251,8 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
                           children: [
                             ClipOval(
                               child: Container(
-                                width: 28,
-                                height: 28,
+                                width: 48, // Increased from 28
+                                height: 48, // Increased from 28
                                 color: Colors.white,
                                 child: (ride['driver']['profile_photo'] != null && ride['driver']['profile_photo'].isNotEmpty)
                                     ? Image.network(
@@ -261,9 +261,9 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
                                             : '${AppConstants.baseUrl}/${ride['driver']['profile_photo']}',
                                         fit: BoxFit.cover,
                                         errorBuilder: (context, error, stackTrace) =>
-                                            const Icon(Icons.person, size: 16, color: Colors.grey),
+                                            Icon(Icons.person, size: 28, color: Colors.grey[400]), // Increased icon size
                                       )
-                                    : const Icon(Icons.person, size: 16, color: Colors.grey),
+                                    : Icon(Icons.person, size: 28, color: Colors.grey[400]), // Increased icon size
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -274,7 +274,7 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
                                   children: [
                                     Text(
                                       '${ride['driver']['first_name']?[0] ?? ''}*** ${ride['driver']['last_name']?[0] ?? ''}***',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), // Increased from 12
                                     ),
                                     const SizedBox(width: 8),
                                     Text(

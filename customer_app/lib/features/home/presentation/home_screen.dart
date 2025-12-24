@@ -141,13 +141,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       if (result.isNotEmpty && result['points'] != null) {
         final List<LatLng> points = result['points'];
         
-        // Update Polylines
-        ref.read(rideProvider.notifier).setPolylines({
+          ref.read(rideProvider.notifier).setPolylines({
           Polyline(
             polylineId: const PolylineId('route'),
             points: points,
-            color: Colors.blue,
-            width: 5,
+            color: Colors.blue, // Keep blue as base
+            width: 4, // Thinner (was 5)
+            jointType: JointType.round,
+            startCap: Cap.roundCap,
+            endCap: Cap.roundCap,
+            geodesic: true,
           ),
         });
         
@@ -188,7 +191,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         Marker(
           markerId: const MarkerId('end'),
           position: rideState.endLocation!,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed), // Red for destination
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue), // Blue (was Red)
           infoWindow: InfoWindow(title: rideState.endAddress ?? 'ride.end_location'.tr()),
         ),
       );

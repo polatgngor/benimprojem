@@ -89,7 +89,7 @@ class Auth extends _$Auth {
       }
     } catch (e, st) {
       state = AsyncValue.error(e, st);
-      return null;
+      throw e;
     }
   }
 
@@ -139,6 +139,12 @@ class Auth extends _$Auth {
   Future<void> logout() async {
     final service = ref.read(authServiceProvider);
     await service.logout();
+    state = const AsyncValue.data(null);
+  }
+
+  Future<void> deleteAccount(String code) async {
+    final service = ref.read(authServiceProvider);
+    await service.deleteAccount(code);
     state = const AsyncValue.data(null);
   }
 }

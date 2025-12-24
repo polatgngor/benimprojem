@@ -207,17 +207,19 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                               children: [
                                 ClipOval(
                                   child: Container(
-                                    width: 48,
-                                    height: 48,
-                                    color: Colors.grey[200],
+                                    width: 60, // Increased from 48
+                                    height: 60, // Increased from 48
+                                    decoration: BoxDecoration( // Added decoration for modern look if supported on Container (ClipOval clips it though, let's keep it simple)
+                                        color: Colors.grey[200],
+                                    ),
                                     child: photoUrl.isNotEmpty
                                         ? Image.network(
                                             photoUrl.startsWith('http') ? photoUrl : '${AppConstants.baseUrl}/$photoUrl',
                                             fit: BoxFit.cover,
                                             errorBuilder: (context, error, stackTrace) =>
-                                                Icon(Icons.person, size: 28, color: Colors.grey[400]),
+                                                Icon(Icons.person, size: 36, color: Colors.grey[400]), // Incr size
                                           )
-                                        : Icon(Icons.person, size: 28, color: Colors.grey[400]),
+                                        : Icon(Icons.person, size: 36, color: Colors.grey[400]), // Incr size
                                   ),
                                 ),
                                 const SizedBox(width: 12),
@@ -230,10 +232,10 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                                         maxLines: 2,
                                         overflow: TextOverflow.ellipsis,
                                         style: const TextStyle(
-                                          fontSize: 18,
+                                          fontSize: 20, // Increased from 18
                                           fontWeight: FontWeight.w900,
                                           color: Colors.black87,
-                                          height: 1.1,
+                                          height: 1.2,
                                         ),
                                       ),
                                       const SizedBox(height: 4),

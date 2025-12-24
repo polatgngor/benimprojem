@@ -21,6 +21,8 @@ import '../../features/splash/presentation/splash_screen.dart';
 import '../../features/rides/presentation/ride_history_screen.dart';
 import '../../features/settings/presentation/privacy_screen.dart';
 import '../../features/settings/presentation/terms_screen.dart';
+import '../../features/settings/presentation/legal_info_screen.dart'; // NEW
+import '../../features/settings/presentation/clarification_text_screen.dart'; // NEW
 import '../../features/home/presentation/screens/announcements_screen.dart';
 import '../../features/support/presentation/screens/support_dashboard_screen.dart';
 import '../../features/support/presentation/screens/create_ticket_screen.dart';
@@ -151,6 +153,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/announcements',
         builder: (context, state) => AnnouncementsScreen(type: state.uri.queryParameters['type']),
+      ),
+      GoRoute(
+        path: '/legal',
+        builder: (context, state) => const LegalInfoScreen(),
+      ),
+      GoRoute(
+        path: '/clarification',
+        builder: (context, state) => const ClarificationTextScreen(),
       ),
       GoRoute(
         path: '/terms',

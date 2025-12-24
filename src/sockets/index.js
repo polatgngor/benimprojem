@@ -9,6 +9,7 @@ const socketProvider = require('../lib/socketProvider');
 const { assignRideAtomic } = require('../services/assignService');
 const { Ride, RideRequest, RideMessage, Driver, User, UserDevice, Rating } = require('../models');
 const { sendPushToTokens } = require('../lib/fcm');
+const { hasProfanity } = require('../utils/profanityFilter'); // Import Profanity Checker
 
 const redis = new Redis({
   host: process.env.REDIS_HOST || '127.0.0.1',
@@ -837,6 +838,14 @@ module.exports = function initSockets(server) {
       try {
         const { ride_id, text } = payload;
         if (!ride_id || !text) return socket.emit('message_failed', { reason: 'invalid_payload' });
+
+        // BLOCK PROFANITY
+        if (hasProfanity(text)) {
+          return socket.emit('message_failed', {
+            reason: 'profanity_detected',
+            message: 'Mesajınız uygunsuz içerik barındırdığı için gönderilemedi.'
+          });
+        }
 
         const ride = await Ride.findByPk(ride_id);
         if (!ride) return socket.emit('message_failed', { reason: 'ride_not_found' });

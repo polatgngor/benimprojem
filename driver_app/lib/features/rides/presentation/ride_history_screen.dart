@@ -196,8 +196,8 @@ class RideHistoryScreen extends ConsumerWidget {
                           children: [
                             ClipOval(
                               child: Container(
-                                width: 28,
-                                height: 28,
+                                width: 48, // Increased from 28
+                                height: 48, // Increased from 28
                                 color: Colors.white,
                                 child: (ride['passenger']['profile_photo'] != null && ride['passenger']['profile_photo'].isNotEmpty)
                                     ? Image.network(
@@ -206,9 +206,9 @@ class RideHistoryScreen extends ConsumerWidget {
                                             : '${AppConstants.baseUrl}/${ride['passenger']['profile_photo']}',
                                         fit: BoxFit.cover,
                                         errorBuilder: (context, error, stackTrace) =>
-                                            const Icon(Icons.person, size: 16, color: Colors.grey),
+                                            Icon(Icons.person, size: 28, color: Colors.grey[400]),
                                       )
-                                    : const Icon(Icons.person, size: 16, color: Colors.grey),
+                                    : Icon(Icons.person, size: 28, color: Colors.grey[400]),
                               ),
                             ),
                             const SizedBox(width: 8),
@@ -217,7 +217,7 @@ class RideHistoryScreen extends ConsumerWidget {
                               children: [
                                 Text(
                                   '${ride['passenger']['first_name']?[0] ?? ''}*** ${ride['passenger']['last_name']?[0] ?? ''}***',
-                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14), // Increased from 12
                                 ),
                                 Text(
                                   'ride.passenger'.tr(),

@@ -80,10 +80,6 @@ async function verifyOtp(req, res) {
             return res.status(400).json({ message: 'Invalid OTP' });
         }
 
-        // OTP Verified. Clear it to prevent reuse? 
-        // Usually good practice, or keep it for short time. Let's delete.
-        await redis.del(key);
-
         // Check if user exists
         let user = await User.findOne({ where: { phone } });
 
@@ -119,6 +115,9 @@ async function verifyOtp(req, res) {
                 }
             }
 
+            // OTP Verified & Checks Passed. NOW delete it.
+            await redis.del(key);
+
             const token = signAccessToken({ userId: user.id, role: user.role });
             const refreshToken = signRefreshToken({ userId: user.id, role: user.role });
 
@@ -148,6 +147,9 @@ async function verifyOtp(req, res) {
             // --- REGISTER FLOW ---
             // Return a special token or just a signed JWT with a specific claim "verified_phone"
             // to allow the user to call /register endpoint.
+
+            // OTP Verified. Delete it.
+            await redis.del(key);
 
             // We can use the same signAccessToken but maybe with a different scope or payload.
             // For simplicity, let's sign a token that expires quickly (e.g., 10 mins).

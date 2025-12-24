@@ -10,7 +10,8 @@
         "terms": "Kullanım Koşulları",
         "privacy": "Gizlilik",
         "logout": "Çıkış Yap",
-        "support": "Destek & Yardım"
+        "support": "Destek & Yardım",
+        "legal_info": "Yasal Bilgiler"
     },
     "announcements": {
         "title_all": "Duyurular ve Kampanyalar",
@@ -234,7 +235,9 @@
         "privacy_title": "Gizlilik Politikası",
         "terms_title": "Kullanım Koşulları",
         "driver_privacy_text": "Taksibu Sürücü olarak verilerinizin güvenliğine önem veriyoruz. Bu uygulama, yolcu eşleşmesi ve navigasyon için arka planda konum bilgilerinizi kullanır. Verileriniz üçüncü şahıslarla paylaşılmaz.\n\nDetaylı bilgi için web sitemizi ziyaret edebilirsiniz.",
-        "driver_terms_text": "Taksibu Sürücü uygulamasını kullanarak aşağıdaki koşulları kabul etmiş sayılırsınız:\n\n1. Sürücüler, yolcu güvenliğini sağlamakla yükümlüdür.\n2. Trafik kurallarına uymak sürücünün sorumluluğundadır.\n3. Uygulamanın kötüye kullanımı hesabın askıya alınmasına neden olabilir.\n\nDetaylı kullanım koşulları için web sitemizi ziyaret ediniz."
+        "driver_terms_text": "Taksibu Sürücü uygulamasını kullanarak aşağıdaki koşulları kabul etmiş sayılırsınız:\n\n1. Sürücüler, yolcu güvenliğini sağlamakla yükümlüdür.\n2. Trafik kurallarına uymak sürücünün sorumluluğundadır.\n3. Uygulamanın kötüye kullanımı hesabın askıya alınmasına neden olabilir.\n\nDetaylı kullanım koşulları için web sitemizi ziyaret ediniz.",
+        "clarification_title": "Aydınlatma Metni",
+        "clarification_text": "KVKK ve ilgili yasal mevzuat kapsamında, kişisel verilerinizin işlenmesi, saklanması ve aktarılması konusunda sizi bilgilendirmek isteriz.\n\n1. Veri Sorumlusu\nŞirketimiz, kişisel verilerinizi veri sorumlusu sıfatıyla işlemektedir.\n\n2. Kişisel Verilerin İşlenme Amacı\nVerileriniz, hizmet kalitesini artırmak, yasal yükümlülükleri yerine getirmek ve güvenliği sağlamak amacıyla işlenmektedir.\n\n3. Veri Aktarımı\nVerileriniz, yasal zorunluluklar dışında üçüncü kişilerle paylaşılmamaktadır.\n\nDetaylı bilgi için lütfen web sitemizi ziyaret ediniz."
     },
     "notification": {
         "title": "Bildirimler",

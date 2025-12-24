@@ -90,8 +90,18 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Verification failed: $e')),
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text('Hata', style: TextStyle(color: Colors.red)),
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text('Tamam'),
+              ),
+            ],
+          ),
         );
       }
     } finally {

@@ -1,5 +1,6 @@
 const db = require('../db');
 const socketProvider = require('../lib/socketProvider');
+const { hasProfanity } = require('../utils/profanityFilter');
 
 // Create a new ticket
 exports.createTicket = async (req, res) => {
@@ -11,6 +12,11 @@ exports.createTicket = async (req, res) => {
     }
 
     try {
+        // 1. Validate Profanity
+        if (hasProfanity(subject) || hasProfanity(message)) {
+            return res.status(400).json({ error: 'Mesajınız veya konunuz uygunsuz içerik barındırıyor.' });
+        }
+
         // 1. Create Ticket
         const [ticketResult] = await db.query(
             'INSERT INTO support_tickets (user_id, subject, status) VALUES (?, ?, ?)',
@@ -81,6 +87,10 @@ exports.sendMessage = async (req, res) => {
         const [ticket] = await db.query('SELECT * FROM support_tickets WHERE id = ?', [ticketId]);
         if (ticket.length === 0) return res.status(404).json({ error: 'Ticket not found.' });
         if (ticket[0].user_id !== userId) return res.status(403).json({ error: 'Unauthorized.' });
+
+        if (hasProfanity(message)) {
+            return res.status(400).json({ error: 'Mesajınız uygunsuz içerik barındırıyor.' });
+        }
 
         // Insert Message
         const [result] = await db.query(
