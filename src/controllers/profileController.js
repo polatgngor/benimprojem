@@ -31,7 +31,7 @@ async function getProfile(req, res) {
       const [driverRecord, wallet] = await Promise.all([
         Driver.findOne({
           where: { user_id: userId },
-          attributes: ['vehicle_plate', 'vehicle_type', 'status', 'is_available']
+          attributes: ['vehicle_plate', 'vehicle_type', 'vehicle_brand', 'vehicle_model', 'status', 'is_available']
         }),
         Wallet.findOne({ where: { user_id: userId } })
       ]);

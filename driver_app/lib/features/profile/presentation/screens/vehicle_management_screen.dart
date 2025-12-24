@@ -5,6 +5,7 @@ import '../../../auth/presentation/auth_provider.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../auth/data/vehicle_repository.dart';
 import 'change_taxi_screen.dart';
+import 'update_documents_screen.dart';
 
 // Provider to fetch pending requests
 final pendingRequestsProvider = FutureProvider.autoDispose((ref) async {
@@ -158,18 +159,23 @@ class VehicleManagementScreen extends ConsumerWidget {
             
             const SizedBox(height: 16),
 
-            _buildActionCard(
-              context,
-              icon: Icons.file_present,
-              title: 'Belgelerimi Güncelle',
-              subtitle: 'Ruhsat, sigorta vb. süresi dolan belgeleri yenileyin.',
-              onTap: () {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                     const SnackBar(content: Text('Yakında Eklenecek')),
-                   );
-              },
-              isComingSoon: true,
-            ),
+              _buildActionCard(
+                context,
+                icon: Icons.file_present,
+                title: 'Belgelerimi Güncelle',
+                subtitle: 'Ruhsat, sigorta vb. süresi dolan belgeleri yenileyin.',
+                onTap: () {
+                   // If requests pending, warn user
+                  if (requestsAsync.hasValue && requestsAsync.value!.any((r) => r['status'] == 'pending')) {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                       const SnackBar(content: Text('Zaten bekleyen bir talebiniz var.')),
+                     );
+                     return;
+                  }
+                  Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UpdateDocumentsScreen()));
+                },
+                isComingSoon: false,
+              ),
           ],
         ),
       ),

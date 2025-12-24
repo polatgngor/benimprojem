@@ -125,7 +125,10 @@ async function verifyOtp(req, res) {
                     level: user.level,
                     ref_code: user.ref_code,
                     ref_count: user.ref_count,
-                    vehicle_type: driver ? driver.vehicle_type : null
+                    vehicle_type: driver ? driver.vehicle_type : null,
+                    vehicle_plate: driver ? driver.vehicle_plate : null,
+                    vehicle_brand: driver ? driver.vehicle_brand : null,
+                    vehicle_model: driver ? driver.vehicle_model : null
                 }
             });
 
