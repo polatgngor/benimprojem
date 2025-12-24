@@ -143,10 +143,13 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
           const SnackBar(content: Text('Güncelleme talebiniz başarıyla gönderildi. Onay bekleniyor.')),
         );
         // Force refresh of auth state to catch 'pending' status
-        await ref.read(authProvider.notifier).build(); 
+        await ref.refresh(authProvider.future);
         
         if (mounted) {
-           Navigator.pop(context); // Return
+           // If router didn't redirect us yet, pop.
+           if (ModalRoute.of(context)?.isCurrent ?? false) {
+             Navigator.pop(context);
+           }
         }
       }
     } catch (e) {

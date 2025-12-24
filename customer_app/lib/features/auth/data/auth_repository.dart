@@ -85,9 +85,9 @@ class AuthRepository {
     }
   }
 
-  Future<void> deleteAccount() async {
+  Future<void> deleteAccount(String code) async {
     try {
-      await _apiClient.client.delete('/profile');
+      await _apiClient.client.post('/profile/delete', data: {'code': code});
     } on DioException catch (e) {
       throw e.response?.data['message'] ?? 'Failed to delete account';
     }
@@ -113,6 +113,24 @@ class AuthRepository {
       return response.data['photo_url'];
     } on DioException catch (e) {
       throw e.response?.data['message'] ?? 'Failed to upload photo';
+    }
+  }
+  Future<void> changePhone(String newPhone, String code) async {
+    try {
+      await _apiClient.client.post('/profile/change-phone', data: {
+        'new_phone': newPhone,
+        'code': code,
+      });
+    } on DioException catch (e) {
+      throw e.response?.data['message'] ?? 'Failed to change phone';
+    }
+  }
+
+  Future<void> logout() async {
+    try {
+      await _apiClient.client.post('/profile/logout');
+    } catch (e) {
+      // Ignore errors
     }
   }
 }

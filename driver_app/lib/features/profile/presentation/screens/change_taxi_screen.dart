@@ -148,11 +148,19 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
           const SnackBar(content: Text('Talebiniz başarıyla gönderildi.')),
         );
         // Refresh auth to catch pending status
-        // Invalidating provider to force re-build
-        ref.invalidate(authProvider);
-
+        // Await the new state to ensure router picks it up
+        await ref.refresh(authProvider.future);
+        
+        // No need to pop manually if router redirects to /pending
+        // But if router fails, we might want to pop or show something.
+        // Actually, if status is pending, router will force redirect.
+        // If we pop, we might go to profile, then router redirects.
+        // Let's just pop to be safe against non-redirect cases, but await first.
         if (mounted) {
-          context.pop(); 
+           // Check if we are still active (not redirected)
+           if (ModalRoute.of(context)?.isCurrent ?? false) {
+              context.pop(); 
+           }
         }
       }
     } catch (e) {

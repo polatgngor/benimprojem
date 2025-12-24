@@ -6,7 +6,7 @@ import '../../../auth/data/auth_service.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../../core/constants/app_constants.dart';
-import '../../../profile/presentation/screens/vehicle_management_screen.dart';
+
 
 // Update provider to return Map instead of String
 final driverProfileSummaryProvider = FutureProvider<Map<String, dynamic>>((ref) async {
@@ -186,15 +186,6 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                   onTap: () {
                     Navigator.pop(context);
                     context.push('/profile');
-                  },
-                ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.local_taxi_rounded,
-                  title: 'Araç Bilgilerim',
-                  onTap: () {
-                    Navigator.pop(context);
-                    Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VehicleManagementScreen()));
                   },
                 ),
                 _buildDrawerItem(

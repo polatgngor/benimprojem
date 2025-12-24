@@ -140,6 +140,17 @@ class AuthService {
   }
 
   Future<void> logout() async {
+    try {
+      final token = await getToken();
+      if (token != null) {
+        await _dio.post(
+          '${AppConstants.apiUrl}/profile/logout',
+          options: Options(headers: {'Authorization': 'Bearer $token'}),
+        );
+      }
+    } catch (e) {
+      // Ignore network errors on logout
+    }
     await _storage.deleteAll();
   }
 
@@ -199,15 +210,34 @@ class AuthService {
     }
   }
 
+  Future<void> changePhone(String newPhone, String code) async {
+    try {
+      final token = await getToken();
+      if (token == null) throw Exception('No token');
+
+      await _dio.post(
+        '${AppConstants.apiUrl}/profile/change-phone',
+        data: {
+          'new_phone': newPhone,
+          'code': code,
+        },
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+    } on DioException catch (e) {
+      throw Exception(e.response?.data['message'] ?? 'Telefon numarası güncellenemedi');
+    }
+  }
 
 
-  Future<void> deleteAccount() async {
+
+  Future<void> deleteAccount(String code) async {
     try {
       final token = await getToken();
       if (token == null) throw Exception('No token');
 
       await _dio.post(
         '${AppConstants.apiUrl}/profile/delete',
+        data: {'code': code},
         options: Options(headers: {'Authorization': 'Bearer $token'}),
       );
       await logout();

@@ -124,6 +124,10 @@ class Auth extends _$Auth {
   }
 
   Future<void> logout() async {
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      await repository.logout();
+    } catch (_) {}
     await _storage.deleteAll();
     state = const AsyncValue.data(null);
   }

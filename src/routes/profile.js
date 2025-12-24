@@ -28,7 +28,7 @@ const upload = multer({ storage: storage });
 
 router.get('/', authMiddleware, profileController.getProfile);
 router.put('/', authMiddleware, profileController.updateProfile);
-router.post('/phone', authMiddleware, profileController.changePhone);
+router.post('/change-phone', authMiddleware, profileController.changePhone);
 router.post('/password', authMiddleware, profileController.changePassword);
 router.post('/logout', authMiddleware, profileController.logout);
 router.post('/delete', authMiddleware, profileController.deleteAccount);

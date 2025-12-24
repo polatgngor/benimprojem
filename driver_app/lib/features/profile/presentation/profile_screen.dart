@@ -8,6 +8,8 @@ import '../../auth/data/auth_service.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../rides/data/ride_repository.dart';
+import 'screens/vehicle_management_screen.dart';
+import '../../auth/presentation/widgets/otp_sheet.dart';
 
 final driverProfileProvider = FutureProvider<Map<String, dynamic>>((ref) async {
   final authService = ref.read(authServiceProvider);
@@ -278,17 +280,25 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           duration: const Duration(milliseconds: 300),
         ),
 
-        const SizedBox(height: 24),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16), // Reduced from 24+24
         _buildInfoTile('profile.reference_code'.tr(), user['ref_code'] ?? '-', Icons.share_outlined, context),
-        _buildInfoTile(
-          'profile.plate'.tr(), 
-          driver?['vehicle_plate'] ?? '-', 
-          Icons.directions_car_outlined,
-          context,
-          onEdit: driver != null ? () => _showUpdatePlateDialog(context, ref, driver['vehicle_plate']) : null,
+        
+        // Vehicle Management Link (Styled like Form Fields)
+        Container(
+           margin: const EdgeInsets.only(bottom: 16),
+           decoration: BoxDecoration(
+             color: const Color(0xFFF8FAFC),
+             borderRadius: BorderRadius.circular(12),
+           ),
+           child: ListTile(
+             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+             leading: Icon(Icons.local_taxi_rounded, color: Colors.grey[600], size: 22),
+             title: const Text('Araç Bilgilerim', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+             trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey[400]),
+             onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VehicleManagementScreen())),
+           ),
         ),
-        _buildInfoTile('profile.vehicle_type'.tr(), driver?['vehicle_type'] ?? '-', Icons.category_outlined, context),
+        
         if (driver?['working_region'] != null)
            _buildInfoTile('profile.working_region'.tr(), '${driver?['working_region']} / ${driver?['working_district'] ?? '-'}', Icons.map_outlined, context),
 
@@ -313,8 +323,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         
         const SizedBox(height: 16),
-        
-        const SizedBox(height: 32),
 
         _buildActionTile(
           context,
@@ -451,46 +459,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  void _showUpdatePlateDialog(BuildContext context, WidgetRef ref, String? currentPlate) {
-    final controller = TextEditingController(text: currentPlate);
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('profile.update_plate'.tr()),
-        content: TextField(
-          controller: controller,
-          decoration: InputDecoration(labelText: 'profile.new_plate'.tr()),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text('profile.cancel'.tr(), style: const TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                await ref.read(driverRideRepositoryProvider).updatePlate(controller.text.trim());
-                ref.refresh(driverProfileProvider);
-                if (context.mounted) {
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('profile.plate_updated'.tr())),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('profile.error'.tr(args: [e.toString()]))),
-                  );
-                }
-              }
-            },
-            child: Text('profile.save'.tr()),
-          ),
-        ],
-      ),
-    );
-  }
+
   
   void _showDeleteAccountDialog(BuildContext context, WidgetRef ref) {
     showDialog(
@@ -506,10 +475,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Text('profile.cancel'.tr(), style: const TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(context);
-              try {
-                await ref.read(authServiceProvider).deleteAccount();
+              // Get current phone to send OTP
+              final profileState = ref.read(driverProfileProvider);
+              final phone = profileState.value?['user']?['phone'];
+              
+              if (phone != null) {
+                _showDeleteOtpSheet(context, ref, phone);
+              } else {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Telefon numarası bulunamadı')),
+                 );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('profile.delete'.tr()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteOtpSheet(BuildContext context, WidgetRef ref, String phone) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, 
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 20, 
+          right: 20, 
+          top: 20
+        ),
+        child: OtpVerificationSheet(
+          phone: phone,
+          onVerified: (code) async {
+             Navigator.pop(context); // Close sheet
+             try {
+                await ref.read(authServiceProvider).deleteAccount(code);
                 if (context.mounted) {
                   context.go('/login');
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -523,11 +531,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                 }
               }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text('profile.delete'.tr()),
-          ),
-        ],
+          },
+        ),
       ),
     );
   }

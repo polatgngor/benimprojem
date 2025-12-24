@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../auth/data/auth_repository.dart';
+import '../../auth/presentation/widgets/otp_sheet.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -416,10 +417,49 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Text('profile.cancel'.tr(), style: const TextStyle(color: Colors.grey)),
           ),
           TextButton(
-            onPressed: () async {
+            onPressed: () {
               Navigator.pop(context);
-              try {
-                await ref.read(authRepositoryProvider).deleteAccount();
+              // Get current phone to send OTP
+              final user = ref.read(authProvider).value;
+              final phone = user?.phone;
+              
+              if (phone != null) {
+                _showDeleteOtpSheet(context, ref, phone);
+              } else {
+                 ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Telefon numarası bulunamadı')),
+                 );
+              }
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: Text('profile.delete'.tr()),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showDeleteOtpSheet(BuildContext context, WidgetRef ref, String phone) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true, 
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 20, 
+          right: 20, 
+          top: 20
+        ),
+        child: OtpVerificationSheet(
+          phone: phone,
+          onVerified: (code) async {
+             Navigator.pop(context); // Close sheet
+             try {
+                await ref.read(authRepositoryProvider).deleteAccount(code);
                 if (context.mounted) {
                   context.go('/login');
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -433,11 +473,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   );
                 }
               }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: Text('profile.delete'.tr()),
-          ),
-        ],
+          },
+        ),
       ),
     );
   }

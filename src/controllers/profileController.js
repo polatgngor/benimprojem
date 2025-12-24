@@ -2,6 +2,7 @@ const { User, Driver, UserDevice, Wallet } = require('../models');
 const { hashPassword, comparePassword } = require('../utils/hash');
 const { blacklistToken } = require('../utils/tokenBlacklist');
 const jwt = require('jsonwebtoken');
+const redis = require('../utils/redisClient');
 
 async function getProfile(req, res) {
   try {
@@ -69,16 +70,32 @@ async function updateProfile(req, res) {
 async function changePhone(req, res) {
   try {
     const userId = req.user.userId;
-    const { new_phone } = req.body;
-    if (!new_phone) return res.status(400).json({ message: 'new_phone required' });
+    const { new_phone, code } = req.body;
+    if (!new_phone || !code) return res.status(400).json({ message: 'new_phone and code required' });
 
     // ensure unique
     const exists = await User.findOne({ where: { phone: new_phone } });
     if (exists) return res.status(409).json({ message: 'Phone already in use' });
 
+    // Verify OTP
+    const key = `otp:${new_phone}`;
+    const storedOtp = await redis.get(key);
+
+    if (!storedOtp) {
+      return res.status(400).json({ message: 'OTP expired or not found' });
+    }
+    if (storedOtp !== code) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    // OTP Valid - Update Phone
     const user = await User.findByPk(userId);
     user.phone = new_phone;
     await user.save();
+
+    // Clear OTP
+    await redis.del(key);
+
     return res.json({ ok: true, phone: new_phone });
   } catch (err) {
     console.error('changePhone err', err);
@@ -143,6 +160,19 @@ async function deleteAccount(req, res) {
 
     const user = await User.findByPk(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Verify OTP
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ message: 'Verification code required' });
+
+    const key = `otp:${user.phone}`; // Verify against registered phone
+    const storedOtp = await redis.get(key);
+
+    if (!storedOtp) return res.status(400).json({ message: 'OTP expired or not found' });
+    if (storedOtp !== code) return res.status(400).json({ message: 'Invalid OTP' });
+
+    // Clear OTP
+    await redis.del(key);
 
     // soft delete: is_active = false
     user.is_active = false;
