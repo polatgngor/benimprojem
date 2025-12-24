@@ -179,7 +179,7 @@ async function requestVehicleChange(req, res) {
     if (!driver) return res.status(404).json({ message: 'Driver not found' });
 
     const requestData = {
-      driver_id: driver.id,
+      driver_id: driver.user_id, // Driver model uses user_id as PK
       request_type: request_type || 'change_taxi', // ensure matches ENUM
       new_plate,
       new_brand,
