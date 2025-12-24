@@ -155,16 +155,28 @@ async function requestVehicleChange(req, res) {
       new_vehicle_type
     } = req.body;
 
-    // Get Driver
-    const driver = await Driver.findOne({ where: { user_id: userId } });
-    if (!driver) return res.status(404).json({ message: 'Driver not found' });
+    // Verify OTP
+    const { otp_code } = req.body;
+    if (!otp_code) return res.status(400).json({ message: 'OTP doğrulama kodu gereklidir.' });
 
-    // Pending request check? Maybe allow multiple? Let's allow for now but usually one active is better.
-    // For simplicity, just create new one.
+    // Get User for Phone (Secure)
+    const user = await User.findByPk(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const key = `otp:${user.phone}`;
+    const redis = require('../utils/redisClient');
+    const storedOtp = await redis.get(key);
+
+    if (!storedOtp || storedOtp !== otp_code.trim()) {
+      return res.status(400).json({ message: 'Geçersiz veya süresi dolmuş kod.' });
+    }
+
+    // OTP Valid - Delete it (optional, to prevent reuse)
+    await redis.del(key);
 
     const requestData = {
       driver_id: driver.id,
-      request_type: request_type || 'change_taxi',
+      request_type: request_type || 'change_taxi', // ensure matches ENUM
       new_plate,
       new_brand,
       new_model,
@@ -187,7 +199,7 @@ async function requestVehicleChange(req, res) {
 
   } catch (err) {
     console.error('requestVehicleChange err', err);
-    return res.status(500).json({ message: 'Server error' });
+    return res.status(500).json({ message: 'Server error: ' + err.message });
   }
 }
 

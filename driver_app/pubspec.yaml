@@ -48,6 +48,7 @@ dependencies:
   # Audio
   audioplayers: ^6.0.0
   image_picker: ^1.0.7
+  file_picker: ^8.0.0
   shared_preferences: ^2.5.4
   android_intent_plus: ^6.0.0
 

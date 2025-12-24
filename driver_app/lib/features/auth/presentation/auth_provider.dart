@@ -17,6 +17,17 @@ class Auth extends _$Auth {
       try {
         final service = ref.read(authServiceProvider);
         final profile = await service.getProfile();
+        
+        // Normalize data: Merge 'driver' info into 'user' if present
+        if (profile['driver'] != null) {
+          final driverData = profile['driver'] as Map<String, dynamic>;
+          final userData = Map<String, dynamic>.from(profile['user'] as Map<String, dynamic>);
+          
+          userData.addAll(driverData);
+          // ensure we keep the nested structure if needed, but for UI convenience we merge
+          profile['user'] = userData;
+        }
+        
         return profile;
       } catch (e) {
         // If profile fetch fails (e.g. token expired), clear token

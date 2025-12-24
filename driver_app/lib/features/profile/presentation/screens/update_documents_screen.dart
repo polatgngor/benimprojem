@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:taksibu_driver/features/auth/data/vehicle_repository.dart';
-import 'package:taksibu_driver/features/auth/presentation/auth_provider.dart';
+import 'package:driver_app/features/auth/data/vehicle_repository.dart';
+import 'package:driver_app/features/auth/presentation/auth_provider.dart';
+import '../../auth/presentation/widgets/otp_sheet.dart';
 
 class UpdateDocumentsScreen extends ConsumerStatefulWidget {
   const UpdateDocumentsScreen({super.key});
@@ -32,13 +33,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
   }
 
   Future<void> _submitRequest() async {
-    // Basic validation: user must upload at least one doc? 
-    // Or maybe all are required for a "Fresh Update"?
-    // The user said "Update their vehicle information", usually means re-compliance.
-    // Let's assume all are required to keep it simple and safe for compliance, 
-    // OR allow partial if user just wants to update one.
-    // Given the backend logic replaces files if sent, let's enforce AT LEAST ONE file.
-    
+    // Basic validation
     if (_vehicleLicenseFile == null &&
         _ibbCardFile == null &&
         _drivingLicenseFile == null &&
@@ -48,6 +43,36 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
       );
       return;
     }
+
+    // Get Phone Number
+    final authState = ref.read(authProvider);
+    final phone = authState.value?['user']?['phone'];
+    
+    if (phone == null) {
+       ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Telefon numarası bulunamadı.'), backgroundColor: Colors.red),
+       );
+      return;
+    }
+
+    // Show OTP Dialog
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 24, right: 24, top: 24),
+        child: OtpVerificationSheet(
+          phone: phone, 
+          onVerified: (code) => _performUpdate(code),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _performUpdate(String otpCode) async {
+    Navigator.pop(context); // Close OTP sheet
 
     setState(() {
       _isLoading = true;
@@ -59,10 +84,8 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
       // We pass request_type = 'update_info'
       await repo.requestVehicleChange(
         requestType: 'update_info',
-        newPlate: null, // Not changing
-        newBrand: null, // Not changing
-        newModel: null, // Not changing
-        newVehicleType: null, // Not changing
+        otpCode: otpCode, // Send Verified Code
+        // plate, brand, model, vehicleType are null for this request type
         vehicleLicense: _vehicleLicenseFile,
         ibbCard: _ibbCardFile,
         drivingLicense: _drivingLicenseFile,
@@ -93,7 +116,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    final user = authState.value?.user;
+    final user = authState.value?['user'];
     
     // Safety check just in case, though likely user is logged in
     final currentPlate = user?['vehicle_plate'] ?? 'Bilinmiyor';

@@ -55,12 +55,26 @@ class VehicleManagementScreen extends ConsumerWidget {
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8), // Reduced padding for image
                     decoration: BoxDecoration(
                       color: Colors.white.withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.local_taxi, size: 40, color: Colors.white),
+                    child: Builder(
+                      builder: (context) {
+                        String type = user != null ? (user['vehicle_type'] ?? 'sari') : 'sari';
+                        String assetName = 'sari.png';
+                        if (type == 'turkuaz') assetName = 'turkuaz.png';
+                        if (type == 'vip') assetName = 'vip.png';
+                        if (type == '8+1') assetName = 'sekizartibir.png';
+                        
+                        return Image.asset(
+                          'assets/images/$assetName',
+                          width: 80, // Increased size for visibility
+                          height: 80,
+                        );
+                      }
+                    ),
                   ),
                   const SizedBox(height: 16),
                   Text(

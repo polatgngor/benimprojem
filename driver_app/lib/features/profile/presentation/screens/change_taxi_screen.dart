@@ -6,6 +6,9 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../auth/data/vehicle_repository.dart';
+import '../../../auth/presentation/auth_provider.dart';
+import '../../../auth/data/auth_service.dart';
+import '../../auth/presentation/widgets/otp_sheet.dart';
 
 class ChangeTaxiScreen extends ConsumerStatefulWidget {
   const ChangeTaxiScreen({super.key});
@@ -83,6 +86,40 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
        return;
     }
 
+    // Get Phone Number
+    final authState = ref.read(authProvider); // Using read to get current value
+    final phone = authState.value?['user']?['phone'];
+    
+    if (phone == null) {
+       ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Telefon numarası bulunamadı.'), backgroundColor: Colors.red),
+       );
+      return;
+    }
+
+    // Show OTP Dialog
+    _showOtpDialog(phone);
+  }
+
+  void _showOtpDialog(String phone) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom, left: 24, right: 24, top: 24),
+        child: OtpVerificationSheet(
+          phone: phone, 
+          onVerified: (code) => _performUpdate(code),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _performUpdate(String otpCode) async {
+    Navigator.pop(context); // Close sheet
+    
     String fullPlate;
     if (_selectedPlateCity == '34') {
        fullPlate = '$_selectedPlateCity ${_plateMiddleController.text.toUpperCase()} ${_plateSuffixController.text}';
@@ -94,6 +131,8 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
 
     try {
       await ref.read(vehicleRepositoryProvider).requestVehicleChange(
+        requestType: 'change_taxi',
+        otpCode: otpCode, // Send Verified Code
         plate: fullPlate,
         brand: _selectedBrand!,
         model: _selectedModel!,
@@ -342,3 +381,5 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
     );
   }
 }
+
+

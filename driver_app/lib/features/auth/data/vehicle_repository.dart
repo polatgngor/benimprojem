@@ -25,10 +25,12 @@ class VehicleRepository {
   }
 
   Future<void> requestVehicleChange({
-    required String plate,
-    required String brand,
-    required String model,
-    required String vehicleType,
+    required String requestType,
+    required String otpCode, // NEW
+    String? plate,
+    String? brand,
+    String? model,
+    String? vehicleType,
     dynamic vehicleLicense,
     dynamic ibbCard,
     dynamic drivingLicense,
@@ -40,12 +42,14 @@ class VehicleRepository {
       if (token == null) throw Exception('Oturum bulunamadı');
 
       final Map<String, dynamic> dataMap = {
-        'request_type': 'change_taxi',
-        'new_plate': plate,
-        'new_brand': brand,
-        'new_model': model,
-        'new_vehicle_type': vehicleType,
+        'request_type': requestType,
+        'otp_code': otpCode,
       };
+
+      if (plate != null) dataMap['new_plate'] = plate;
+      if (brand != null) dataMap['new_brand'] = brand;
+      if (model != null) dataMap['new_model'] = model;
+      if (vehicleType != null) dataMap['new_vehicle_type'] = vehicleType;
 
       FormData formData = FormData.fromMap(dataMap);
 
