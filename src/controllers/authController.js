@@ -118,6 +118,9 @@ async function register(req, res) {
         ref_code: user.ref_code,
         ref_count: user.ref_count,
         vehicle_type: req.body.vehicle_type || 'sari', // Echo back or default
+        vehicle_plate: req.body.vehicle_plate || null,
+        vehicle_brand: req.body.vehicle_brand || null,
+        vehicle_model: req.body.vehicle_model || null,
         driver_status: 'pending' // Default for new drivers
       }
     });
