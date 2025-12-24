@@ -87,6 +87,18 @@ async function verifyOtp(req, res) {
         // Check if user exists
         let user = await User.findOne({ where: { phone } });
 
+        // Security: Check Role if provided
+        const { app_role } = req.body; // 'driver' or 'passenger'
+        if (user && app_role) {
+            if (user.role !== app_role) {
+                return res.status(403).json({
+                    message: app_role === 'driver'
+                        ? 'Bu hesap bir Müşteri hesabıdır. Sürücü uygulamasından giriş yapamazsınız.'
+                        : 'Bu hesap bir Sürücü hesabıdır. Müşteri uygulamasından giriş yapamazsınız.'
+                });
+            }
+        }
+
         if (user) {
             // --- LOGIN FLOW ---
 

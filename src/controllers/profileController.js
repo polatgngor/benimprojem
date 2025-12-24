@@ -174,8 +174,21 @@ async function deleteAccount(req, res) {
     // Clear OTP
     await redis.del(key);
 
-    // soft delete: is_active = false
+    // Anonymize User to allow Re-registration
+    // phone is limited to 32 chars. 
+    // Format: DEL_{timestamp_base36}_{last4}
+    const timestamp = Date.now().toString(36);
+    const suffix = user.phone.slice(-4);
+    const anonymizedPhone = `DEL_${timestamp}_${suffix}`;
+
+    // Ensure we don't exceed 32 chars
+    // If original phone was long, we might need to truncate
+    // But this format is approx 4+8+1+4 = 17 chars. Safe.
+
+    user.phone = anonymizedPhone;
     user.is_active = false;
+    // We can also anonymize email if it existed, but we only use phone login.
+
     await user.save();
 
     // mevcut token'ı blacklist et
@@ -193,7 +206,8 @@ async function deleteAccount(req, res) {
     return res.json({ ok: true });
   } catch (err) {
     console.error('deleteAccount err', err);
-    return res.status(500).json({ message: 'Server error' });
+    // Handle unique constraint error if by rare chance collision happens
+    return res.status(500).json({ message: 'Server error during deletion' });
   }
 }
 

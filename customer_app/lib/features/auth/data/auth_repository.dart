@@ -29,6 +29,7 @@ class AuthRepository {
       final response = await _apiClient.client.post('/auth/verify-otp', data: {
         'phone': phone,
         'code': code,
+        'app_role': 'passenger',
       });
       return response.data;
     } on DioException catch (e) {

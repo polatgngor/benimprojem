@@ -32,6 +32,7 @@ class AuthService {
         data: {
           'phone': phone,
           'code': code,
+          'app_role': 'driver',
         },
       );
       
