@@ -21,6 +21,9 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD}
       - JWT_SECRET=${JWT_SECRET}
       - REFRESH_TOKEN_SECRET=${REFRESH_TOKEN_SECRET}
+      - SMS_USERNAME=${SMS_USERNAME}
+      - SMS_PASSWORD=${SMS_PASSWORD}
+      - SMS_ORG=${SMS_ORG}
       - GOOGLE_APPLICATION_CREDENTIALS=/usr/src/app/firebase-service-account.json
     volumes:
       - ./uploads:/usr/src/app/uploads
