@@ -75,7 +75,9 @@ async function start() {
     }, 60 * 1000);
 
   } catch (err) {
-    logger.error('Startup error:', err && err.stack ? err.stack : err);
+    logger.error({ err }, 'Startup error');
+    // Also print to console directly in case logger fails or format is weird
+    console.error('CRITICAL STARTUP ERROR:', err);
     process.exit(1);
   }
 }
