@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { Announcement, Sequelize } = require('../models');
-const { Op } = Sequelize;
+const { Announcement } = require('../models');
+const { Op } = require('sequelize');
 
 // Get active announcements
 router.get('/', async (req, res) => {
