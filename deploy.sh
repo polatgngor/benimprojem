@@ -19,6 +19,14 @@ echo "ℹ️ Using command: $COMPOSE_CMD"
 echo "🛑 Stopping containers..."
 $COMPOSE_CMD down
 
+# 1.5. Prepare Directories & Permissions (Fixes EACCES on VPS)
+echo "📂 Setting up upload directories..."
+mkdir -p uploads
+chmod 777 uploads
+# Also ensure subdirectories exist to avoid race conditions
+mkdir -p uploads/drivers
+chmod 777 uploads/drivers
+
 # 2. Build and Start
 echo "🏗️ Building and Starting..."
 $COMPOSE_CMD up -d --build
