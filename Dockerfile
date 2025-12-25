@@ -26,10 +26,8 @@ RUN npm ci --only=production
 COPY --from=builder /usr/src/app/src ./src
 COPY --from=builder /usr/src/app/server.js ./
 # Copy other necessary files
-COPY --from=builder /usr/src/app/.SequelizeUser ./.SequelizeUser
 # Copy startup/scripts if needed
 COPY --from=builder /usr/src/app/src/startup ./src/startup
-COPY --from=builder /usr/src/app/src/scripts ./src/scripts
 
 # Create uploads directory
 RUN mkdir -p uploads && chown -R node:node uploads
