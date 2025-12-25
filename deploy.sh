@@ -1,13 +1,15 @@
 #!/bin/bash
 echo "🚀 Taksibu Backend Deployment Starting..."
 
-# Detect Docker Compose command
-if command -v docker-compose &> /dev/null; then
-    COMPOSE_CMD="docker-compose"
-elif docker compose version &> /dev/null; then
+# Detect Docker Compose command in a generic way (dash/bash compatible)
+# We prioritize 'docker compose' (v2) as it's the modern standard.
+
+if docker compose version >/dev/null 2>&1; then
     COMPOSE_CMD="docker compose"
+elif command -v docker-compose >/dev/null 2>&1; then
+    COMPOSE_CMD="docker-compose"
 else
-    echo "❌ Error: Docker Compose not found. Please install it first."
+    echo "❌ Error: Docker Compose not found. Please install Docker first."
     exit 1
 fi
 
