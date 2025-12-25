@@ -30,16 +30,21 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
   final Completer<GoogleMapController> _controller = Completer();
   LatLng? _currentPosition;
   bool _isOnline = false;
   StreamSubscription<Position>? _positionSubscription;
-  Map<String, dynamic>? _incomingRequest; // Although unused in snippets, keeping for safety
-  Map<String, dynamic>? _activeRide; // Store active ride details
-  String _refCode = ''; // Store user ref code
+  Map<String, dynamic>? _incomingRequest; 
+  Map<String, dynamic>? _activeRide;
+  String _refCode = ''; 
   
   Timer? _locationUpdateTimer;
+  
+  // Animation
+  late AnimationController _flowController;
+  List<LatLng> _currentRoutePoints = [];
+  List<LatLng> _flowPolylinePoints = [];
 
   Set<Polyline> _polylines = {};
   
@@ -52,6 +57,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    _flowController = AnimationController(
+       vsync: this,
+       duration: const Duration(seconds: 2),
+    )..repeat();
+
+    _flowController.addListener(() {
+       if (_currentRoutePoints.isNotEmpty && mounted) {
+          final t = _flowController.value;
+          _calculateFlowPolyline(t);
+       }
+    });
+
     _initializeLocation();
     WakelockPlus.enable();
     // Initialize Notifications
@@ -70,6 +88,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkOverlayPermission();
     });
+  }
+
+  void _calculateFlowPolyline(double t) {
+      if (_currentRoutePoints.length < 2) return;
+      
+      final int totalPoints = _currentRoutePoints.length;
+      final int stripLength = (totalPoints * 0.20).clamp(5, 50).toInt(); 
+      
+      final int headIndex = (t * (totalPoints + stripLength)).floor(); 
+      final int tailIndex = headIndex - stripLength;
+      
+      final List<LatLng> visiblePoints = [];
+      
+      for (int i = 0; i < totalPoints; i++) {
+         if (i >= tailIndex && i <= headIndex) {
+            visiblePoints.add(_currentRoutePoints[i]);
+         }
+      }
+      
+      setState(() {
+         _flowPolylinePoints = visiblePoints;
+      }); 
   }
 
   final DraggableScrollableController _statsSheetController = DraggableScrollableController();
@@ -160,6 +200,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
   @override
   void dispose() {
+    _flowController.dispose();
     _statsSheetController.dispose();
     _passengerInfoController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -227,7 +268,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                         _controller.complete(controller);
                       },
                       markers: _createMarkers(),
-                      polylines: _polylines,
+                      polylines: {
+                        ..._polylines,
+                        if (_flowPolylinePoints.isNotEmpty)
+                           Polyline(
+                              polylineId: const PolylineId('route_flow'),
+                              points: _flowPolylinePoints,
+                              color: Colors.lightBlueAccent, // Neon effect
+                              width: 4,
+                              zIndex: 2,
+                              jointType: JointType.round,
+                              startCap: Cap.roundCap,
+                              endCap: Cap.roundCap,
+                           ),
+                      },
                     ),
 
               // Menu Button (Top Left)
@@ -888,6 +942,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             };
             _routeDistanceMeters = dist;
             _routeDurationSeconds = dur;
+            _currentRoutePoints = points; // Set for animation
           });
           
           if (fitBounds) {

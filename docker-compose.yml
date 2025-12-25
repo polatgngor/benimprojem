@@ -24,6 +24,9 @@ services:
       - SMS_USERNAME=${SMS_USERNAME}
       - SMS_PASSWORD=${SMS_PASSWORD}
       - SMS_ORG=${SMS_ORG}
+      - RIDE_ACCEPT_TIMEOUT_SECONDS=30
+      - LOG_LEVEL=info
+      - GOOGLE_MAPS_API_KEY=${GOOGLE_MAPS_API_KEY}
       - GOOGLE_APPLICATION_CREDENTIALS=/usr/src/app/firebase-service-account.json
     volumes:
       - ./uploads:/usr/src/app/uploads

@@ -18,30 +18,77 @@ class RideRequestCard extends ConsumerStatefulWidget {
   ConsumerState<RideRequestCard> createState() => _RideRequestCardState();
 }
 
-class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTickerProviderStateMixin {
+class _RideRequestCardState extends ConsumerState<RideRequestCard> with TickerProviderStateMixin {
   final Completer<GoogleMapController> _controller = Completer();
   late AnimationController _timerController;
+  late AnimationController _flowController; // Neon Flow Animation
+
   Set<Marker> _markers = {};
   Set<Polyline> _polylines = {};
+  List<LatLng> _currentRoutePoints = []; // Base points for animation
+  List<LatLng> _flowPolylinePoints = []; // Current animated strip
 
   // Metrics (Driver -> Pickup)
   String _pickupDistance = '...';
   String _pickupDuration = '...';
 
   // Default timeout duration (reduced to sync with backend)
-  static const int _timeoutSeconds = 15;
+  static const int _timeoutSeconds = 30;
 
   bool _isAccepting = false; // Optimistic UI state
 
   @override
   void initState() {
     super.initState();
-    _setupMapData();
     _setupTimer();
+    _setupFlowAnimation();
+    _setupMapData();
     _calculatePickupMetrics();
   }
 
-  Future<void> _calculatePickupMetrics() async {
+  void _setupFlowAnimation() {
+    _flowController = AnimationController(
+       vsync: this,
+       duration: const Duration(seconds: 2), // 2s per cycle
+    )..repeat();
+
+    _flowController.addListener(() {
+       if (_currentRoutePoints.isNotEmpty && mounted) {
+          final t = _flowController.value;
+          _calculateFlowPolyline(t);
+       }
+    });
+  }
+
+  void _calculateFlowPolyline(double t) {
+      if (_currentRoutePoints.length < 2) return;
+      
+      final int totalPoints = _currentRoutePoints.length;
+      final int stripLength = (totalPoints * 0.20).clamp(5, 50).toInt(); // 20% or min 5 points
+      
+      // Calculate indices
+      final int headIndex = (t * (totalPoints + stripLength)).floor(); 
+      final int tailIndex = headIndex - stripLength;
+      
+      final List<LatLng> visiblePoints = [];
+      
+      for (int i = 0; i < totalPoints; i++) {
+         if (i >= tailIndex && i <= headIndex) {
+            visiblePoints.add(_currentRoutePoints[i]);
+         }
+      }
+      
+      setState(() {
+         _flowPolylinePoints = visiblePoints;
+      }); 
+  }
+
+  @override
+  void dispose() {
+    _timerController.dispose();
+    _flowController.dispose();
+    super.dispose();
+  }
     try {
       final start = widget.request['start'];
       if (start != null && start['lat'] != null && start['lng'] != null) {
@@ -100,11 +147,7 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
     )..reverse(from: 1.0);
   }
 
-  @override
-  void dispose() {
-    _timerController.dispose();
-    super.dispose();
-  }
+  // dispose moved to top
 
   // ... map setup ...
 
@@ -135,10 +178,11 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
       final List<LatLng> decodedPoints = _decodePolyline(encodedPolyline);
       
       if (decodedPoints.isNotEmpty) {
+        _currentRoutePoints = decodedPoints; // Set for animation
         _polylines.add(Polyline(
           polylineId: const PolylineId('route'),
           points: decodedPoints,
-          color: const Color(0xFF1A77F6), // Theme Blue
+          color: const Color(0xFF0865ff), // Deep Blue Base
           width: 5,
         ));
       }
@@ -245,7 +289,20 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with SingleTi
                      zoom: 13,
                    ),
                    markers: _markers,
-                   polylines: _polylines,
+                   polylines: {
+                     ..._polylines,
+                     if (_flowPolylinePoints.isNotEmpty)
+                       Polyline(
+                          polylineId: const PolylineId('route_flow'),
+                          points: _flowPolylinePoints,
+                          color: Colors.lightBlueAccent, // Neon effect
+                          width: 4,
+                          zIndex: 2,
+                          jointType: JointType.round,
+                          startCap: Cap.roundCap,
+                          endCap: Cap.roundCap,
+                       ),
+                   },
                    zoomControlsEnabled: false,
                    liteModeEnabled: false,
                    myLocationButtonEnabled: false,

@@ -39,11 +39,27 @@ async function sendSms(phone, message) {
             }
         });
 
-        // MutluCell usually returns a transaction ID or error code starting with '$' or just text.
-        // We log it for debugging.
-        console.log(`[MutluCell] Response for ${cleanPhone}:`, response.data);
+        // MutluCell usually returns a transaction ID (long number) or error code (short number like 20, 23).
+        const result = response.data.toString().trim();
+        console.log(`[MutluCell] Response for ${cleanPhone}: ${result}`);
 
-        return response.data;
+        // Error Codes:
+        // 20: XML Error, 21: Auth Error, 22: User Inactive, 23: Invalid Originator (Header)
+        // 24: Empty Message/Number, 25: Date Error
+        if (['20', '21', '22', '23', '24', '25'].includes(result)) {
+            const errorMap = {
+                '20': 'XML Error (Post Data Invalid)',
+                '21': 'Authentication Failed (Wrong Username/Password)',
+                '22': 'User Inactive',
+                '23': 'Invalid Originator (SMS Header Mismatch)',
+                '24': 'Empty Message or Number'
+            };
+            const errorMsg = errorMap[result] || `Unknown Error (${result})`;
+            console.error(`[MutluCell] SMS Failed: ${errorMsg}`);
+            throw new Error(`SMS Provider Error: ${errorMsg}`);
+        }
+
+        return result;
 
     } catch (error) {
         console.error('[MutluCell] Error sending SMS:', error.message);

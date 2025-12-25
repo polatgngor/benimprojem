@@ -64,7 +64,7 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
   @override
   Widget build(BuildContext context) {
     final profileAsync = ref.watch(driverProfileSummaryProvider);
-    final user = profileAsync.valueOrNull;
+    final user = profileAsync.asData?.value;
     final firstName = user?['first_name'] ?? 'Sürücü';
     final lastName = user?['last_name'] ?? '';
     final fullName = '$firstName $lastName'.trim();

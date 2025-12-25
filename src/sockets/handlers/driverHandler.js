@@ -143,7 +143,7 @@ module.exports = (io, socket) => {
                 });
 
                 if (parentRide) {
-                    const RIDE_ACCEPT_TIMEOUT = parseInt(process.env.RIDE_ACCEPT_TIMEOUT_SECONDS || 45) * 1000;
+                    const RIDE_ACCEPT_TIMEOUT = parseInt(process.env.RIDE_ACCEPT_TIMEOUT_SECONDS || 30) * 1000;
                     const sentTime = pendingRequest.sent_at ? new Date(pendingRequest.sent_at).getTime() : Date.now();
                     const passed = Date.now() - sentTime;
 

@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -37,8 +38,12 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class NotificationService {
-  static Future<void> initialize() async {
+  Future<void> initialize() async {
      await Firebase.initializeApp();
      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
   }
 }
+
+final notificationServiceProvider = Provider<NotificationService>((ref) {
+  return NotificationService();
+});

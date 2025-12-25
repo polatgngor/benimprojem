@@ -13,7 +13,7 @@ void main() async {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   
   await EasyLocalization.ensureInitialized();
-  await NotificationService.initialize();
+  await NotificationService().initialize();
   await BackgroundService.initializeService();
   
   runApp(

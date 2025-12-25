@@ -8,7 +8,14 @@ import '../../../core/constants/app_constants.dart';
 
 // --- Providers ---
 
-final earningsFilterProvider = StateProvider<EarningsFilter>((ref) => EarningsFilter.daily);
+final earningsFilterProvider = NotifierProvider<EarningsFilterNotifier, EarningsFilter>(EarningsFilterNotifier.new);
+
+class EarningsFilterNotifier extends Notifier<EarningsFilter> {
+  @override
+  EarningsFilter build() => EarningsFilter.daily;
+
+  void setFilter(EarningsFilter filter) => state = filter;
+}
 
 enum EarningsFilter { daily, weekly, monthly }
 
@@ -120,7 +127,7 @@ class EarningsScreen extends ConsumerWidget {
   Widget _buildFilterTab(WidgetRef ref, EarningsFilter tab, String label, EarningsFilter current) {
     final isSelected = tab == current;
     return GestureDetector(
-      onTap: () => ref.read(earningsFilterProvider.notifier).state = tab,
+      onTap: () => ref.read(earningsFilterProvider.notifier).setFilter(tab),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(vertical: 12),
