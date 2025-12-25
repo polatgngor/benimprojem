@@ -1,10 +1,15 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 
-class IncomingRequestsNotifier extends StateNotifier<List<Map<String, dynamic>>> {
-  IncomingRequestsNotifier() : super([]);
+part 'incoming_requests_provider.g.dart';
+
+@Riverpod(keepAlive: true)
+class IncomingRequests extends _$IncomingRequests {
+  @override
+  List<Map<String, dynamic>> build() {
+    return [];
+  }
 
   void addRequest(Map<String, dynamic> request) {
-    // Avoid duplicates based on ride_id
     if (!state.any((r) => r['ride_id'] == request['ride_id'])) {
       state = [...state, request];
     }
@@ -18,7 +23,3 @@ class IncomingRequestsNotifier extends StateNotifier<List<Map<String, dynamic>>>
     state = [];
   }
 }
-
-final incomingRequestsProvider = StateNotifierProvider<IncomingRequestsNotifier, List<Map<String, dynamic>>>((ref) {
-  return IncomingRequestsNotifier();
-});

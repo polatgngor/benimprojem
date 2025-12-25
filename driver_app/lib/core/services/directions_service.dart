@@ -1,10 +1,13 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
 
-final directionsServiceProvider = Provider((ref) => DirectionsService());
+part 'directions_service.g.dart';
+
+@Riverpod(keepAlive: true)
+DirectionsService directionsService(Ref ref) => DirectionsService();
 
 class DirectionsService {
   final Dio _dio = Dio();

@@ -467,8 +467,12 @@ class RideController extends _$RideController {
         final polyline = Polyline(
           polylineId: const PolylineId('route'),
           points: routeInfo.points,
-          color: Colors.blue,
-          width: 5,
+          color: const Color(0xFF0865ff), // Deep Blue (Requested)
+          width: 4, 
+          jointType: JointType.round,
+          startCap: Cap.roundCap,
+          endCap: Cap.roundCap,
+          geodesic: true,
         );
         
         ref.read(rideProvider.notifier).setPolylines({polyline});

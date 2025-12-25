@@ -1,10 +1,14 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../features/auth/presentation/auth_provider.dart';
 import '../constants/app_constants.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final apiServiceProvider = Provider<ApiService>((ref) {
+part 'api_service.g.dart';
+
+@Riverpod(keepAlive: true)
+ApiService apiService(Ref ref) {
   final dio = Dio();
   final storage = const FlutterSecureStorage();
   
@@ -23,7 +27,7 @@ final apiServiceProvider = Provider<ApiService>((ref) {
   );
 
   return ApiService(dio, storage);
-});
+}
 
 class ApiService {
   final Dio _dio;

@@ -5,7 +5,7 @@ const fs = require('fs');
 let isInitialized = false;
 
 try {
-    const serviceAccountPath = path.join(__dirname, '../../serviceAccountKey.json');
+    const serviceAccountPath = path.join(__dirname, '../../firebase-service-account.json');
 
     if (fs.existsSync(serviceAccountPath)) {
         const serviceAccount = require(serviceAccountPath);

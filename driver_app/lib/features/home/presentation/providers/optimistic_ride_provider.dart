@@ -1,7 +1,9 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/services/socket_service.dart';
 import '../../../../core/services/notification_service.dart';
 import 'incoming_requests_provider.dart';
+
+part 'optimistic_ride_provider.g.dart';
 
 class OptimisticState {
   final Map<String, dynamic>? activeRide;
@@ -27,12 +29,12 @@ class OptimisticState {
   }
 }
 
-
-
-
-class OptimisticRideNotifier extends Notifier<OptimisticState> {
+@Riverpod(keepAlive: true)
+class OptimisticRide extends _$OptimisticRide {
   @override
-  OptimisticState build() => const OptimisticState();
+  OptimisticState build() {
+    return const OptimisticState();
+  }
 
   void completeRide() {
      state = state.copyWith(isCompleting: true, activeRide: null);
@@ -119,5 +121,3 @@ class OptimisticRideNotifier extends Notifier<OptimisticState> {
     ref.read(incomingRequestsProvider.notifier).clearRequests();
   }
 }
-
-final optimisticRideProvider = NotifierProvider<OptimisticRideNotifier, OptimisticState>(OptimisticRideNotifier.new);

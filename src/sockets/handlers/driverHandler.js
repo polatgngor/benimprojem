@@ -1,0 +1,171 @@
+const { Driver, Ride, RideRequest, User } = require('../../models');
+const { Op } = require('sequelize');
+const Redis = require('ioredis');
+const socketProvider = require('../../lib/socketProvider');
+
+const redis = new Redis({
+    host: process.env.REDIS_HOST || '127.0.0.1',
+    port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379,
+    password: process.env.REDIS_PASSWORD || undefined
+});
+
+function geoKeyForVehicle(vehicleType) {
+    return `drivers:geo:${vehicleType}`;
+}
+
+module.exports = (io, socket) => {
+    const { userId, role } = socket.user;
+
+    // 1. Set Availability
+    socket.on('driver:set_availability', async (payload) => {
+        try {
+            if (role !== 'driver') return;
+            const { available, lat, lng, vehicle_type } = payload;
+            const isAvailable = available === true || available === 'true';
+
+            const currentDriver = await Driver.findOne({ where: { user_id: userId } });
+            if (!currentDriver) return;
+
+            if (isAvailable) {
+                const activeDriverWithSamePlate = await Driver.findOne({
+                    where: {
+                        vehicle_plate: currentDriver.vehicle_plate,
+                        is_available: true,
+                        user_id: { [Op.ne]: userId }
+                    }
+                });
+
+                if (activeDriverWithSamePlate) {
+                    return socket.emit('driver:availability_error', {
+                        message: `Bu plakada (${currentDriver.vehicle_plate}) şu an başka bir sürücü aktif. Lütfen diğer sürücünün çıkış yapmasını bekleyin.`
+                    });
+                }
+            }
+
+            await Promise.all([
+                Driver.update({ is_available: isAvailable }, { where: { user_id: userId } }),
+                (async () => {
+                    await redis.hset(`driver:${userId}:meta`, 'available', isAvailable ? '1' : '0');
+                    await redis.hdel(`driver:${userId}:meta`, 'disconnected_ts');
+                    await redis.hset(`driver:${userId}:meta`, 'socketId', socket.id);
+                    if (vehicle_type) {
+                        await redis.hset(`driver:${userId}:meta`, 'vehicle_type', vehicle_type);
+                    }
+                })(),
+                (async () => {
+                    if (isAvailable && lat && lng) {
+                        const vType = vehicle_type || 'sari';
+                        const key = geoKeyForVehicle(vType);
+                        await redis.geoadd(key, lng, lat, String(userId));
+                        await redis.hset(`driver:${userId}:meta`, 'last_loc_update', Date.now());
+                    } else if (!isAvailable) {
+                        const types = ['sari', 'turkuaz', 'siyah', '8+1'];
+                        for (const t of types) {
+                            await redis.zrem(geoKeyForVehicle(t), String(userId));
+                        }
+                    }
+                })()
+            ]);
+
+            socket.emit('driver:availability_updated', { available: isAvailable });
+        } catch (err) {
+            console.error('driver:set_availability err', err);
+            socket.emit('driver:availability_error', { message: 'Sunucu hatası oluştu.' });
+        }
+    });
+
+    // 2. Update Location
+    socket.on('driver:update_location', async (payload) => {
+        try {
+            if (role !== 'driver') return;
+            const { lat, lng, vehicle_type } = payload;
+            const key = geoKeyForVehicle(vehicle_type || 'sari');
+
+            Promise.all([
+                redis.geoadd(key, lng, lat, String(userId)),
+                redis.hset(`driver:${userId}:meta`, 'last_loc_update', Date.now(), 'lat', lat, 'lng', lng)
+            ]).catch(e => { });
+
+            const rooms = Array.from(socket.rooms);
+            for (const r of rooms) {
+                if (r.startsWith('ride:')) {
+                    const rideId = r.split(':')[1];
+                    const point = JSON.stringify({ lat, lng, ts: Date.now() });
+                    redis.rpush(`ride:${rideId}:route`, point).catch(e => { });
+                    redis.expire(`ride:${rideId}:route`, 24 * 60 * 60).catch(e => { });
+
+                    const ioInstance = socketProvider.getIO();
+                    if (ioInstance) {
+                        ioInstance.to(r).emit('ride:update_location', { driver_id: userId, lat, lng, ts: Date.now() });
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('driver:update_location err', err);
+        }
+    });
+
+    // 3. Rejoin
+    socket.on('driver:rejoin', async () => {
+        try {
+            if (role !== 'driver') return;
+
+            // A. Check for ACTIVE Ride
+            const activeRide = await Ride.findOne({
+                where: {
+                    driver_id: userId,
+                    status: { [Op.in]: ['accepted', 'driver_arrived', 'started'] }
+                },
+                include: [
+                    { model: User, as: 'passenger', attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture', 'rating'] }
+                ]
+            });
+
+            if (activeRide) {
+                const rideJSON = activeRide.toJSON();
+                socket.emit('ride:rejoined', rideJSON);
+                socket.join(`ride:${activeRide.id}`);
+                return;
+            }
+
+            // B. Check for PENDING Requested Ride
+            const pendingRequest = await RideRequest.findOne({
+                where: { driver_id: userId, driver_response: 'no_response', timeout: false },
+                order: [['sent_at', 'DESC']]
+            });
+
+            if (pendingRequest) {
+                const parentRide = await Ride.findOne({
+                    where: { id: pendingRequest.ride_id, status: 'searching' },
+                    include: [
+                        { model: User, as: 'passenger', attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture', 'rating'] }
+                    ]
+                });
+
+                if (parentRide) {
+                    const RIDE_ACCEPT_TIMEOUT = parseInt(process.env.RIDE_ACCEPT_TIMEOUT_SECONDS || 45) * 1000;
+                    const sentTime = pendingRequest.sent_at ? new Date(pendingRequest.sent_at).getTime() : Date.now();
+                    const passed = Date.now() - sentTime;
+
+                    if (passed < RIDE_ACCEPT_TIMEOUT) {
+                        const payload = {
+                            ride_id: parentRide.id,
+                            pickup: { lat: parentRide.pickup_lat, lng: parentRide.pickup_lng, address: parentRide.pickup_address },
+                            destination: { lat: parentRide.dropoff_lat, lng: parentRide.dropoff_lng, address: parentRide.dropoff_address },
+                            passenger: parentRide.passenger,
+                            fare: parentRide.estimated_fare,
+                            distance_km: parentRide.estimated_distance_km,
+                            duration_mins: parentRide.estimated_duration_min,
+                            payment_method: parentRide.payment_method || 'cash',
+                            sent_at: sentTime,
+                            timeout_seconds: (RIDE_ACCEPT_TIMEOUT - passed) / 1000
+                        };
+                        socket.emit('request:incoming', payload);
+                    }
+                }
+            }
+        } catch (err) {
+            console.error('driver:rejoin err', err);
+        }
+    });
+};

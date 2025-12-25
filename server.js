@@ -31,6 +31,11 @@ async function start() {
 
     // Init Socket.IO (attaches to server)
     initSockets(server);
+
+    // Init Background Jobs
+    require('./src/startup/initCron')();
+    require('./src/startup/initWorkers')();
+
     server.listen(PORT, () => {
       logger.info(`🚀 Server listening on http://localhost:${PORT}`);
     });
@@ -38,15 +43,11 @@ async function start() {
     // Periodic health/queue polling for metrics
     setInterval(async () => {
       try {
-        // queue counts
-        const counts = await rideTimeoutQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed');
-        metrics.queueWaiting.set({ queue: 'ride-timeout-queue' }, counts.waiting || 0);
-        metrics.queueActive.set({ queue: 'ride-timeout-queue' }, counts.active || 0);
-        metrics.queueDelayed.set({ queue: 'ride-timeout-queue' }, counts.delayed || 0);
-        metrics.queueFailed.set({ queue: 'ride-timeout-queue' }, counts.failed || 0);
-        metrics.queueCompleted.set({ queue: 'ride-timeout-queue' }, counts.completed || 0);
+        const { connection } = require('./src/queues/rideTimeoutQueue'); // lazy load
+        const jobs = await connection.getJobCountByTypes('wait', 'active', 'completed', 'failed');
+        // Update prometheus metric here if needed (currently separate in metrics.js)
       } catch (e) {
-        logger.warn({ err: e }, 'Could not fetch queue counts');
+        // ignore
       }
 
       try {

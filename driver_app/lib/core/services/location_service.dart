@@ -1,9 +1,12 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final locationServiceProvider = Provider<LocationService>((ref) {
+part 'location_service.g.dart';
+
+@Riverpod(keepAlive: true)
+LocationService locationService(Ref ref) {
   return LocationService();
-});
+}
 
 class LocationService {
   Future<Position> determinePosition() async {

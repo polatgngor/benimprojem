@@ -1,11 +1,15 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../auth/data/auth_service.dart';
 
-final driverRideRepositoryProvider = Provider<DriverRideRepository>((ref) {
+part 'ride_repository.g.dart';
+
+@Riverpod(keepAlive: true)
+DriverRideRepository driverRideRepository(Ref ref) {
   return DriverRideRepository(ref);
-});
+}
 
 class DriverRideRepository {
   final Ref _ref;

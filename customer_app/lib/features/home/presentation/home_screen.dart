@@ -16,6 +16,7 @@ import '../../ride/presentation/widgets/rating_dialog.dart';
 import '../../ride/data/ride_repository.dart';
 import '../../ride/data/places_service.dart';
 import '../../ride/presentation/ride_controller.dart';
+import '../../../core/utils/map_utils.dart'; // Import MapUtils
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -45,6 +46,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   LatLng? _driverLocation; // (Existing or unrelated, just context)
   LatLng? _currentAnimatedPos;
   BitmapDescriptor? _driverIcon;
+  
+  // Flow Animation
+  late AnimationController _flowController;
+  List<LatLng> _currentRoutePoints = [];
+  List<LatLng> _flowPolylinePoints = []; // For the strip
+
 
   @override
   void initState() {
@@ -66,9 +73,45 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         });
       }
     });
+    
+    // Flow Animation (Loop)
+    _flowController = AnimationController(
+       vsync: this,
+       duration: const Duration(seconds: 2), // 2s per cycle
+    )..repeat();
+
+    _flowController.addListener(() {
+       if (_currentRoutePoints.isNotEmpty) {
+          final t = _flowController.value; // 0.0 to 1.0
+          _calculateFlowPolyline(t);
+       }
+    });
 
     _initialize();
     _loadDriverIcon();
+  }
+
+  void _calculateFlowPolyline(double t) {
+      if (_currentRoutePoints.length < 2) return;
+      
+      final int totalPoints = _currentRoutePoints.length;
+      final int stripLength = (totalPoints * 0.20).clamp(5, 50).toInt(); // 20% or min 5 points
+      
+      // Calculate indices
+      final int headIndex = (t * (totalPoints + stripLength)).floor(); 
+      final int tailIndex = headIndex - stripLength;
+      
+      final List<LatLng> visiblePoints = [];
+      
+      for (int i = 0; i < totalPoints; i++) {
+         if (i >= tailIndex && i <= headIndex) {
+            visiblePoints.add(_currentRoutePoints[i]);
+         }
+      }
+      
+      setState(() {
+         _flowPolylinePoints = visiblePoints;
+      }); 
   }
 
   Future<void> _loadDriverIcon() async {
@@ -142,11 +185,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         final List<LatLng> points = result['points'];
         
           ref.read(rideProvider.notifier).setPolylines({
+          // Base Polyline
           Polyline(
             polylineId: const PolylineId('route'),
             points: points,
-            color: Colors.blue, // Keep blue as base
-            width: 4, // Thinner (was 5)
+            color: const Color(0xFF0865ff), // Deep Blue (Requested)
+            width: 4, 
             jointType: JointType.round,
             startCap: Cap.roundCap,
             endCap: Cap.roundCap,
@@ -210,8 +254,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       );
     }
 
+    // Flow Marker removed in favor of Polyline Overlay
+
+
     return markers;
   }
+
 
   void _fitBounds(List<LatLng> points) {
     if (points.isEmpty || _mapController == null) return;
@@ -253,6 +301,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
  
   @override
   void dispose() {
+    _flowController.dispose();
     _markerController.dispose();
     _sheetController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -308,6 +357,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                    _fitBounds(points);
                 }
              }
+          }
+
+          // Update local route points for animation
+          if (next.polylines.isNotEmpty) {
+             _currentRoutePoints = next.polylines.first.points;
+          } else {
+             _currentRoutePoints = [];
+             _flowPolylinePoints = [];
           }
           
           // Animate Sheet based on Status
@@ -420,7 +477,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                     _mapController = controller;
                   },
                   markers: _createMarkers(rideState),
-                  polylines: rideState.polylines,
+                  polylines: {
+                     ...rideState.polylines,
+                     if (_flowPolylinePoints.isNotEmpty && rideState.status != RideStatus.completed)
+                       Polyline(
+                          polylineId: const PolylineId('route_flow'),
+                          points: _flowPolylinePoints,
+                          color: Colors.lightBlueAccent, // Neon effect
+                          width: 4,
+                          zIndex: 2, // Top
+                          jointType: JointType.round,
+                          startCap: Cap.roundCap,
+                          endCap: Cap.roundCap,
+                       ),
+                  },
                 ),
               ),
               

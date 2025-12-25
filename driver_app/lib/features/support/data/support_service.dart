@@ -1,15 +1,19 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import '../../../../core/services/api_service.dart';
 
-final supportServiceProvider = Provider<SupportService>((ref) {
+part 'support_service.g.dart';
+
+@Riverpod(keepAlive: true)
+SupportService supportService(Ref ref) {
   final apiService = ref.watch(apiServiceProvider);
   return SupportService(apiService);
-});
+}
 
-final myTicketsProvider = FutureProvider.autoDispose((ref) async {
+@riverpod
+Future<List<dynamic>> myTickets(Ref ref) async {
   final service = ref.watch(supportServiceProvider);
   return service.getMyTickets();
-});
+}
 
 class SupportService {
   final ApiService _apiService;

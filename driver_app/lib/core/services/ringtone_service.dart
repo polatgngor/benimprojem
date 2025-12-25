@@ -1,9 +1,12 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-final ringtoneServiceProvider = Provider<RingtoneService>((ref) {
+part 'ringtone_service.g.dart';
+
+@Riverpod(keepAlive: true)
+RingtoneService ringtoneService(Ref ref) {
   return RingtoneService();
-});
+}
 
 class RingtoneService {
   final AudioPlayer _audioPlayer = AudioPlayer();

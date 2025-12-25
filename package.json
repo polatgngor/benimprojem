@@ -12,7 +12,6 @@
     "axios": "^1.13.2",
     "bcrypt": "^5.1.0",
     "bullmq": "^1.81.0",
-    "catch": "^1.0.48",
     "dotenv": "^16.0.0",
     "express": "^4.18.2",
     "firebase-admin": "^13.6.0",

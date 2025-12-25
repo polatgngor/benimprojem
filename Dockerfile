@@ -1,22 +1,42 @@
-# Use Node.js 18 on Alpine Linux for a small image size
-FROM node:18-alpine
+# Stage 1: Build
+FROM node:18-alpine AS builder
 
-# Set working directory inside the container
 WORKDIR /usr/src/app
 
-# Copy package.json and package-lock.json first to leverage Docker cache
+# Install dependencies first (cachlayering)
 COPY package*.json ./
+# Install ALL dependencies (including dev) to build/test if needed, 
+# or just --production if no build step. 
+# Since we have no build step for backend (it's JS), we can just install.
+RUN npm ci
 
-# Install only production dependencies
-# If you need devDependencies for building (like some native modules), use 'npm install'
-# For pure production run usually 'npm ci --only=production' is best, but let's be safe with 'npm install'
-RUN npm install
-
-# Copy the rest of the application code
+# Copy source
 COPY . .
 
-# Expose the application port (matches PORT in .env)
+# Stage 2: Production
+FROM node:18-alpine
+
+WORKDIR /usr/src/app
+
+# Install only production dependencies
+COPY package*.json ./
+RUN npm ci --only=production
+
+# Copy source from builder (or local if no build step needed, but good practice)
+COPY --from=builder /usr/src/app/src ./src
+COPY --from=builder /usr/src/app/server.js ./
+# Copy other necessary files
+COPY --from=builder /usr/src/app/.SequelizeUser ./.SequelizeUser
+# Copy startup/scripts if needed
+COPY --from=builder /usr/src/app/src/startup ./src/startup
+COPY --from=builder /usr/src/app/src/scripts ./src/scripts
+
+# Create uploads directory
+RUN mkdir -p uploads && chown -R node:node uploads
+
+# Switch to non-root user
+USER node
+
 EXPOSE 3000
 
-# Start the application
-CMD ["npm", "start"]
+CMD ["node", "server.js"]

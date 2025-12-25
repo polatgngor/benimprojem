@@ -55,14 +55,16 @@ app.use('/api/support', require('./routes/support')); // Support System
 app.get('/health', (req, res) => res.json({ ok: true, ts: Date.now() }));
 
 // prometheus metrics endpoint
-app.get('/metrics', async (req, res) => {
+app.get('/metrics', async (req, res, next) => {
   try {
     res.set('Content-Type', metrics.client.register.contentType);
     res.send(await metrics.client.register.metrics());
   } catch (err) {
-    logger.error({ err }, 'Failed to collect metrics');
-    res.status(500).send('Error collecting metrics');
+    next(err);
   }
 });
+
+// Global Error Handler
+app.use(require('./middlewares/errorHandler'));
 
 module.exports = app;

@@ -43,6 +43,23 @@ function escapeRegExp(string) {
 }
 
 /**
+ * Normalizes text by converting Turkish characters to their English counterparts
+ * and converting to lowercase.
+ * e.g., "Şerefsiz" -> "serefsiz", "ÇIĞLIK" -> "ciglik"
+ */
+function normalizeText(text) {
+    return text
+        .toLowerCase()
+        .replace(/ğ/g, 'g')
+        .replace(/ü/g, 'u')
+        .replace(/ş/g, 's')
+        .replace(/ı/g, 'i')
+        .replace(/İ/g, 'i')
+        .replace(/ö/g, 'o')
+        .replace(/ç/g, 'c');
+}
+
+/**
  * Filters the input text by replacing bad words with asterisks.
  * Case insensitive.
  * 
@@ -76,10 +93,17 @@ function filterProfanity(text) {
  */
 function hasProfanity(text) {
     if (!text) return false;
+
     // Sort descending to catch compound insults
     const sortedWords = ALL_WORDS.sort((a, b) => b.length - a.length);
     const pattern = new RegExp(`\\b(${sortedWords.map(escapeRegExp).join('|')})`, 'gi');
-    return pattern.test(text);
+
+    // Check raw text
+    if (pattern.test(text)) return true;
+
+    // Check normalized text
+    const normalized = normalizeText(text);
+    return pattern.test(normalized);
 }
 
 module.exports = {

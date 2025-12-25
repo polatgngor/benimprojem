@@ -14,6 +14,7 @@ const SavedPlaceModel = require('./savedPlace'); // NEW
 const WalletModel = require('./Wallet');
 const WalletTransactionModel = require('./WalletTransaction');
 const VehicleChangeRequestModel = require('./vehicleChangeRequest');
+const AnnouncementModel = require('./Announcement');
 
 const sequelize = new Sequelize(
   process.env.DB_NAME || 'taksibu',
@@ -52,7 +53,8 @@ const models = {
   SavedPlace: SavedPlaceModel(sequelize),
   Wallet: WalletModel(sequelize),
   WalletTransaction: WalletTransactionModel(sequelize),
-  VehicleChangeRequest: VehicleChangeRequestModel(sequelize)
+  VehicleChangeRequest: VehicleChangeRequestModel(sequelize),
+  Announcement: AnnouncementModel(sequelize)
 };
 
 // Associations

@@ -1,12 +1,15 @@
+import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:socket_io_client/socket_io_client.dart' as IO;
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
 
-final socketServiceProvider = Provider<SocketService>((ref) {
+part 'socket_service.g.dart';
+
+@Riverpod(keepAlive: true)
+SocketService socketService(Ref ref) {
   return SocketService(const FlutterSecureStorage());
-});
+}
 
 class SocketService {
   late IO.Socket _socket;

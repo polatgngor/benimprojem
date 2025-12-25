@@ -58,8 +58,12 @@ class _RideMapPreviewState extends ConsumerState<RideMapPreview> {
             Polyline(
               polylineId: const PolylineId('route'),
               points: points,
-              color: Colors.blue,
-              width: 3,
+              color: const Color(0xFF0865ff), // Deep Blue
+              width: 4,
+              jointType: JointType.round,
+              startCap: Cap.roundCap,
+              endCap: Cap.roundCap,
+              geodesic: true,
             ),
           };
         });

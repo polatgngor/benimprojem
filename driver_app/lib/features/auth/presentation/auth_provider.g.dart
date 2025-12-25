@@ -6,20 +6,48 @@ part of 'auth_provider.dart';
 // RiverpodGenerator
 // **************************************************************************
 
-String _$authHash() => r'6afdfc6b1805562513783edb6d2b59efd737b50c';
+// GENERATED CODE - DO NOT MODIFY BY HAND
+// ignore_for_file: type=lint, type=warning
 
-/// See also [Auth].
 @ProviderFor(Auth)
-final authProvider =
-    AutoDisposeAsyncNotifierProvider<Auth, Map<String, dynamic>?>.internal(
-  Auth.new,
-  name: r'authProvider',
-  debugGetCreateSourceHash:
-      const bool.fromEnvironment('dart.vm.product') ? null : _$authHash,
-  dependencies: null,
-  allTransitiveDependencies: null,
-);
+const authProvider = AuthProvider._();
 
-typedef _$Auth = AutoDisposeAsyncNotifier<Map<String, dynamic>?>;
-// ignore_for_file: type=lint
-// ignore_for_file: subtype_of_sealed_class, invalid_use_of_internal_member, invalid_use_of_visible_for_testing_member, deprecated_member_use_from_same_package
+final class AuthProvider
+    extends $AsyncNotifierProvider<Auth, Map<String, dynamic>?> {
+  const AuthProvider._()
+      : super(
+          from: null,
+          argument: null,
+          retry: null,
+          name: r'authProvider',
+          isAutoDispose: true,
+          dependencies: null,
+          $allTransitiveDependencies: null,
+        );
+
+  @override
+  String debugGetCreateSourceHash() => _$authHash();
+
+  @$internal
+  @override
+  Auth create() => Auth();
+}
+
+String _$authHash() => r'50ee3ccebaa3e0d0382d84cf58e8467f631c14de';
+
+abstract class _$Auth extends $AsyncNotifier<Map<String, dynamic>?> {
+  FutureOr<Map<String, dynamic>?> build();
+  @$mustCallSuper
+  @override
+  void runBuild() {
+    final created = build();
+    final ref = this.ref
+        as $Ref<AsyncValue<Map<String, dynamic>?>, Map<String, dynamic>?>;
+    final element = ref.element as $ClassProviderElement<
+        AnyNotifier<AsyncValue<Map<String, dynamic>?>, Map<String, dynamic>?>,
+        AsyncValue<Map<String, dynamic>?>,
+        Object?,
+        Object?>;
+    element.handleValue(ref, created);
+  }
+}
