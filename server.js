@@ -32,6 +32,10 @@ async function start() {
     // Init Socket.IO (attaches to server)
     initSockets(server);
 
+    // Init FCM (Fail Fast Check)
+    const { initFirebase } = require('./src/lib/fcm');
+    initFirebase();
+
     // Init Background Jobs
     require('./src/startup/initCron')();
     require('./src/startup/initWorkers')();

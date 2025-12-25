@@ -98,5 +98,6 @@ async function sendPushToTokens(tokens, notification, data = {}) {
 }
 
 module.exports = {
-  sendPushToTokens
+  sendPushToTokens,
+  initFirebase
 };
