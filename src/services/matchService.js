@@ -205,11 +205,12 @@ async function emitRideRequest(ride, opts = {}) {
             });
           }
 
-          // Send Push (using pre-fetched tokens)
+          // Send Push (using pre-fetched tokens) - DELAYED by 1.5s
           const tokens = deviceMap.get(String(driverId));
           if (tokens && tokens.length > 0) {
-            // Fire and forget push - SILENT (Null notification) for "Zınk" without Banner
-            sendPushToTokens(tokens, null, { type: 'request_incoming', ride_id: String(ride.id), vehicle_type: vehicle_type }).catch(() => { });
+            setTimeout(() => {
+              sendPushToTokens(tokens, null, { type: 'request_incoming', ride_id: String(ride.id), vehicle_type: vehicle_type }).catch(() => { });
+            }, 1500);
           }
         } catch (err) {
           console.warn('[matchService] emit failed', driverId, err);
