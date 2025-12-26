@@ -17,7 +17,7 @@ module.exports = (sequelize) =>
 
       phone: { type: DataTypes.STRING(32), allowNull: false, unique: true },
       // password_hash removed
-      profile_photo: { type: DataTypes.STRING(255), allowNull: true },
+      profile_picture: { type: DataTypes.STRING(255), allowNull: true },
       is_active: { type: DataTypes.BOOLEAN, defaultValue: true },
 
       // referral / level fields
