@@ -17,6 +17,9 @@ class Auth extends _$Auth {
     // Check if token exists
     final token = await _storage.read(key: 'accessToken');
     if (token != null) {
+      // Register Push Token (Fire and Forget) - Correct placement
+      _initPushToken();
+
       try {
         final repository = ref.read(authRepositoryProvider);
         final user = await repository.getProfile();
@@ -30,9 +33,6 @@ class Auth extends _$Auth {
     // Listen for 401 events
     final sub = apiClientUnauthorizedStream.stream.listen((_) => logout());
     ref.onDispose(sub.cancel);
-
-    // Register Push Token (Fire and Forget)
-    _initPushToken();
 
     return null;
   }
@@ -84,6 +84,10 @@ class Auth extends _$Auth {
 
          await _storage.write(key: 'accessToken', value: token);
          state = AsyncValue.data(user);
+         
+         // Register token on login
+         _initPushToken();
+         
          return {
             'is_new_user': false,
             'user': user
@@ -119,6 +123,10 @@ class Auth extends _$Auth {
       final user = UserModel.fromJson(userJson);
 
       await _storage.write(key: 'accessToken', value: token);
+      
+      // Register token on register
+      _initPushToken();
+      
       return user;
     });
   }

@@ -14,6 +14,9 @@ class Auth extends _$Auth {
     // Check if token exists
     final token = await _storage.read(key: 'accessToken');
     if (token != null) {
+      // Register Push Token (Fire and Forget) - Correct placement
+      _initPushToken();
+      
       try {
         final service = ref.read(authServiceProvider);
         final profile = await service.getProfile();
@@ -35,9 +38,6 @@ class Auth extends _$Auth {
         return null;
       }
     }
-
-    // Register Push Token (Fire and Forget)
-    _initPushToken();
     
     return null;
   }
@@ -82,6 +82,10 @@ class Auth extends _$Auth {
       } else {
         // Login success
         state = AsyncValue.data(data);
+        
+        // Register token on login
+        _initPushToken();
+        
         return {
           'is_new_user': false,
           'user': data['user']
@@ -132,6 +136,10 @@ class Auth extends _$Auth {
       );
       
       // return full profile data as state
+      
+      // Register token on register
+      _initPushToken();
+      
       return data;
     });
   }
