@@ -14,7 +14,7 @@ async function getProfile(req, res) {
         'first_name',
         'last_name',
         'phone',
-        'profile_photo',
+        'profile_picture',
         'is_active',
         'created_at',
         'level',
@@ -53,12 +53,12 @@ async function getProfile(req, res) {
 async function updateProfile(req, res) {
   try {
     const userId = req.user.userId;
-    const { first_name, last_name, profile_photo } = req.body;
+    const { first_name, last_name, profile_picture } = req.body;
     const user = await User.findByPk(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
     if (first_name) user.first_name = first_name;
     if (last_name) user.last_name = last_name;
-    if (profile_photo) user.profile_photo = profile_photo;
+    if (profile_picture) user.profile_picture = profile_picture;
     await user.save();
     return res.json({ ok: true, user });
   } catch (err) {
@@ -250,7 +250,7 @@ async function uploadPhoto(req, res) {
     const user = await User.findByPk(userId);
     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    user.profile_photo = photoUrl;
+    user.profile_picture = photoUrl;
     await user.save();
 
     return res.json({ ok: true, photo_url: photoUrl });

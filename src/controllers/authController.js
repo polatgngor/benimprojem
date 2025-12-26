@@ -96,7 +96,7 @@ async function register(req, res) {
 
     // Update user profile photo if provided (for both drivers and passengers)
     if (req.files && req.files['photo']) {
-      user.profile_photo = req.files['photo'][0].path.replace(/\\/g, '/');
+      user.profile_picture = req.files['photo'][0].path.replace(/\\/g, '/');
       await user.save();
     }
 
