@@ -123,6 +123,8 @@ module.exports = (io, socket) => {
 
             if (activeRide) {
                 const rideJSON = activeRide.toJSON();
+                // Backward Compatibility
+                if (rideJSON.passenger) rideJSON.passenger.profile_photo = rideJSON.passenger.profile_picture;
                 socket.emit('ride:rejoined', rideJSON);
                 socket.join(`ride:${activeRide.id}`);
                 return;
@@ -150,12 +152,14 @@ module.exports = (io, socket) => {
                     if (passed < RIDE_ACCEPT_TIMEOUT) {
                         const payload = {
                             ride_id: parentRide.id,
-                            pickup: { lat: parentRide.pickup_lat, lng: parentRide.pickup_lng, address: parentRide.pickup_address },
-                            destination: { lat: parentRide.dropoff_lat, lng: parentRide.dropoff_lng, address: parentRide.dropoff_address },
+                            pickup: { lat: parentRide.start_lat, lng: parentRide.start_lng, address: parentRide.start_address },
+                            destination: { lat: parentRide.end_lat, lng: parentRide.end_lng, address: parentRide.end_address },
                             passenger: parentRide.passenger,
-                            fare: parentRide.estimated_fare,
-                            distance_km: parentRide.estimated_distance_km,
-                            duration_mins: parentRide.estimated_duration_min,
+                            fare: parentRide.fare_estimate,
+                            // distance_km and duration_mins not directly in model, check if computed or missing. using defaults or null.
+                            distance_km: null, // parentRide.estimated_distance_km doesn't exist on model
+                            duration_mins: null, // parentRide.estimated_duration_min doesn't exist on model
+                            // duration_mins: parentRide.estimated_duration_min,
                             payment_method: parentRide.payment_method || 'cash',
                             sent_at: sentTime,
                             timeout_seconds: (RIDE_ACCEPT_TIMEOUT - passed) / 1000

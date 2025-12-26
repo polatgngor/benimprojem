@@ -121,7 +121,8 @@ async function register(req, res) {
         vehicle_plate: req.body.vehicle_plate || null,
         vehicle_brand: req.body.vehicle_brand || null,
         vehicle_model: req.body.vehicle_model || null,
-        driver_status: 'pending' // Default for new drivers
+        driver_status: 'pending', // Default for new drivers
+        profile_photo: user.profile_picture, // Backward compatibility
       }
     });
   } catch (err) {

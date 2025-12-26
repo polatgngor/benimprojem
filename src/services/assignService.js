@@ -76,6 +76,33 @@ async function assignRideAtomic(rideId, driverId) {
     // --- Update Redis Availability & Method ---
     try {
       await redis.hset(`driver:${driverId}:meta`, 'available', '0');
+      // Notify other candidates that ride is taken
+      (async () => {
+        try {
+          // Find waiting drivers
+          const { RideRequest } = require('../models');
+          const others = await RideRequest.findAll({
+            where: {
+              ride_id: rideId,
+              driver_id: { [require('sequelize').Op.ne]: driverId },
+              driver_response: 'no_response'
+            }
+          });
+
+          if (others.length > 0) {
+            const io = socketProvider.getIO();
+            if (io) {
+              for (const req of others) {
+                const meta = await redis.hgetall(`driver:${req.driver_id}:meta`);
+                if (meta && meta.socketId) {
+                  io.to(meta.socketId).emit('request:taken', { ride_id: rideId });
+                }
+              }
+            }
+          }
+        } catch (e) { console.warn('Notify others failed', e); }
+      })();
+
       // Remove from GEO
       if (driverRecord) {
         const vt = driverRecord.vehicle_type || 'sari';

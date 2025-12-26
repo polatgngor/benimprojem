@@ -279,6 +279,9 @@ async function getRides(req, res) {
     const ridesFormatted = rides.map(r => {
       const plain = r.toJSON();
       plain.formatted_date = formatTurkeyDate(r.created_at);
+      // Backward Compatibility
+      if (plain.passenger) plain.passenger.profile_photo = plain.passenger.profile_picture;
+      if (plain.driver) plain.driver.profile_photo = plain.driver.profile_picture;
       return plain;
     });
 
@@ -371,6 +374,21 @@ async function cancelRide(req, res) {
           io.to(initiatorMeta.socketId).emit('ride:cancelled', { ride_id: ride.id, by: 'self', reason });
           const s = io.sockets.sockets.get(initiatorMeta.socketId);
           if (s) s.leave(roomName);
+        }
+
+        // Notify Pending Drivers if ride was still 'requested'
+        if (ride.status === 'requested' || ride.status === 'cancelled') {
+          const { RideRequest } = require('../models');
+          const pending = await RideRequest.findAll({
+            where: { ride_id: ride.id, driver_response: 'no_response' }
+          });
+
+          for (const req of pending) {
+            const driverMeta = await redis.hgetall('driver:' + req.driver_id + ':meta');
+            if (driverMeta && driverMeta.socketId && io) {
+              io.to(driverMeta.socketId).emit('request:cancelled', { ride_id: ride.id });
+            }
+          }
         }
 
         if (user.role === 'passenger') {
@@ -578,8 +596,8 @@ async function getActiveRide(req, res) {
 
     return res.json({
       active: true,
-      ride: plainRide,
-      driver: driverInfo
+      ride: { ...plainRide, passenger: plainRide.passenger ? { ...plainRide.passenger, profile_photo: plainRide.passenger.profile_picture } : null, driver: plainRide.driver ? { ...plainRide.driver, profile_photo: plainRide.driver.profile_picture } : null },
+      driver: driverInfo ? { ...driverInfo, profile_photo: driverInfo.profile_picture } : null
     });
 
   } catch (err) {

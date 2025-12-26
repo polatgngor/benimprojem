@@ -64,6 +64,7 @@ module.exports = (io, socket) => {
                 last_name: driverUser.last_name,
                 phone: driverUser.phone,
                 profile_picture: driverUser.profile_picture,
+                profile_photo: driverUser.profile_picture, // Backward compatibility
                 rating: parseFloat(driverRatingAvg.toFixed(1)),
                 vehicle: {
                     plate: driverDetails ? driverDetails.vehicle_plate : '',
@@ -102,7 +103,7 @@ module.exports = (io, socket) => {
             socket.emit('request:accepted_confirm', {
                 ride_id: rideId,
                 assigned: true,
-                passenger: { id: ride.passenger_id, first_name: passengerUser.first_name, last_name: passengerUser.last_name, phone: passengerUser.phone, profile_picture: passengerUser.profile_picture }
+                passenger: { id: ride.passenger_id, first_name: passengerUser.first_name, last_name: passengerUser.last_name, phone: passengerUser.phone, profile_picture: passengerUser.profile_picture, profile_photo: passengerUser.profile_picture }
             });
 
         } catch (err) {

@@ -15,6 +15,7 @@ async function getProfile(req, res) {
         'last_name',
         'phone',
         'profile_picture',
+        ['profile_picture', 'profile_photo'],
         'is_active',
         'created_at',
         'level',
@@ -60,7 +61,7 @@ async function updateProfile(req, res) {
     if (last_name) user.last_name = last_name;
     if (profile_picture) user.profile_picture = profile_picture;
     await user.save();
-    return res.json({ ok: true, user });
+    return res.json({ ok: true, user: { ...user.toJSON(), profile_photo: user.profile_picture } });
   } catch (err) {
     console.error('updateProfile err', err);
     return res.status(500).json({ message: 'Server error' });
@@ -253,7 +254,7 @@ async function uploadPhoto(req, res) {
     user.profile_picture = photoUrl;
     await user.save();
 
-    return res.json({ ok: true, photo_url: photoUrl });
+    return res.json({ ok: true, photo_url: photoUrl, profile_photo: photoUrl });
   } catch (err) {
     console.error('uploadPhoto err', err);
     return res.status(500).json({ message: 'Server error' });

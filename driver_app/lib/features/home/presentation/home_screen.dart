@@ -563,10 +563,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     });
 
     socket.off('ride:cancelled');
+    socket.off('ride:cancelled');
     socket.on('ride:cancelled', (data) {
       if (mounted) {
-        ref.read(ringtoneServiceProvider).stopRingtone();
+        ref.read(ringtoneServiceProvider).stopRingtone(); // Ensure ringtone stops if it was ringing
         
+        // Also remove from request list just in case
+        if (data['ride_id'] != null) {
+           ref.read(incomingRequestsProvider.notifier).removeRequest(data['ride_id'].toString());
+        }
+
         // Clear Optimistic UI if any
         ref.read(optimisticRideProvider.notifier).clear();
         
@@ -598,6 +604,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     });
 
     socket.off('end_ride_ok');
+    socket.on('request:taken', (data) {
+      if (mounted) {
+        ref.read(ringtoneServiceProvider).stopRingtone();
+        ref.read(incomingRequestsProvider.notifier).removeRequest(data['ride_id'].toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Çağrı başka bir sürücü tarafından kabul edildi.'), duration: Duration(seconds: 2)),
+        );
+      }
+    });
+
+    socket.on('request:cancelled', (data) {
+      if (mounted) {
+        ref.read(ringtoneServiceProvider).stopRingtone();
+        ref.read(incomingRequestsProvider.notifier).removeRequest(data['ride_id'].toString());
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Yolcu çağrıyı iptal etti.'), duration: Duration(seconds: 2)),
+        );
+      }
+    });
+
     socket.on('end_ride_ok', (data) {
       if (mounted) {
         final rideId = _activeRide?['ride_id']?.toString() ?? data['ride_id']?.toString();
