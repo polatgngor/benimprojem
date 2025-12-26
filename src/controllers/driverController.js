@@ -220,7 +220,7 @@ async function getChangeRequests(req, res) {
 
     const { VehicleChangeRequest } = require('../models');
     const requests = await VehicleChangeRequest.findAll({
-      where: { driver_id: driver.id },
+      where: { driver_id: driver.user_id },
       order: [['created_at', 'DESC']]
     });
 
