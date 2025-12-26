@@ -93,10 +93,8 @@ async function assignRideAtomic(rideId, driverId) {
             const io = socketProvider.getIO();
             if (io) {
               for (const req of others) {
-                const meta = await redis.hgetall(`driver:${req.driver_id}:meta`);
-                if (meta && meta.socketId) {
-                  io.to(meta.socketId).emit('request:taken', { ride_id: rideId });
-                }
+                // Use ROOM broadcasting which is more reliable than redis socketId fetch
+                io.to(`driver:${req.driver_id}`).emit('request:taken', { ride_id: rideId });
               }
             }
           }

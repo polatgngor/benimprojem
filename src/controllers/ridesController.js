@@ -384,10 +384,7 @@ async function cancelRide(req, res) {
           });
 
           for (const req of pending) {
-            const driverMeta = await redis.hgetall('driver:' + req.driver_id + ':meta');
-            if (driverMeta && driverMeta.socketId && io) {
-              io.to(driverMeta.socketId).emit('request:cancelled', { ride_id: ride.id });
-            }
+            io.to(`driver:${req.driver_id}`).emit('request:cancelled', { ride_id: ride.id });
           }
         }
 

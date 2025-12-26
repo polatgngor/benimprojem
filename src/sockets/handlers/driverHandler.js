@@ -110,6 +110,11 @@ module.exports = (io, socket) => {
         try {
             if (role !== 'driver') return;
 
+            // Self-healing: Ensure joined to room and redis updated
+            socket.join(`driver:${userId}`);
+            await redis.hset(`driver:${userId}:meta`, 'socketId', socket.id);
+
+
             // A. Check for ACTIVE Ride
             const activeRide = await Ride.findOne({
                 where: {

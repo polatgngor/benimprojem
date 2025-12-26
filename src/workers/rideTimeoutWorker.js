@@ -68,9 +68,8 @@ const worker = new Worker(
       try {
         const requests = await RideRequest.findAll({ where: { ride_id: rideId } });
         for (const req of requests) {
-          const driverMeta = await redis.hgetall(`user:${req.driver_id}:meta`);
-          if (driverMeta && driverMeta.socketId && io) {
-            io.to(driverMeta.socketId).emit('request:timeout', {
+          if (io) {
+            io.to(`driver:${req.driver_id}`).emit('request:timeout', {
               ride_id: rideId,
               message: 'Request timed out'
             });
