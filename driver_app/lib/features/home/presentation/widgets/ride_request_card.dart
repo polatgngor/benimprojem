@@ -89,6 +89,7 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with TickerPr
     _flowController.dispose();
     super.dispose();
   }
+  Future<void> _calculatePickupMetrics() async {
     try {
       final start = widget.request['start'];
       if (start != null && start['lat'] != null && start['lng'] != null) {

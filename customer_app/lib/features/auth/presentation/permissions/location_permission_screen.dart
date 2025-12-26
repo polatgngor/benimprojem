@@ -3,6 +3,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+
 class LocationPermissionScreen extends ConsumerStatefulWidget {
   const LocationPermissionScreen({super.key});
 
@@ -10,8 +11,37 @@ class LocationPermissionScreen extends ConsumerStatefulWidget {
   ConsumerState<LocationPermissionScreen> createState() => _LocationPermissionScreenState();
 }
 
-class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScreen> {
+class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScreen> with WidgetsBindingObserver {
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkPermissions(); // Check immediately
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions();
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    final status = await Permission.location.status;
+    if (status.isGranted) {
+      if (mounted) {
+        context.go('/permission-notification');
+      }
+    }
+  }
 
   Future<void> _requestPermission() async {
     setState(() => _isLoading = true);
@@ -28,8 +58,6 @@ class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScr
     } else if (status.isPermanentlyDenied) {
       // Open settings if permanently denied
       openAppSettings();
-    } else {
-      // Handle denied state if needed (show snackbar etc -> for now just let them try again)
     }
   }
 
@@ -93,20 +121,7 @@ class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScr
                       : const Text('İzin Ver'),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                   // Allow skipping if user really wants? 
-                   // User requirement: "permission necessary". 
-                   // But maybe "Continue" leads to next screen anyway?
-                   // Let's assume we force it or give a "Later" option that goes next but functionality might be broken.
-                   // For better UX during onboarding, usually we guide them. 
-                   // Let's allow skip to notification for now to avoid stuck users.
-                   context.go('/permission-notification');
-                },
-                child: const Text('Şimdi Değil'),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32), // Spacer instead of Skip
             ],
           ),
         ),

@@ -484,6 +484,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     socket.on('request:incoming', (data) {
       debugPrint('Driver App received request:incoming: $data');
       if (mounted) {
+        debugPrint('Playing Ringtone for new request...');
         ref.read(ringtoneServiceProvider).playRingtone();
         
         final requestsNotifier = ref.read(incomingRequestsProvider.notifier);
@@ -503,6 +504,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           });
         }
       }
+    });
+
+    socket.off('request:timeout_alert');
+    socket.on('request:timeout_alert', (data) {
+       // Optional: speed up ringtone or show toast
     });
 
     socket.off('request:accept_failed');
@@ -861,8 +867,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     final Set<Marker> markers = {};
 
     if (isStarted) {
-      final endLat = double.tryParse(_activeRide!['end_lat'].toString());
-      final endLng = double.tryParse(_activeRide!['end_lng'].toString());
+      final endLat = double.tryParse(_activeRide!['end_lat']?.toString() ?? 
+                                   _activeRide!['dropoff_location']?['lat']?.toString() ?? 
+                                   _activeRide!['end']?['lat']?.toString() ?? '');
+      final endLng = double.tryParse(_activeRide!['end_lng']?.toString() ?? 
+                                   _activeRide!['dropoff_location']?['lng']?.toString() ?? 
+                                   _activeRide!['end']?['lng']?.toString() ?? '');
       final address = _activeRide!['end_address'] ?? _activeRide!['dropoff_address'] ?? 'Varış Noktası';
 
       if (endLat != null && endLng != null) {
@@ -874,8 +884,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         ));
       }
     } else {
-      final startLat = double.tryParse(_activeRide!['start_lat'].toString());
-      final startLng = double.tryParse(_activeRide!['start_lng'].toString());
+      final startLat = double.tryParse(_activeRide!['start_lat']?.toString() ?? 
+                                     _activeRide!['pickup_location']?['lat']?.toString() ?? 
+                                     _activeRide!['start']?['lat']?.toString() ?? '');
+      final startLng = double.tryParse(_activeRide!['start_lng']?.toString() ?? 
+                                     _activeRide!['pickup_location']?['lng']?.toString() ?? 
+                                     _activeRide!['start']?['lng']?.toString() ?? '');
       final address = _activeRide!['start_address'] ?? _activeRide!['pickup_address'] ?? 'Alış Noktası';
 
       if (startLat != null && startLng != null) {
@@ -903,8 +917,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
       if (isStarted) {
         // Ride Started: Route from Driver's Current Location -> Dropoff
-        final endLat = double.tryParse(_activeRide!['end_lat'].toString());
-        final endLng = double.tryParse(_activeRide!['end_lng'].toString());
+        final endLat = double.tryParse(_activeRide!['end_lat']?.toString() ?? 
+                                     _activeRide!['dropoff_location']?['lat']?.toString() ?? 
+                                     _activeRide!['end']?['lat']?.toString() ?? '');
+        final endLng = double.tryParse(_activeRide!['end_lng']?.toString() ?? 
+                                     _activeRide!['dropoff_location']?['lng']?.toString() ?? 
+                                     _activeRide!['end']?['lng']?.toString() ?? '');
         
         if (endLat == null || endLng == null) return;
         start = _currentPosition!; 
@@ -912,8 +930,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       } else {
         // Driver -> Pickup
         start = _currentPosition!;
-        final pickupLat = double.tryParse(_activeRide!['start_lat'].toString());
-        final pickupLng = double.tryParse(_activeRide!['start_lng'].toString());
+        final pickupLat = double.tryParse(_activeRide!['start_lat']?.toString() ?? 
+                                        _activeRide!['pickup_location']?['lat']?.toString() ?? 
+                                        _activeRide!['start']?['lat']?.toString() ?? '');
+        final pickupLng = double.tryParse(_activeRide!['start_lng']?.toString() ?? 
+                                        _activeRide!['pickup_location']?['lng']?.toString() ?? 
+                                        _activeRide!['start']?['lng']?.toString() ?? '');
         
         if (pickupLat == null || pickupLng == null) return;
         end = LatLng(pickupLat, pickupLng);

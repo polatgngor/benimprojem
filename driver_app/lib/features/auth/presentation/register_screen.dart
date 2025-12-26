@@ -209,7 +209,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: _firstNameController,
-                        decoration: InputDecoration(labelText: 'auth.first_name_label'.tr()),
+                        decoration: InputDecoration(
+                          labelText: 'auth.first_name_label'.tr(),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        ),
                         validator: (v) => v?.isEmpty == true ? 'auth.validation_required'.tr() : null,
                       ),
                     ),
@@ -217,7 +223,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                     Expanded(
                       child: TextFormField(
                         controller: _lastNameController,
-                        decoration: InputDecoration(labelText: 'auth.last_name_label'.tr()),
+                        decoration: InputDecoration(
+                          labelText: 'auth.last_name_label'.tr(),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        ),
                         validator: (v) => v?.isEmpty == true ? 'auth.validation_required'.tr() : null,
                       ),
                     ),
@@ -249,7 +261,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                         },
                         decoration: InputDecoration(
                           contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 15),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                          filled: true,
+                          fillColor: const Color(0xFFF8FAFC),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                         ),
                       ),
                     ),
@@ -265,7 +280,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           controller: _plateMiddleController,
                           decoration: InputDecoration(
                             hintText: 'ABC',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                             counterText: "",
                           ),
                           maxLength: 3,
@@ -280,7 +298,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           controller: _plateSuffixController,
                           decoration: InputDecoration(
                             hintText: '123',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                             counterText: "",
                           ),
                           keyboardType: TextInputType.number,
@@ -296,8 +317,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                          alignment: Alignment.center,
                          decoration: BoxDecoration(
                            color: Colors.grey[200],
-                           borderRadius: BorderRadius.circular(8),
-                           border: Border.all(color: Colors.grey)
+                           borderRadius: BorderRadius.circular(16),
+                           border: Border.all(color: Colors.transparent)
                          ),
                          child: const Text('T', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                        ),
@@ -307,7 +328,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           controller: _plateMiddleController, // Reusing middle for number part in non-34 case
                           decoration: InputDecoration(
                             hintText: '1234',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            filled: true,
+                            fillColor: const Color(0xFFF8FAFC),
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                             counterText: '',
                           ),
                           keyboardType: TextInputType.number,
@@ -322,13 +346,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 
                 const SizedBox(height: 16),
                 
-                // Driver Card Input Removed
-                // TextFormField(
-                //   controller: _driverCardController,
-                //   decoration: InputDecoration(labelText: 'auth.driver_card_label'.tr()),
-                // ),
-                const SizedBox(height: 16),
-
                 const SizedBox(height: 16),
                 
                 // Vehicle Brand Dropdown
@@ -336,7 +353,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   value: _selectedBrand,
                   decoration: InputDecoration(
                     labelText: 'Araç Markası',
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   ),
                   items: _vehicleData.keys.map((brand) {
                     return DropdownMenuItem(value: brand, child: Text(brand));
@@ -356,7 +376,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   value: _selectedModel,
                   decoration: InputDecoration(
                     labelText: 'Araç Modeli',
-                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                     filled: true,
+                     fillColor: const Color(0xFFF8FAFC),
+                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   ),
                   items: (_selectedBrand != null && _vehicleData.containsKey(_selectedBrand))
                       ? _vehicleData[_selectedBrand]!.map((model) {
@@ -370,7 +393,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                 DropdownButtonFormField<String>(
                   value: _selectedVehicleType,
-                  decoration: InputDecoration(labelText: 'auth.vehicle_type'.tr()),
+                  decoration: InputDecoration(
+                      labelText: 'auth.vehicle_type'.tr(),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
                   items: [
                     DropdownMenuItem(value: 'sari', child: Text('auth.vehicle_sari'.tr())),
                     DropdownMenuItem(value: 'turkuaz', child: Text('auth.vehicle_turkuaz'.tr())),
@@ -383,7 +412,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 
                 DropdownButtonFormField<String>(
                   value: _selectedRegion,
-                  decoration: InputDecoration(labelText: 'auth.working_region_header'.tr()),
+                  decoration: InputDecoration(
+                      labelText: 'auth.working_region_header'.tr(),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
                   items: [
                     DropdownMenuItem(value: 'Anadolu', child: Text('auth.region_anadolu'.tr())),
                     DropdownMenuItem(value: 'Avrupa', child: Text('auth.region_avrupa'.tr())),
@@ -394,7 +429,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
                  DropdownButtonFormField<String>(
                   value: _selectedDistrict,
-                  decoration: InputDecoration(labelText: 'auth.district_select_label'.tr()),
+                  decoration: InputDecoration(
+                      labelText: 'auth.district_select_label'.tr(),
+                      filled: true,
+                      fillColor: const Color(0xFFF8FAFC),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
                   items: const [
                     DropdownMenuItem(value: 'Ataşehir', child: Text('Ataşehir')),
                     DropdownMenuItem(value: 'Kadıköy', child: Text('Kadıköy')),
@@ -424,9 +465,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   onPressed: _isLoading ? null : _register,
                   style: ElevatedButton.styleFrom(
                     minimumSize: const Size(double.infinity, 56),
-                    backgroundColor: Theme.of(context).primaryColor,
+                    backgroundColor: const Color(0xFF1A77F6), // Theme Blue
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)

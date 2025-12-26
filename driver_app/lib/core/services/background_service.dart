@@ -292,11 +292,7 @@ class BackgroundService {
         distanceFilter: 0, // Report ALL movements (Aggressive)
         forceLocationManager: true, // Use legacy location manager if fused provider is problematic in background
         intervalDuration: const Duration(seconds: 5), // More frequent updates
-        foregroundNotificationConfig: const ForegroundNotificationConfig(
-          notificationTitle: "Taksibu Sürücü",
-          notificationText: "Konum servisleri aktif",
-          enableWakeLock: true,
-        ),
+        // REMOVED: foregroundNotificationConfig - This conflicts with FlutterBackgroundService's own notification
       );
 
       final StreamSubscription<Position> positionStream = Geolocator.getPositionStream(

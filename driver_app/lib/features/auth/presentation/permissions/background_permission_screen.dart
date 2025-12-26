@@ -17,6 +17,7 @@ class _BackgroundPermissionScreenState extends ConsumerState<BackgroundPermissio
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _checkPermissions(); // Check immediately on enter
   }
 
   @override
@@ -34,8 +35,6 @@ class _BackgroundPermissionScreenState extends ConsumerState<BackgroundPermissio
 
   Future<void> _checkPermissions() async {
     final batteryStatus = await Permission.ignoreBatteryOptimizations.status;
-    // System Alert Window (Overlay) check is platform specific, usually separate.
-    // permission_handler 'systemAlertWindow'
     final overlayStatus = await Permission.systemAlertWindow.status;
 
     if (batteryStatus.isGranted && overlayStatus.isGranted) {
@@ -48,14 +47,14 @@ class _BackgroundPermissionScreenState extends ConsumerState<BackgroundPermissio
   Future<void> _requestPermissions() async {
     setState(() => _isLoading = true);
 
-    // 1. Battery Optimization
-    if (!await Permission.ignoreBatteryOptimizations.isGranted) {
-       await Permission.ignoreBatteryOptimizations.request();
-    }
-
-    // 2. Overlay (System Alert Window)
+    // 1. Overlay (System Alert Window)
     if (!await Permission.systemAlertWindow.isGranted) {
        await Permission.systemAlertWindow.request();
+    }
+    
+    // 2. Battery Optimization
+    if (!await Permission.ignoreBatteryOptimizations.isGranted) {
+       await Permission.ignoreBatteryOptimizations.request();
     }
 
     setState(() => _isLoading = false);
@@ -75,13 +74,13 @@ class _BackgroundPermissionScreenState extends ConsumerState<BackgroundPermissio
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
+                  color: const Color(0xFF1A77F6).withOpacity(0.1),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
-                  Icons.battery_alert_rounded,
+                  Icons.settings_system_daydream_rounded, // Combined icon concept
                   size: 64,
-                  color: Colors.orange,
+                  color: Color(0xFF1A77F6),
                 ),
               ),
               const SizedBox(height: 32),
@@ -95,7 +94,7 @@ class _BackgroundPermissionScreenState extends ConsumerState<BackgroundPermissio
               ),
               const SizedBox(height: 16),
               Text(
-                'Çağrıları kaçırmamanız için uygulamanın arkaplanda kesintisiz çalışması ve kilit ekranında görünebilmesi gerekir.',
+                'Uygulamanın sorunsuz çalışması için "Diğer Uygulamaların Üzerinde Göster" ve "Pil Optimizasyonu" izinlerini vermelisiniz.',
                 style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                       color: Colors.grey[600],
                       height: 1.5,
@@ -104,8 +103,8 @@ class _BackgroundPermissionScreenState extends ConsumerState<BackgroundPermissio
               ),
               const SizedBox(height: 24),
               // Bullet points
-              _buildBullet('Pil Optimizasyonunu Kapat'),
               _buildBullet('Diğer Uygulamaların Üzerinde Göster'),
+              _buildBullet('Pil Kısıtlamasını Kaldır'),
               
               const Spacer(),
               SizedBox(
@@ -113,7 +112,7 @@ class _BackgroundPermissionScreenState extends ConsumerState<BackgroundPermissio
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _requestPermissions,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
+                    backgroundColor: const Color(0xFF1A77F6),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -129,13 +128,7 @@ class _BackgroundPermissionScreenState extends ConsumerState<BackgroundPermissio
                       : const Text('İzinleri Ver'),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () {
-                   context.go('/permission-notification');
-                },
-                child: const Text('Şimdilik Geç', style: TextStyle(color: Colors.grey)),
-              ),
+              const SizedBox(height: 32),
             ],
           ),
         ),

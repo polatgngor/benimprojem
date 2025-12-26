@@ -531,8 +531,8 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
           )
         : Pinput(
             length: 4,
-            controller: _otpController, // You need to initialize this single controller
-            focusNode: _otpFocusNode,   // And this single focus node
+            controller: _otpController, 
+            focusNode: _otpFocusNode,   
             defaultPinTheme: defaultPinTheme,
             focusedPinTheme: focusedPinTheme,
             submittedPinTheme: submittedPinTheme,

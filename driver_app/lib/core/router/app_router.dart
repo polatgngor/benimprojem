@@ -78,7 +78,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isPermissionNotif = state.uri.toString() == '/permission-notification';
       
       if (!isCompleted) {
+         // Allow any of the permission screens to be viewed
          if (isPermissionLoc || isPermissionBack || isPermissionNotif) return null;
+         // Default start
          return '/permission-location';
       }
 
@@ -116,7 +118,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         ],
       ),
       GoRoute(path: '/permission-location', builder: (context, state) => const LocationPermissionScreen()),
-      GoRoute(path: '/permission-background', builder: (context, state) => const BackgroundPermissionScreen()),
+      GoRoute(path: '/permission-background', builder: (context, state) => const BackgroundPermissionScreen()), 
       GoRoute(path: '/permission-notification', builder: (context, state) => const NotificationPermissionScreen()),
     ],
   );

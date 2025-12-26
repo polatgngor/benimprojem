@@ -10,15 +10,42 @@ class LocationPermissionScreen extends ConsumerStatefulWidget {
   ConsumerState<LocationPermissionScreen> createState() => _LocationPermissionScreenState();
 }
 
-class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScreen> {
+class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScreen> with WidgetsBindingObserver {
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkPermissions(); // Check immediately
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions();
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    final status = await Permission.locationWhenInUse.status;
+    if (status.isGranted) {
+      if (mounted) {
+        context.go('/permission-background'); // Forward to next
+      }
+    }
+  }
 
   Future<void> _requestPermission() async {
     setState(() => _isLoading = true);
     
     // Request location permission
-    // For drivers, we heavily rely on "Always" or "WhenInUse" + Background.
-    // Usually start with WhenInUse
     final status = await Permission.locationWhenInUse.request();
 
     setState(() => _isLoading = false);
@@ -78,6 +105,8 @@ class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScr
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _requestPermission,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A77F6),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -92,15 +121,7 @@ class _LocationPermissionScreenState extends ConsumerState<LocationPermissionScr
                       : const Text('İzin Ver'),
                 ),
               ),
-              const SizedBox(height: 16),
-              const SizedBox(height: 32), // No skip button for drivers usually, but let's stick to safe pattern
-              // Or add a skip for testing
-              TextButton(
-                onPressed: () {
-                   context.go('/permission-background');
-                },
-                child: const Text('Şimdi Değil (Test Amaçlı)'),
-              ),
+              const SizedBox(height: 32), // Remove Skip button
             ],
           ),
         ),

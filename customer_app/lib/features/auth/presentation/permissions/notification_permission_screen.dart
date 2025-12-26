@@ -12,14 +12,42 @@ class NotificationPermissionScreen extends ConsumerStatefulWidget {
   ConsumerState<NotificationPermissionScreen> createState() => _NotificationPermissionScreenState();
 }
 
-class _NotificationPermissionScreenState extends ConsumerState<NotificationPermissionScreen> {
+class _NotificationPermissionScreenState extends ConsumerState<NotificationPermissionScreen> with WidgetsBindingObserver {
   bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _checkPermissions(); // Check immediately
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _checkPermissions();
+    }
+  }
+
+  Future<void> _checkPermissions() async {
+    final status = await Permission.notification.status;
+    if (status.isGranted) {
+      if (mounted) {
+        await _completeOnboarding();
+      }
+    }
+  }
 
   Future<void> _completeOnboarding() async {
     await ref.read(onboardingProvider.notifier).complete();
     // Router redirect will handle navigation to /home
   }
-
 
   Future<void> _requestPermission() async {
     setState(() => _isLoading = true);
@@ -29,10 +57,10 @@ class _NotificationPermissionScreenState extends ConsumerState<NotificationPermi
 
     setState(() => _isLoading = false);
 
-    // Whether granted or denied, we proceed to Home
-    // If permanently denied, we could show dialog, but for now let's complete flow.
-    if (mounted) {
-      await _completeOnboarding();
+    if (status.isGranted) {
+        if (mounted) await _completeOnboarding();
+    } else if (status.isPermanentlyDenied) {
+        openAppSettings();
     }
   }
 
@@ -96,15 +124,7 @@ class _NotificationPermissionScreenState extends ConsumerState<NotificationPermi
                       : const Text('İzin Ver'),
                 ),
               ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: () async {
-                   // Skip
-                   await _completeOnboarding();
-                },
-                child: const Text('Şimdi Değil'),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32), // Spacer instead of Skip
             ],
           ),
         ),

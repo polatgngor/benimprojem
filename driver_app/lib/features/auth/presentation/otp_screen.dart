@@ -136,7 +136,7 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
     final submittedPinTheme = defaultPinTheme.copyWith(
       decoration: defaultPinTheme.decoration?.copyWith(
-        color: const Color.fromRGBO(234, 239, 243, 1),
+         color: const Color.fromRGBO(234, 239, 243, 1),
       ),
     );
 
@@ -156,7 +156,6 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 20),
               const SizedBox(height: 20),
               Text(
                 'auth.otp_verification'.tr(),

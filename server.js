@@ -26,7 +26,7 @@ async function start() {
   try {
     await sequelize.authenticate();
     logger.info('✅ MySQL connected (Sequelize).');
-    await sequelize.sync({ alter: false });
+    await sequelize.sync({ alter: true });
     logger.info('✅ Sequelize models synced.');
 
     // Init Socket.IO (attaches to server)

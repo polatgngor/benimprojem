@@ -18,6 +18,7 @@ class _NotificationPermissionScreenState extends ConsumerState<NotificationPermi
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _checkPermissionAndContinue(); // Check immediately
   }
 
   @override
@@ -44,7 +45,8 @@ class _NotificationPermissionScreenState extends ConsumerState<NotificationPermi
 
   Future<void> _completeOnboarding() async {
     await ref.read(onboardingProvider.notifier).complete();
-    // Router redirect will handle navigation to Pending or Home automatically
+    // Explicitly navigate as fallback if router doesn't trigger immediately
+    if (mounted) context.go('/home'); 
   }
 
   Future<void> _requestPermission() async {
@@ -111,7 +113,10 @@ class _NotificationPermissionScreenState extends ConsumerState<NotificationPermi
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _requestPermission,
                   style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF1A77F6), // Theme Blue
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
+                    elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -122,17 +127,13 @@ class _NotificationPermissionScreenState extends ConsumerState<NotificationPermi
                           width: 24,
                           child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                         )
-                      : const Text('İzin Ver'),
+                      : const Text(
+                          'İzin Ver',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
                 ),
               ),
-              const SizedBox(height: 16),
-               TextButton(
-                onPressed: () async {
-                   await _completeOnboarding();
-                },
-                child: const Text('Şimdi Değil'),
-              ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 32), // Remove Skip button
             ],
           ),
         ),

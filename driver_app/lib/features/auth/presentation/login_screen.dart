@@ -155,37 +155,61 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   controller: _phoneController,
                   decoration: InputDecoration(
                     labelText: 'auth.phone_label'.tr(),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC), 
                     border: OutlineInputBorder(
-                      borderSide: BorderSide(),
-                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderSide: BorderSide.none,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderSide: BorderSide(color: Theme.of(context).primaryColor, width: 2),
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
                   initialCountryCode: 'TR',
-                  pickerDialogStyle: PickerDialogStyle(
+                   pickerDialogStyle: PickerDialogStyle(
                     backgroundColor: Colors.white,
                     searchFieldInputDecoration: InputDecoration(
-                      labelText: 'Search Country',
+                      labelText: 'Ülke Ara', // Localized ideally
+                      filled: true,
+                      fillColor: Colors.grey[50],
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(16),
+                        borderSide: BorderSide.none,
                       ),
                       prefixIcon: const Icon(Icons.search),
                     ),
                     countryCodeStyle: const TextStyle(fontSize: 16),
-                    countryNameStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                    listTileDivider: const SizedBox(height: 0),
+                    countryNameStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                   onChanged: (phone) {
                     _fullPhoneNumber = phone.completeNumber;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else
                   ElevatedButton(
                     onPressed: _submit,
-                    child: Text('auth.continue'.tr()),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1A77F6), // Theme Blue
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: Text(
+                      'auth.continue'.tr(),
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
                   ),
               ],
             ),
