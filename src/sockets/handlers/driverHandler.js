@@ -117,7 +117,7 @@ module.exports = (io, socket) => {
                     status: { [Op.in]: ['accepted', 'driver_arrived', 'started'] }
                 },
                 include: [
-                    { model: User, as: 'passenger', attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture', 'rating'] }
+                    { model: User, as: 'passenger', attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture'] }
                 ]
             });
 
@@ -138,7 +138,7 @@ module.exports = (io, socket) => {
                 const parentRide = await Ride.findOne({
                     where: { id: pendingRequest.ride_id, status: 'searching' },
                     include: [
-                        { model: User, as: 'passenger', attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture', 'rating'] }
+                        { model: User, as: 'passenger', attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture'] }
                     ]
                 });
 

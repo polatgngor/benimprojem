@@ -256,12 +256,12 @@ async function getRides(req, res) {
         {
           model: User,
           as: 'passenger',
-          attributes: ['id', 'first_name', 'last_name', 'profile_photo', 'level']
+          attributes: ['id', 'first_name', 'last_name', 'profile_picture', 'level']
         },
         {
           model: User,
           as: 'driver',
-          attributes: ['id', 'first_name', 'last_name', 'profile_photo', 'level'],
+          attributes: ['id', 'first_name', 'last_name', 'profile_picture', 'level'],
           include: [
             {
               model: Driver,
@@ -514,12 +514,12 @@ async function getActiveRide(req, res) {
         {
           model: User,
           as: 'driver',
-          attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_photo', 'level', 'ref_count']
+          attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture', 'level', 'ref_count']
         },
         {
           model: User,
           as: 'passenger',
-          attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_photo', 'level']
+          attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture', 'level']
         }
       ]
     });
