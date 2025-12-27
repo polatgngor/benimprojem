@@ -243,7 +243,15 @@ async function getRides(req, res) {
 
     if (user.role === 'passenger') where.passenger_id = user.userId;
     if (user.role === 'driver') where.driver_id = user.userId;
-    if (req.query.status) where.status = req.query.status;
+
+    if (req.query.status) {
+      where.status = req.query.status;
+    } else {
+      // Default: Exclude auto_rejected and cancelled (unless explicitly requested)
+      where.status = {
+        [Op.notIn]: ['auto_rejected', 'cancelled']
+      };
+    }
 
     const rides = await Ride.findAll({
       where,
