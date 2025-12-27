@@ -26,6 +26,14 @@ async function getProfile(req, res) {
     });
     if (!user) return res.status(404).json({ message: 'User not found' });
 
+    let userJson = user.toJSON();
+    // Ensure profile_photo is set (Sequelize alias handling safety)
+    if (user.dataValues.profile_photo) {
+      userJson.profile_photo = user.dataValues.profile_photo;
+    } else if (user.profile_picture) {
+      userJson.profile_photo = user.profile_picture;
+    }
+
     // if driver, include driver details
     let driver = null;
     if (user.role === 'driver') {
@@ -44,7 +52,7 @@ async function getProfile(req, res) {
       }
     }
 
-    return res.json({ user, driver });
+    return res.json({ user: userJson, driver });
   } catch (err) {
     console.error('getProfile err', err);
     return res.status(500).json({ message: 'Server error' });
