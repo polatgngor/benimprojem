@@ -91,10 +91,12 @@ module.exports = (io, socket) => {
 
             // FCM
             try {
+                const { censorName } = require('../../utils/formatters');
                 const devices = await UserDevice.findAll({ where: { user_id: ride.passenger_id } });
                 const tokens = devices.map(d => d.device_token);
                 if (tokens.length > 0) {
-                    await sendPushToTokens(tokens, { title: 'Sürücü yola çıktı', body: `${driverInfo.first_name} kabul etti.` }, { type: 'ride_assigned', ride_id: String(ride.id) });
+                    const censoredDriverName = censorName(driverInfo.first_name, driverInfo.last_name);
+                    await sendPushToTokens(tokens, { title: 'Sürücü yola çıktı', body: `${censoredDriverName} kabul etti.` }, { type: 'ride_assigned', ride_id: String(ride.id) });
                 }
             } catch (e) { }
 
