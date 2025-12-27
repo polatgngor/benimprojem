@@ -3,7 +3,7 @@ const { User, Driver } = require('../models');
 
 const { signAccessToken, signRefreshToken } = require('../utils/jwt');
 const { sendSms } = require('../services/smsService');
-
+const socketProvider = require('../lib/socketProvider');
 
 // OTP TTL in seconds (3 minutes)
 const OTP_TTL = 180;
@@ -112,6 +112,21 @@ async function verifyOtp(req, res) {
                 }
                 if (driver && (driver.status === 'rejected' || driver.status === 'banned')) {
                     return res.status(403).json({ message: 'Hesabınız reddedildi veya engellendi.' });
+                }
+            }
+
+            // --- FORCE LOGOUT OLD DEVICE ---
+            const metaKey = `user:${user.id}:meta`;
+            const oldSocketId = await redis.hget(metaKey, 'socketId');
+            if (oldSocketId) {
+                const io = socketProvider.getIO();
+                if (io) {
+                    console.log(`[Auth] Forcing logout for socket ${oldSocketId}`);
+                    io.to(oldSocketId).emit('force_logout');
+                    // Give it a moment to receive the event then disconnect
+                    setTimeout(() => {
+                        io.in(oldSocketId).disconnectSockets(true);
+                    }, 500);
                 }
             }
 
