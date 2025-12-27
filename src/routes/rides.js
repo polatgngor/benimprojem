@@ -1,3 +1,7 @@
+const express = require('express');
+const router = express.Router();
+const ridesController = require('../controllers/ridesController');
+const auth = require('../middlewares/auth');
 const Joi = require('joi');
 const validate = require('../middlewares/validate');
 
