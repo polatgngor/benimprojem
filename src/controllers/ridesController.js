@@ -218,9 +218,26 @@ async function getRide(req, res) {
       return res.status(403).json({ message: 'Forbidden' });
     }
 
+    // Fetch rating explicitly
+    const RatingModel = require('../models').Rating;
+    const myRating = await RatingModel.findOne({
+      where: {
+        ride_id: ride.id,
+        rater_id: user.userId
+      }
+    });
+
+    // Also fetch counterpart rating if we want to show it? User asked "sürücü müşteriyi puanlamışsa verdiği puan gözüksün".
+    // Yes, essentially "Did I rate this?" -> Show my rating. "Did I NOT rate this?" -> Show button.
+    // The user also mentioned "sürücü müşteriyi puanlamışsa".
+    // So for the viewer (User X), we primarily satisfy "My Rating".
+
     const { formatTurkeyDate } = require('../utils/dateUtils');
     const plain = ride.toJSON();
     plain.formatted_date = formatTurkeyDate(ride.created_at);
+
+    // Attach rating
+    plain.my_rating = myRating ? myRating.toJSON() : null;
 
     return res.json({ ride: plain });
   } catch (err) {
@@ -281,6 +298,23 @@ async function getRides(req, res) {
       ]
     });
 
+    // Fetched basic rides. Now need to attach "my_rating" to each.
+    // Efficient way: Fetch all ratings by this user for these ride IDs.
+    const rideIds = rides.map(r => r.id);
+    const RatingModel = require('../models').Rating;
+    const myRatings = await RatingModel.findAll({
+      where: {
+        rater_id: user.userId,
+        ride_id: { [Op.in]: rideIds }
+      }
+    });
+
+    // Map ride_id -> rating
+    const ratingMap = {};
+    myRatings.forEach(r => {
+      ratingMap[r.ride_id] = r.toJSON();
+    });
+
     // Turkey Time Offset (UTC+3)
     const { formatTurkeyDate } = require('../utils/dateUtils');
 
@@ -290,6 +324,10 @@ async function getRides(req, res) {
       // Backward Compatibility
       if (plain.passenger) plain.passenger.profile_photo = plain.passenger.profile_picture;
       if (plain.driver) plain.driver.profile_photo = plain.driver.profile_picture;
+
+      // Attach my_rating
+      plain.my_rating = ratingMap[plain.id] || null;
+
       return plain;
     });
 
