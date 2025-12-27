@@ -1,5 +1,6 @@
 const { verifyAccessToken } = require('../utils/jwt');
 const { isBlacklisted } = require('../utils/tokenBlacklist');
+const redis = require('../utils/redisClient');
 
 async function authMiddleware(req, res, next) {
   try {
@@ -13,7 +14,16 @@ async function authMiddleware(req, res, next) {
     if (await isBlacklisted(token)) return res.status(401).json({ message: 'Token invalidated' });
 
     const payload = verifyAccessToken(token); // throws if invalid
-    req.user = payload; // { userId, role, iat, exp ... }
+
+    // Single Device Enforcement
+    if (payload.session_id) {
+      const storedSession = await redis.get(`session:${payload.userId}`);
+      if (!storedSession || storedSession !== payload.session_id) {
+        return res.status(401).json({ message: 'Session expired or logged in on another device' });
+      }
+    }
+
+    req.user = payload; // { userId, role, session_id, iat, exp ... }
     req.token = token;
     return next();
   } catch (err) {

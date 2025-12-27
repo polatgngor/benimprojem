@@ -67,6 +67,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
        if (_currentRoutePoints.isNotEmpty && mounted) {
           final t = _flowController.value;
           _calculateFlowPolyline(t);
+       } else if (mounted && _flowPolylinePoints.isNotEmpty) {
+           // Safety: clear if no route
+           setState(() {
+             _flowPolylinePoints = [];
+           });
        }
     });
 
@@ -220,6 +225,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null;
           _polylines.clear();
+          _currentRoutePoints = [];
+          _flowPolylinePoints = [];
         });
         debugPrint('Optimistic Completion Triggered');
         // We don't need to do anything else, the socket 'end_ride_ok' will eventually confirm,
@@ -239,6 +246,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
              setState(() {
                _activeRide = null;
                _polylines.clear();
+               _currentRoutePoints = [];
+               _flowPolylinePoints = [];
              });
          }
       }
@@ -521,6 +530,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null; 
           _polylines.clear();
+          _currentRoutePoints = [];
+          _flowPolylinePoints = [];
         });
         
         ref.read(incomingRequestsProvider.notifier).removeRequest(data['ride_id'].toString());
@@ -579,6 +590,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null;
           _polylines.clear();
+          _currentRoutePoints = [];
+          _flowPolylinePoints = [];
         });
         
         _setDriverAvailable(); // Auto-available in background
@@ -637,6 +650,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null;
           _polylines.clear();
+          _currentRoutePoints = [];
+          _flowPolylinePoints = [];
         });
 
         _setDriverAvailable(); // Force availability
@@ -736,6 +751,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null;
           _polylines.clear();
+          _currentRoutePoints = [];
+          _flowPolylinePoints = [];
         });
 
         _setDriverAvailable();

@@ -13,7 +13,24 @@ const savedPlacesRoutes = require('./routes/savedPlaces'); // NEW
 const metrics = require('./metrics'); // prom-client metrics
 const logger = require('./lib/logger');
 
+const helmet = require('helmet');
+const cors = require('cors');
+const rateLimiter = require('./middlewares/rateLimiter');
+
 const app = express();
+
+// Security Middleware
+app.use(helmet()); // Sets secure HTTP headers
+app.use(cors()); // Enable CORS (configure origins in production)
+
+// Global Rate Limiter (DDoS Protection)
+// Allow 100 requests per 15 minutes per IP
+app.use(rateLimiter({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  keyPrefix: 'rl:global',
+  message: 'Çok fazla istek gönderdiniz, lütfen 15 dakika bekleyin.'
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

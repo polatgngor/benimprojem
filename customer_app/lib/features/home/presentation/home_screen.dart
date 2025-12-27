@@ -84,6 +84,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
        if (_currentRoutePoints.isNotEmpty) {
           final t = _flowController.value; // 0.0 to 1.0
           _calculateFlowPolyline(t);
+       } else if (mounted && _flowPolylinePoints.isNotEmpty) {
+          setState(() {
+            _flowPolylinePoints = [];
+          });
        }
     });
 
@@ -445,6 +449,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       _currentAnimatedPos = null;
                       _prevDriverPos = null;
                       _targetDriverPos = null;
+                      _currentRoutePoints = [];
+                      _flowPolylinePoints = [];
                   });
                 }
               });

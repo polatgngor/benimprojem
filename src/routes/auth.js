@@ -36,6 +36,38 @@ const registerUploads = upload.fields([
     { name: 'identity_card', maxCount: 1 }
 ]);
 
+const Joi = require('joi');
+const validate = require('../middlewares/validate');
+
+// Validation Schemas
+const sendOtpSchema = Joi.object({
+    phone: Joi.string().pattern(/^[0-9+]+$/).min(10).max(15).required(),
+    app_role: Joi.string().valid('driver', 'passenger').optional()
+});
+
+const verifyOtpSchema = Joi.object({
+    phone: Joi.string().required(),
+    code: Joi.string().length(6).required(),
+    app_role: Joi.string().valid('driver', 'passenger').optional()
+});
+
+const registerSchema = Joi.object({
+    first_name: Joi.string().min(2).max(50).required(),
+    last_name: Joi.string().min(2).max(50).required(),
+    role: Joi.string().valid('driver', 'passenger').required(),
+    phone: Joi.string().optional(), // usually comes from token but allowed if needed
+    ref_code: Joi.string().optional().allow(''),
+    verification_token: Joi.string().required(),
+    // Driver specific
+    vehicle_plate: Joi.string().optional().allow(''),
+    vehicle_brand: Joi.string().optional().allow(''),
+    vehicle_model: Joi.string().optional().allow(''),
+    vehicle_type: Joi.string().optional().allow(''),
+    driver_card_number: Joi.string().optional().allow(''),
+    working_region: Joi.string().optional().allow(''),
+    working_district: Joi.string().optional().allow('')
+}).unknown(true); // Allow other fields like file uploads which multer handles
+
 // OTP Routes
 // Limit: 3 requests per 3 minutes (180000 ms)
 router.post('/send-otp', rateLimiter({
@@ -43,11 +75,12 @@ router.post('/send-otp', rateLimiter({
     max: 3,
     keyPrefix: 'rl:otp',
     message: 'Çok fazla SMS isteği gönderdiniz. Lütfen 3 dakika bekleyin.'
-}), otpController.sendOtp);
-router.post('/verify-otp', otpController.verifyOtp);
+}), validate(sendOtpSchema), otpController.sendOtp);
+
+router.post('/verify-otp', validate(verifyOtpSchema), otpController.verifyOtp);
 
 // Registration (after OTP verification for new users)
-router.post('/register', registerUploads, authController.register);
+router.post('/register', registerUploads, validate(registerSchema), authController.register);
 
 // Secure routes
 router.post('/device-token', authenticateToken, authController.updateDeviceToken);

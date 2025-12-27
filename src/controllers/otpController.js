@@ -118,8 +118,12 @@ async function verifyOtp(req, res) {
             // OTP Verified & Checks Passed. NOW delete it.
             await redis.del(key);
 
-            const token = signAccessToken({ userId: user.id, role: user.role });
-            const refreshToken = signRefreshToken({ userId: user.id, role: user.role });
+            // Generate Session ID (Single Device Logic)
+            const sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
+            await redis.set(`session:${user.id}`, sessionId);
+
+            const token = signAccessToken({ userId: user.id, role: user.role, session_id: sessionId });
+            const refreshToken = signRefreshToken({ userId: user.id, role: user.role, session_id: sessionId });
 
             return res.json({
                 ok: true,
