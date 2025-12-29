@@ -97,6 +97,56 @@ module.exports = (io, socket) => {
                     const ioInstance = socketProvider.getIO();
                     if (ioInstance) {
                         ioInstance.to(r).emit('ride:update_location', { driver_id: userId, lat, lng, ts: Date.now() });
+
+                        // Arrival Check (User Request: "25 metreye gelince bildirim")
+                        (async () => {
+                            try {
+                                const notifiedKey = `ride:${rideId}:arrived_notified`;
+                                const isNotified = await redis.get(notifiedKey);
+
+                                if (!isNotified) {
+                                    // Fetch ride details (lightweight)
+                                    // Optimization: Could cache start location in redis during assignment to avoid DB hit here
+                                    const ride = await Ride.findByPk(rideId, { attributes: ['id', 'status', 'start_lat', 'start_lng', 'passenger_id'] });
+
+                                    if (ride && ride.status === 'assigned') {
+                                        // Calculate Distance (Haversine simple implementation)
+                                        const R = 6371e3; // metres
+                                        const φ1 = lat * Math.PI / 180;
+                                        const φ2 = ride.start_lat * Math.PI / 180;
+                                        const Δφ = (ride.start_lat - lat) * Math.PI / 180;
+                                        const Δλ = (ride.start_lng - lng) * Math.PI / 180;
+
+                                        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+                                            Math.cos(φ1) * Math.cos(φ2) *
+                                            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+                                        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                                        const dist = R * c; // in meters
+
+                                        if (dist < 50) { // Increased to 50m per user request
+                                            await redis.set(notifiedKey, '1', 'EX', 3600); // Set flag
+
+                                            // Emit socket event
+                                            ioInstance.to(r).emit('ride:driver_arrived', { ride_id: ride.id });
+
+                                            // Send Push
+                                            const { sendPushToTokens } = require('../../lib/fcm');
+                                            const devices = await UserDevice.findAll({ where: { user_id: ride.passenger_id } });
+                                            const tokens = devices.map(d => d.device_token);
+                                            if (tokens.length) {
+                                                await sendPushToTokens(
+                                                    tokens,
+                                                    { title: 'Sürücü Geldi', body: 'Taksiniz konumunuza ulaştı.' },
+                                                    { type: 'driver_arrived', ride_id: String(ride.id) }
+                                                );
+                                            }
+                                        }
+                                    }
+                                }
+                            } catch (e) {
+                                console.error('Arrival check error', e);
+                            }
+                        })();
                     }
                 }
             }
