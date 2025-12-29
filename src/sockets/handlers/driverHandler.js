@@ -104,13 +104,15 @@ module.exports = (io, socket) => {
                                 const notifiedKey = `ride:${rideId}:arrived_notified`;
                                 const isNotified = await redis.get(notifiedKey);
 
+                                // DEBUG LOGS
+                                // console.log(`[ArrivalCheck] Ride: ${rideId}, Checking distance... IsNotified: ${isNotified}`);
+
                                 if (!isNotified) {
                                     // Fetch ride details (lightweight)
-                                    // Optimization: Could cache start location in redis during assignment to avoid DB hit here
                                     const ride = await Ride.findByPk(rideId, { attributes: ['id', 'status', 'start_lat', 'start_lng', 'passenger_id'] });
 
                                     if (ride && ride.status === 'assigned') {
-                                        // Calculate Distance (Haversine simple implementation)
+                                        // Calculate Distance (Haversine)
                                         const R = 6371e3; // metres
                                         const φ1 = lat * Math.PI / 180;
                                         const φ2 = ride.start_lat * Math.PI / 180;
@@ -123,7 +125,10 @@ module.exports = (io, socket) => {
                                         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
                                         const dist = R * c; // in meters
 
-                                        if (dist < 50) { // Increased to 50m per user request
+                                        console.log(`[ArrivalCheck] Ride: ${rideId}, Distance: ${dist.toFixed(2)}m, Threshold: 50m`);
+
+                                        if (dist < 50) {
+                                            console.log(`[ArrivalCheck] Threshold reached! Sending notifications.`);
                                             await redis.set(notifiedKey, '1', 'EX', 3600); // Set flag
 
                                             // Emit socket event
@@ -133,6 +138,8 @@ module.exports = (io, socket) => {
                                             const { sendPushToTokens } = require('../../lib/fcm');
                                             const devices = await UserDevice.findAll({ where: { user_id: ride.passenger_id } });
                                             const tokens = devices.map(d => d.device_token);
+                                            console.log(`[ArrivalCheck] Sending Push to ${tokens.length} devices.`);
+
                                             if (tokens.length) {
                                                 await sendPushToTokens(
                                                     tokens,
@@ -141,6 +148,8 @@ module.exports = (io, socket) => {
                                                 );
                                             }
                                         }
+                                    } else {
+                                        // console.log(`[ArrivalCheck] Ride invalid or status not assigned: ${ride ? ride.status : 'null'}`);
                                     }
                                 }
                             } catch (e) {
