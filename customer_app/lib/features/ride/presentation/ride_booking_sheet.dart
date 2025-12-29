@@ -58,7 +58,7 @@ class RideBookingSheet extends ConsumerWidget {
               16, 
               0, 
               16, 
-              4 + MediaQuery.of(context).viewPadding.bottom // Add system bottom padding
+              16 + MediaQuery.of(context).viewPadding.bottom // Increased to 16 for better spacing
             ), 
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),

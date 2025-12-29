@@ -4,6 +4,8 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
 import 'ride_detail_screen.dart';
+import '../../../core/widgets/shimmer_loading.dart';
+import '../../../core/widgets/custom_toast.dart';
 
 class RideHistoryScreen extends ConsumerStatefulWidget {
   const RideHistoryScreen({super.key});
@@ -68,8 +70,10 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
+        CustomNotificationService().show(
+          context,
+          'Hata: $e',
+          ToastType.error,
         );
       }
     } finally {
@@ -90,7 +94,7 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
         elevation: 0,
       ),
       body: _rides.isEmpty && _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const RideHistorySkeleton()
           : _rides.isEmpty && !_isLoading
               ? Center(child: Text('history.no_rides'.tr(), style: TextStyle(color: Colors.grey[600])))
               : ListView.separated(
@@ -124,62 +128,90 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-        border: Border.all(color: const Color(0xFFF1F4F8)),
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
-        onTap: () {
-          Navigator.push(
+        onTap: () async {
+          final result = await Navigator.push(
             context,
             MaterialPageRoute(
                builder: (context) => RideDetailScreen(ride: ride),
             ),
           );
+          // If rating changed, we might want to refresh list, but for now just popping back might trigger reload if implemented.
+          if (result == true) {
+             _fetchRides(); // Refresh list to show new rating
+          }
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: IntrinsicHeight(
           child: Row(
             children: [
-              // Status Accent Strip
+              // Status Accent Strip Removed
+              /*
               Container(
                 width: 6,
                 color: statusColor,
               ),
+              */
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Header: Date & Price
+                    // Header: Price, Payment & Date
                     Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          // Left: Price & Badge
+                          Row(
+                            children: [
                               Text(
-                                ride['formatted_date'] ?? '-',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                                fare != null ? '₺$fare' : '-',
+                                style: TextStyle(
+                                  fontSize: 20, // Enlarged
+                                  fontWeight: FontWeight.w800, 
+                                  color: Theme.of(context).primaryColor
+                                ),
                               ),
-                          Text(
-                            fare != null ? '₺$fare' : '-',
-                            style: TextStyle(
-                              fontSize: 18, 
-                              fontWeight: FontWeight.w800, 
-                              color: Theme.of(context).primaryColor
-                            ),
+                            ],
                           ),
+                          
+                          // Right: Date (New Style)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(12), // Slightly increased radius
+                                border: Border.all(color: Colors.grey.shade300, width: 1),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.calendar_month_rounded, size: 20, color: Colors.grey[700]),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        DateFormat('dd MMM yyyy', 'tr').format(date),
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                                      ),
+                                      Text(
+                                        DateFormat('HH:mm').format(date),
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey[600]),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
                     
-                    const Divider(height: 1, color: Colors.black12),
+                    const Divider(height: 1, color: Colors.black12, indent: 48, endIndent: 48),
                       
                     // Route Info with Timeline
                     Padding(
@@ -220,64 +252,19 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
                         ],
                       ),
                     ),
+
+                    // Detail Arrow Row (Bottom Right)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                           Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Theme.of(context).primaryColor),
+                        ],
+                      ),
+                    ),
   
-                    // Driver Info Footer
-                    if (ride['driver'] != null) ...[
-                       Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF8F9FA),
-                            border: Border(top: BorderSide(color: Color(0xFFF1F4F8))),
-                          ),
-                          child: Row(
-                            children: [
-                              ClipOval(
-                                child: Container(
-                                  width: 44,
-                                  height: 44,
-                                  color: Colors.white,
-                                  child: (ride['driver']['profile_photo'] != null && ride['driver']['profile_photo'].isNotEmpty)
-                                      ? Image.network(
-                                          ride['driver']['profile_photo'].startsWith('http') 
-                                              ? ride['driver']['profile_photo'] 
-                                              : '${AppConstants.baseUrl}/${ride['driver']['profile_photo']}',
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) =>
-                                              Icon(Icons.person, size: 26, color: Colors.grey[400]),
-                                        )
-                                      : Icon(Icons.person, size: 26, color: Colors.grey[400]),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${ride['driver']['first_name']?[0] ?? ''}*** ${ride['driver']['last_name']?[0] ?? ''}***',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), 
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      'Sarı Taksi', // Hardcoded as per request or translate 'history.yellow_taxi'.tr()
-                                      style: TextStyle(fontSize: 12, color: Colors.grey[500], fontWeight: FontWeight.w500),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
-                                ),
-                                child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey[400]),
-                              ),
-                            ],
-                          ),
-                       ),
-                    ]
+                    // Driver Info Footer Removed
                   ],
                 ),
               ),

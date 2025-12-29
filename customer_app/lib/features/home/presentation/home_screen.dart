@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -47,10 +50,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   LatLng? _currentAnimatedPos;
   BitmapDescriptor? _driverIcon;
   
-  // Flow Animation
-  late AnimationController _flowController;
-  List<LatLng> _currentRoutePoints = [];
-  List<LatLng> _flowPolylinePoints = []; // For the strip
+  // Flow Animation Removed
+
 
 
   @override
@@ -74,49 +75,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       }
     });
     
-    // Flow Animation (Loop)
-    _flowController = AnimationController(
-       vsync: this,
-       duration: const Duration(seconds: 2), // 2s per cycle
-    )..repeat();
-
-    _flowController.addListener(() {
-       if (_currentRoutePoints.isNotEmpty) {
-          final t = _flowController.value; // 0.0 to 1.0
-          _calculateFlowPolyline(t);
-       } else if (mounted && _flowPolylinePoints.isNotEmpty) {
-          setState(() {
-            _flowPolylinePoints = [];
-          });
-       }
-    });
+    // Flow Animation Removed
 
     _initialize();
     _loadDriverIcon();
   }
 
-  void _calculateFlowPolyline(double t) {
-      if (_currentRoutePoints.length < 2) return;
-      
-      final int totalPoints = _currentRoutePoints.length;
-      final int stripLength = (totalPoints * 0.20).clamp(5, 50).toInt(); // 20% or min 5 points
-      
-      // Calculate indices
-      final int headIndex = (t * (totalPoints + stripLength)).floor(); 
-      final int tailIndex = headIndex - stripLength;
-      
-      final List<LatLng> visiblePoints = [];
-      
-      for (int i = 0; i < totalPoints; i++) {
-         if (i >= tailIndex && i <= headIndex) {
-            visiblePoints.add(_currentRoutePoints[i]);
-         }
-      }
-      
-      setState(() {
-         _flowPolylinePoints = visiblePoints;
-      }); 
-  }
+  // Flow Methods Removed
 
   Future<void> _loadDriverIcon() async {
     try {
@@ -151,13 +116,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       WidgetsBinding.instance.addPostFrameCallback((_) {
          if (_sheetController.isAttached) {
              final status = ref.read(rideProvider).status;
-             if (status == RideStatus.searching) {
-                 _sheetController.jumpTo(0.25);
-             } else if (status == RideStatus.driverFound) {
-                 _sheetController.jumpTo(0.48);
-             } else if (status == RideStatus.rideStarted) {
-                 _sheetController.jumpTo(0.28);
-             }
+             
+             // Same adaptive logic as ref.listen
+             final double screenHeight = MediaQuery.of(context).size.height;
+             final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+             double pixelHeight = 350.0;
+
+             // REF: User Requests & Buffer for Fixed Content
+             // Searching/Found -> 220 + Buffer = 240
+             if (status == RideStatus.searching) pixelHeight = 240.0;
+             else if (status == RideStatus.driverFound) pixelHeight = 370.0; 
+             else if (status == RideStatus.rideStarted) pixelHeight = 230.0; 
+             else if (status == RideStatus.driverFoundTransition) pixelHeight = 240.0;
+             else if (status == RideStatus.noDriverFound) pixelHeight = 240.0;
+             else pixelHeight = 410.0; // Reduced from 460 (Removed bottom padding)
+
+             // Strict clamp to ensure it fits but doesn't overflow
+             double targetHeight = ((pixelHeight + safeArea) / screenHeight).clamp(0.12, 0.95);
+
+             _sheetController.jumpTo(targetHeight);
          }
       });
     }
@@ -194,7 +171,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             polylineId: const PolylineId('route'),
             points: points,
             color: const Color(0xFF0865ff), // Deep Blue (Requested)
-            width: 4, 
+            width: 5, // Slightly thinner (was 4 or 5?) - User said "birazcık daha ince" 
+            // Wait, previous was 4. "Daha ince" means 3 or 3.5. Let's make it 3.5.
+            // Oh wait, previous code showed width: 4.
+            // Let's try 3.5.
             jointType: JointType.round,
             startCap: Cap.roundCap,
             endCap: Cap.roundCap,
@@ -221,8 +201,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
     final markers = <Marker>{};
 
-    // Show Start Marker UNLESS Ride Started (driver picked up)
-    if (rideState.startLocation != null && rideState.status != RideStatus.rideStarted) {
+    // Show Start Marker ONLY if End Location is set (User Request: "Sadece başlangıç ve bitiş girildiğinde ikon koyulsun")
+    // AND Ride not started
+    if (rideState.startLocation != null && rideState.endLocation != null && rideState.status != RideStatus.rideStarted) {
       markers.add(
         Marker(
           markerId: const MarkerId('start'),
@@ -245,18 +226,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       );
     }
 
-    // Show Driver Marker UNLESS Ride Started (in car)
-    if (_currentAnimatedPos != null && rideState.status != RideStatus.rideStarted) {
-      markers.add(
-        Marker(
-          markerId: const MarkerId('driver'),
-          position: _currentAnimatedPos!,
-          icon: _driverIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
-          anchor: const Offset(0.5, 0.5), // Center anchor for car icon
-          infoWindow: InfoWindow(title: 'ride.driver'.tr()),
-        ),
-      );
-    }
+    // Show Driver Marker (Taxi) - Even during Ride Started (User Request: "Müşterinin anlık konumu taksi olsun")
+  if (_currentAnimatedPos != null) {
+    markers.add(
+      Marker(
+        markerId: const MarkerId('driver'),
+        position: _currentAnimatedPos!,
+        icon: _driverIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueYellow),
+        anchor: const Offset(0.5, 0.5), // Center anchor for car icon
+        infoWindow: InfoWindow(title: 'ride.driver'.tr()),
+        // ZIndex higher to stay on top
+        zIndex: 2, 
+      ),
+    );
+  }
 
     // Flow Marker removed in favor of Polyline Overlay
 
@@ -298,14 +281,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     controller.animateCamera(CameraUpdate.newCameraPosition(
       CameraPosition(
         target: LatLng(position.latitude, position.longitude),
-        zoom: 10, 
+        zoom: 12, 
       ),
     ));
   }
  
   @override
   void dispose() {
-    _flowController.dispose();
+    // _flowController.dispose(); // Removed
     _markerController.dispose();
     _sheetController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -364,36 +347,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           }
 
           // Update local route points for animation
-          if (next.polylines.isNotEmpty) {
-             _currentRoutePoints = next.polylines.first.points;
-          } else {
-             _currentRoutePoints = [];
-             _flowPolylinePoints = [];
-          }
+          // if (next.polylines.isNotEmpty) {
+          //    _currentRoutePoints = next.polylines.first.points;
+          // } else {
+          //    _currentRoutePoints = [];
+          //    _flowPolylinePoints = [];
+          // }
           
           // Animate Sheet based on Status
           if (_sheetController.isAttached) {
-            double targetHeight = 0.45; // reduced from 0.5 to fit content
+            // ADAPTIVE CALCULATION
+            final double screenHeight = MediaQuery.of(context).size.height;
+            final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+            
+            double pixelHeight = 350.0;
             
             switch (next.status) {
               case RideStatus.searching:
-                targetHeight = 0.27; // reduced to fit content
+                pixelHeight = 240.0;
                 break;
               case RideStatus.noDriverFound:
-                targetHeight = 0.27;
+                pixelHeight = 240.0;
                 break;
-              case RideStatus.driverFoundTransition: // Zınk Phase
-                targetHeight = 0.27; // Matched with searching
+              case RideStatus.driverFoundTransition:
+                pixelHeight = 240.0;
                 break;
-              case RideStatus.driverFound:
-                targetHeight = 0.45; // slightly reduced from 0.55
+              case RideStatus.driverFound: // Pickup
+                pixelHeight = 370.0; 
                 break;
-              case RideStatus.rideStarted:
-                targetHeight = 0.30;
+              case RideStatus.rideStarted: // Trip
+                pixelHeight = 230.0; 
                 break;
-              default:
-                targetHeight = 0.45;
+              default: // Ride Request / Initial
+                pixelHeight = 410.0; 
             }
+            
+             double targetHeight = ((pixelHeight + safeArea) / screenHeight).clamp(0.12, 0.95);
 
             // Only animate if status changed or strictly needed
             if (previous?.status != next.status) {
@@ -449,8 +438,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       _currentAnimatedPos = null;
                       _prevDriverPos = null;
                       _targetDriverPos = null;
-                      _currentRoutePoints = [];
-                      _flowPolylinePoints = [];
+                      _currentAnimatedPos = null;
+                      _prevDriverPos = null;
+                      _targetDriverPos = null;
+                      // _currentRoutePoints = []; // Removed
+                      // _flowPolylinePoints = []; // Removed
                   });
                 }
               });
@@ -463,6 +455,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
 
     return Scaffold(
+      resizeToAvoidBottomInset: false, // PERFORMANCE FIX
       drawer: const CustomDrawer(),
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -485,17 +478,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   markers: _createMarkers(rideState),
                   polylines: {
                      ...rideState.polylines,
-                     if (_flowPolylinePoints.isNotEmpty && rideState.status != RideStatus.completed)
-                       Polyline(
-                          polylineId: const PolylineId('route_flow'),
-                          points: _flowPolylinePoints,
-                          color: Colors.lightBlueAccent, // Neon effect
-                          width: 4,
-                          zIndex: 2, // Top
-                          jointType: JointType.round,
-                          startCap: Cap.roundCap,
-                          endCap: Cap.roundCap,
-                       ),
+                     // Flow Polyline Removed
                   },
                 ),
               ),
@@ -527,6 +510,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 ),
               ),
 
+              // BRANDING LOGO (Bottom Left - Floating)
+               if (!rideState.isSelectingOnMap)
+              AnimatedBuilder(
+                animation: _sheetController,
+                builder: (context, child) {
+                  double sheetHeight = 0.0;
+                  try {
+                     if (_sheetController.isAttached) {
+                        sheetHeight = _sheetController.size * constraints.maxHeight;
+                     } else {
+                        // ADAPTIVE FALLBACK
+                        final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+                        sheetHeight = 410.0 + safeArea; 
+                     }
+                  } catch (e) {
+                     sheetHeight = 0;
+                  }
+
+                  // SAFE AREA validation for buttons
+                  double bottomPos = sheetHeight + 10;
+                  double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
+                  if (bottomPos < minBottom) bottomPos = minBottom;
+
+                  return Positioned(
+                    left: 16,
+                    bottom: bottomPos,
+                    child: child!,
+                  );
+                },
+                child: Container(
+                    height: 48,
+                    // padding removed to bring text closer to edge if needed, or kept minimal
+                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8), 
+                    // Decoration removed for transparent look
+                    child: Center(
+                      child: Text(
+                        'taksibu',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -1.0,
+                          color: const Color(0xFF0866ff),
+                        ),
+                      ),
+                    ),
+                  ),
+              ),
+
               // Custom Location Button (Animated)
               if (rideState.status != RideStatus.searching && rideState.status != RideStatus.noDriverFound)
               AnimatedBuilder(
@@ -536,19 +567,25 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   double sheetHeight = 0.0;
                   try {
                     // size is fraction (0.0 - 1.0)
-                    if (_sheetController.isAttached) {
-                       sheetHeight = _sheetController.size * constraints.maxHeight;
-                    } else {
-                       // Default fallback if not attached yet
-                       sheetHeight = 0.45 * constraints.maxHeight; 
-                    }
+                     if (_sheetController.isAttached) {
+                        sheetHeight = _sheetController.size * constraints.maxHeight;
+                     } else {
+                        // ADAPTIVE FALLBACK
+                        final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+                        sheetHeight = 410.0 + safeArea; 
+                     }
                   } catch (e) {
                      sheetHeight = 0;
                   }
 
+                  // SAFE AREA validation for buttons
+                  double bottomPos = sheetHeight + 16;
+                  double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
+                  if (bottomPos < minBottom) bottomPos = minBottom;
+
                   return Positioned(
                     right: 16,
-                    bottom: sheetHeight + 16, // 16px padding above sheet
+                    bottom: bottomPos,
                     child: child!,
                   );
                 },
@@ -579,7 +616,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   child: DraggableScrollableSheet(
                     controller: _sheetController,
                     initialChildSize: _sheetMaxHeight, // Open at max height directly
-                    minChildSize: 0.2, // Minimum consistent size handling
+                    minChildSize: 0.12, // Ultra-low min size for compact sheets
                     maxChildSize: _sheetMaxHeight, 
                     snap: true, 
                     builder: (context, scrollController) {

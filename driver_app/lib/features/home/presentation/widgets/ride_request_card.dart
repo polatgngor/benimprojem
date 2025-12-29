@@ -47,17 +47,7 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with TickerPr
   }
 
   void _setupFlowAnimation() {
-    _flowController = AnimationController(
-       vsync: this,
-       duration: const Duration(seconds: 2), // 2s per cycle
-    )..repeat();
-
-    _flowController.addListener(() {
-       if (_currentRoutePoints.isNotEmpty && mounted) {
-          final t = _flowController.value;
-          _calculateFlowPolyline(t);
-       }
-    });
+     // Animation Removed
   }
 
   void _calculateFlowPolyline(double t) {
@@ -161,7 +151,7 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with TickerPr
       _markers.add(Marker(
         markerId: const MarkerId('start'),
         position: LatLng(double.parse(start['lat'].toString()), double.parse(start['lng'].toString())),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ));
     }
 
@@ -169,7 +159,7 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with TickerPr
       _markers.add(Marker(
         markerId: const MarkerId('end'),
         position: LatLng(double.parse(end['lat'].toString()), double.parse(end['lng'].toString())),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueBlue),
       ));
     }
     
@@ -287,22 +277,12 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with TickerPr
                  child: GoogleMap(
                    initialCameraPosition: CameraPosition(
                     target: _markers.isNotEmpty ? _markers.first.position : const LatLng(0,0),
-                     zoom: 13,
+                     zoom: 12,
                    ),
                    markers: _markers,
                    polylines: {
                      ..._polylines,
-                     if (_flowPolylinePoints.isNotEmpty)
-                       Polyline(
-                          polylineId: const PolylineId('route_flow'),
-                          points: _flowPolylinePoints,
-                          color: Colors.lightBlueAccent, // Neon effect
-                          width: 4,
-                          zIndex: 2,
-                          jointType: JointType.round,
-                          startCap: Cap.roundCap,
-                          endCap: Cap.roundCap,
-                       ),
+                     // Flow logic removed
                    },
                    zoomControlsEnabled: false,
                    liteModeEnabled: false,

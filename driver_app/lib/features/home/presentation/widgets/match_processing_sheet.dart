@@ -14,10 +14,18 @@ class MatchProcessingSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // ADAPTIVE HEIGHT LOGIC
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double safeAreaBottom = MediaQuery.of(context).viewPadding.bottom;
+    const double kContentHeight = 260.0; // Icon + Text + Spacing
+    
+    final double targetHeight = kContentHeight + safeAreaBottom;
+    final double targetFraction = (targetHeight / screenHeight).clamp(0.2, 0.5);
+
     return DraggableScrollableSheet(
-      initialChildSize: 0.25,
-      minChildSize: 0.20,
-      maxChildSize: 0.35,
+      initialChildSize: targetFraction,
+      minChildSize: 0.15,
+      maxChildSize: targetFraction,
       builder: (context, scrollController) {
         return Container(
           width: double.infinity,
@@ -85,7 +93,7 @@ class MatchProcessingSheet extends StatelessWidget {
                   ),
                   
                 // Add safe area padding at bottom
-                SizedBox(height: 24 + MediaQuery.of(context).padding.bottom),
+                SizedBox(height: 24 + MediaQuery.of(context).viewPadding.bottom),
               ],
             ),
           ),

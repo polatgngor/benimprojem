@@ -10,6 +10,7 @@ import '../data/places_service.dart';
 import '../data/saved_place_model.dart';
 import 'saved_places_provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../../core/widgets/custom_toast.dart';
 
 class LocationSelectionScreen extends ConsumerStatefulWidget {
   const LocationSelectionScreen({super.key});
@@ -153,7 +154,13 @@ class _LocationSelectionScreenState extends ConsumerState<LocationSelectionScree
     }
     
     if (initialAddress.isEmpty) {
-        if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('location_selection.save_dialog.error_select_location'.tr())));
+        if (mounted) {
+          CustomNotificationService().show(
+            context,
+            'location_selection.save_dialog.error_select_location'.tr(),
+            ToastType.error,
+          );
+        }
         return;
     }
 

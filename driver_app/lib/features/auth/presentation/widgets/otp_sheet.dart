@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/auth_service.dart';
+import '../../../../core/widgets/custom_toast.dart';
 
 class OtpVerificationSheet extends ConsumerStatefulWidget {
   final String phone;
@@ -41,7 +42,11 @@ class _OtpVerificationSheetState extends ConsumerState<OtpVerificationSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isSending = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hata: $e')));
+        CustomNotificationService().show(
+          context,
+          'Hata: $e',
+          ToastType.error,
+        );
       }
     }
   }

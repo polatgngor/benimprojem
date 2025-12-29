@@ -38,11 +38,23 @@ class NotificationService {
       await _localNotifications.initialize(
         initializationSettings,
         onDidReceiveNotificationResponse: (NotificationResponse response) {
-          // Handle local notification tap
-          // For now, just bringing app to foreground is enough as HomeScreen will sync state
           debugPrint('Notification tapped with payload: ${response.payload}');
         },
       );
+
+      // Create Channel for 'Driver Arrived' (matches fcm.js)
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
+          _localNotifications.resolvePlatformSpecificImplementation<
+              AndroidFlutterLocalNotificationsPlugin>();
+
+      if (androidImplementation != null) {
+        await androidImplementation.createNotificationChannel(const AndroidNotificationChannel(
+          'incoming_request_channel',
+          'Sürücü Bildirimleri', 
+          importance: Importance.max,
+          playSound: true,
+        ));
+      }
 
       // Get Token
       String? token = await _firebaseMessaging.getToken();
@@ -61,9 +73,11 @@ class NotificationService {
         debugPrint('Got a message whilst in the foreground!');
         debugPrint('Message data: ${message.data}');
 
-        if (message.notification != null) {
-          _showLocalNotification(message);
-        }
+        // User Request: Suppress foreground notifications (like Driver App)
+        // State updates are handled via Riverpod/Socket listeners elsewhere
+        // if (message.notification != null) {
+        //   _showLocalNotification(message);
+        // }
       });
 
       // Background Message Tap Handler

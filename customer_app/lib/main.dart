@@ -125,7 +125,14 @@ class MyApp extends ConsumerWidget {
           foregroundColor: Colors.black, // Dark text
           elevation: 0,
           centerTitle: true,
-          surfaceTintColor: Colors.transparent, // Avoid tint on scroll
+          surfaceTintColor: Colors.transparent, 
+          titleTextStyle: const TextStyle(
+            fontFamily: 'Inter',
+            fontSize: 18,
+            fontWeight: FontWeight.bold, // Bold Title
+            color: Colors.black,
+          ),
+          iconTheme: const IconThemeData(color: Colors.black), // Ensure icons are black
         ),
       ),
       routerConfig: router,

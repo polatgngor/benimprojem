@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'auth_provider.dart';
+import '../../../../core/widgets/custom_toast.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/country_picker_dialog.dart';
 
@@ -17,6 +19,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _phoneController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _isAgreed = false;
   String? _fullPhoneNumber;
 
   @override
@@ -41,11 +44,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(e.toString()),
-              backgroundColor: Colors.red,
-            ),
+          CustomNotificationService().show(
+            context,
+            e.toString(),
+            ToastType.error,
           );
         }
       } finally {
@@ -72,7 +74,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 60),
+                const SizedBox(height: 20),
                 Align(
                   alignment: Alignment.topRight,
                   child: GestureDetector(
@@ -123,14 +125,33 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     ),
                   ),
                 ),
+                
+                const SizedBox(height: 80),
                 Center(
-                  child: Image.asset(
-                    'assets/images/splash_logo.png',
-                    height: 140,
-                    fit: BoxFit.contain,
+                  child: Column(
+                    children: [
+                      Text(
+                        'taksibu',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 48,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -1.0,
+                          color: const Color(0xFF0866ff),
+                        ),
+                      ),
+                       Text(
+                        'sürücü',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                         // letterSpacing removed (standard)
+                          color: const Color(0xFF0866ff),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 48),
                 Text(
                   'auth.welcome_title'.tr(),
                   textAlign: TextAlign.center,
@@ -192,11 +213,62 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 ),
                 const SizedBox(height: 32),
 
+                // Legal Agreements Checkbox
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(
+                      height: 24,
+                      width: 24,
+                      child: Checkbox(
+                        value: _isAgreed,
+                        onChanged: (value) {
+                          setState(() {
+                            _isAgreed = value ?? false;
+                          });
+                        },
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                           // Toggle on text tap as well for better UX
+                           setState(() {
+                            _isAgreed = !_isAgreed;
+                          });
+                        },
+                        child: RichText(
+                          text: TextSpan(
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                              height: 1.5,
+                            ),
+                            children: [
+                              TextSpan(text: 'Kullanım Koşulları', style: const TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.bold)),
+                              const TextSpan(text: ', '),
+                              TextSpan(text: 'Aydınlatma Metni', style: const TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.bold)),
+                              const TextSpan(text: ' ve '),
+                              TextSpan(text: 'Gizlilik Politikası', style: const TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.bold)),
+                              const TextSpan(text: "'nı okudum ve kabul ediyorum."),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
                 if (_isLoading)
                   const Center(child: CircularProgressIndicator())
                 else
                   ElevatedButton(
-                    onPressed: _submit,
+                    onPressed: _isAgreed ? _submit : null,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1A77F6), // Theme Blue
                       foregroundColor: Colors.white,

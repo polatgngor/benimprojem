@@ -28,6 +28,7 @@ import '../../features/support/presentation/screens/support_dashboard_screen.dar
 import '../../features/support/presentation/screens/create_ticket_screen.dart';
 import '../../features/support/presentation/screens/support_chat_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/utils/globals.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
 
@@ -43,7 +44,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   });
 
   return GoRouter(
-
+    navigatorKey: rootNavigatorKey,
     refreshListenable: listenable,
     initialLocation: '/login',
     redirect: (context, state) {

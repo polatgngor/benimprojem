@@ -105,11 +105,21 @@ class _DriverStatsSheetState extends ConsumerState<DriverStatsSheet> {
     // Primary Blue
     const primaryBlue = Color(0xFF1A77F6);
 
+    // ADAPTIVE HEIGHT LOGIC
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double safeAreaBottom = MediaQuery.of(context).viewPadding.bottom;
+    // Reduced from 350.0 based on user feedback ("3/1 oranında küçülmeli")
+    const double kContentHeight = 250.0; 
+    
+    final double targetHeight = kContentHeight + safeAreaBottom;
+    // Clamp between 0.15 and 0.85
+    final double targetFraction = (targetHeight / screenHeight).clamp(0.15, 0.85);
+
     return DraggableScrollableSheet(
       controller: widget.controller,
-      initialChildSize: 0.30,
-      minChildSize: 0.15,
-      maxChildSize: 0.30,
+      initialChildSize: targetFraction,
+      minChildSize: 0.12, // Lower min size for compact sheet
+      maxChildSize: targetFraction, 
       snap: true,
       builder: (context, scrollController) {
         return Container(

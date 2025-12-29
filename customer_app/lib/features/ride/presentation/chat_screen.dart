@@ -5,6 +5,7 @@ import '../../../core/services/socket_service.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../data/ride_repository.dart';
 import 'ride_state_provider.dart';
+import '../../../core/widgets/custom_toast.dart';
 
 class ChatMessagesNotifier extends Notifier<List<Map<String, dynamic>>> {
   @override
@@ -103,11 +104,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     socketService.on('join_failed', (data) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Sohbet odasına katılınamadı: ${data['reason']}'),
-            backgroundColor: Colors.red,
-          ),
+        CustomNotificationService().show(
+          context,
+          data['message'] ?? 'Sohbet odasına katılınamadı: ${data['reason']}',
+          ToastType.error,
         );
       }
     });
@@ -128,7 +128,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Mesajlar yüklenemedi: $e')));
+        CustomNotificationService().show(
+          context,
+          'Mesajlar yüklenemedi: $e',
+          ToastType.error,
+        );
       }
     }
   }

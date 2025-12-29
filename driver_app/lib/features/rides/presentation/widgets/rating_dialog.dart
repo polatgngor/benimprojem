@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/ride_repository.dart';
+import '../../../../core/widgets/custom_toast.dart';
 import 'package:easy_localization/easy_localization.dart';
 
 class DriverRatingDialog extends ConsumerStatefulWidget {
@@ -51,15 +52,19 @@ class _DriverRatingDialogState extends ConsumerState<DriverRatingDialog> with Si
         _commentController.text.trim().isEmpty ? null : _commentController.text.trim(),
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('rating.success'.tr())),
+        CustomNotificationService().show(
+          context,
+          'rating.success'.tr(),
+          ToastType.success,
         );
-        Navigator.pop(context); // Close dialog
+        Navigator.pop(context, _rating); // Close dialog with result
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('rating.error'.tr(args: [e.toString()]))),
+        CustomNotificationService().show(
+          context,
+          'rating.error'.tr(args: [e.toString()]),
+          ToastType.error,
         );
       }
     } finally {

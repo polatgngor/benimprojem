@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/widgets/custom_toast.dart';
 import 'auth_provider.dart';
 import '../data/vehicle_repository.dart';
 
@@ -99,8 +100,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_profilePhoto == null || _vehicleLicense == null || _ibbCard == null || _drivingLicense == null || _identityCard == null) {
-       ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lütfen tüm belgeleri ve fotoğrafınızı yükleyiniz.'), backgroundColor: Colors.red),
+        CustomNotificationService().show(
+          context,
+          'Lütfen tüm belgeleri ve fotoğrafınızı yükleyiniz.',
+          ToastType.error,
         );
         return;
     }
@@ -142,11 +145,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Kayıt başarısız: $e'),
-            backgroundColor: Colors.red,
-          ),
+        CustomNotificationService().show(
+          context,
+          'Kayıt başarısız: $e',
+          ToastType.error,
         );
       }
     } finally {

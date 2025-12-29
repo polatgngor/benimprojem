@@ -176,13 +176,16 @@
         "trip_count": "{} Yolculuk",
         "ride_history": "Yolculuk Geçmişi",
         "no_earnings": "Bu dönemde kazanç yok.",
-        "ride_id": "Yolculuk #{}"
+        "ride_id": "Yolculuk #{}",
+        "payment_cash": "Nakit Ödeme",
+        "payment_pos": "Kart ile Ödeme"
     },
     "auth": {
         "welcome_title": "Hoşgeldiniz",
         "enter_phone": "Devam etmek için telefon numaranızı girin",
         "continue": "Devam Et",
         "otp_verification": "OTP Doğrulama",
+        "verify_title": "Doğrulama Kodu",
         "enter_code_sent": "Lütfen telefonunuza gönderilen doğrulama kodunu girin",
         "verify": "Doğrula",
         "didnt_receive": "Kodu almadınız mı?",

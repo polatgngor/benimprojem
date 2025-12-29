@@ -6,6 +6,7 @@ import '../../../auth/presentation/auth_provider.dart';
 import '../../../auth/data/vehicle_repository.dart';
 import 'change_taxi_screen.dart';
 import 'update_documents_screen.dart';
+import '../../../../core/widgets/custom_toast.dart';
 
 // Provider to fetch pending requests
 final pendingRequestsProvider = FutureProvider.autoDispose((ref) async {
@@ -28,6 +29,10 @@ class VehicleManagementScreen extends ConsumerWidget {
       backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Araç Yönetimi'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -79,7 +84,7 @@ class VehicleManagementScreen extends ConsumerWidget {
                   const SizedBox(height: 16),
                   Text(
                     user != null ? '${user['vehicle_plate'] ?? 'Plaka Yok'}' : 'Yükleniyor...',
-                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 1.0),
+                    style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 6),
                   Text(
@@ -87,18 +92,9 @@ class VehicleManagementScreen extends ConsumerWidget {
                     style: const TextStyle(fontSize: 16, color: Colors.white70, fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.white.withOpacity(0.2)),
-                    ),
-                    child: const Text(
-                      'Aktif Araç',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
-                    ),
-                  ),
+                  // Active Vehicle Badge Removed
+                  // const SizedBox(height: 16),
+                  // Container(...)
                 ],
               ),
             ),
@@ -162,8 +158,10 @@ class VehicleManagementScreen extends ConsumerWidget {
               onTap: () {
                 // If requests pending, warn user?
                 if (requestsAsync.hasValue && requestsAsync.value!.any((r) => r['status'] == 'pending')) {
-                   ScaffoldMessenger.of(context).showSnackBar(
-                     const SnackBar(content: Text('Zaten bekleyen bir talebiniz var.')),
+                   CustomNotificationService().show(
+                     context,
+                     'Zaten bekleyen bir talebiniz var.',
+                     ToastType.info,
                    );
                    return;
                 }
@@ -181,8 +179,10 @@ class VehicleManagementScreen extends ConsumerWidget {
                 onTap: () {
                    // If requests pending, warn user
                   if (requestsAsync.hasValue && requestsAsync.value!.any((r) => r['status'] == 'pending')) {
-                     ScaffoldMessenger.of(context).showSnackBar(
-                       const SnackBar(content: Text('Zaten bekleyen bir talebiniz var.')),
+                     CustomNotificationService().show(
+                       context,
+                       'Zaten bekleyen bir talebiniz var.',
+                       ToastType.info,
                      );
                      return;
                   }

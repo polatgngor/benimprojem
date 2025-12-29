@@ -1,7 +1,11 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import '../data/auth_service.dart';
+
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 part 'auth_provider.g.dart';
 
@@ -14,32 +18,60 @@ class Auth extends _$Auth {
     // Check if token exists
     final token = await _storage.read(key: 'accessToken');
     if (token != null) {
-      // Register Push Token (Fire and Forget) - Correct placement
+      // Register Push Token
       _initPushToken();
       
+      // OPTIMISTIC START: Try to load from SharedPreferences
+      Map<String, dynamic>? optimisticState;
       try {
-        final service = ref.read(authServiceProvider);
-        final profile = await service.getProfile();
-        
-        // Normalize data: Merge 'driver' info into 'user' if present
-        if (profile['driver'] != null) {
-          final driverData = profile['driver'] as Map<String, dynamic>;
-          final userData = Map<String, dynamic>.from(profile['user'] as Map<String, dynamic>);
-          
-          userData.addAll(driverData);
-          // ensure we keep the nested structure if needed, but for UI convenience we merge
-          profile['user'] = userData;
+        final prefs = await SharedPreferences.getInstance();
+        final userStr = prefs.getString('driverData');
+        if (userStr != null) {
+           optimisticState = jsonDecode(userStr);
         }
-        
-        return profile;
       } catch (e) {
-        // If profile fetch fails (e.g. token expired), clear token
-        await _storage.delete(key: 'accessToken');
-        return null;
+        debugPrint('Error loading cached driver: $e');
       }
+
+      // Fallback if no cache
+      optimisticState ??= {
+         'user': {'first_name': 'Sürücü', 'last_name': ''}, 
+         'optimistic': true
+      };
+      
+      // Trigger background sync
+      Future.delayed(Duration.zero, () => _fetchRealProfile());
+      
+      return optimisticState;
     }
     
     return null;
+  }
+
+  Future<void> _fetchRealProfile() async {
+    try {
+        final service = ref.read(authServiceProvider);
+        final profile = await service.getProfile();
+        
+        // Normalize data
+        if (profile['driver'] != null) {
+          final driverData = profile['driver'] as Map<String, dynamic>;
+          final userData = Map<String, dynamic>.from(profile['user'] as Map<String, dynamic>);
+          userData.addAll(driverData);
+          profile['user'] = userData;
+        }
+        
+        // Save to Cache
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('driverData', jsonEncode(profile));
+
+        // Update state with REAL data
+        state = AsyncValue.data(profile);
+    } catch (e) {
+        debugPrint('Optimistic Auth Failed: $e');
+        // If fetch fails (e.g. 401), we must logout
+        // await logout(); // Careful not to loop if it's just a network error
+    }
   }
 
   Future<void> _initPushToken() async {
@@ -81,10 +113,30 @@ class Auth extends _$Auth {
         };
       } else {
         // Login success
-        state = AsyncValue.data(data);
+        
+        // We need the FULL profile structure for consistency if possible, 
+        // but verifyOtp returns { accessToken, user, ok }. 
+        // The 'user' object might be partial? Ideally we should fetch profile, 
+        // but let's stick to what we have or do a background fetch.
+        // For now, save what we have.
         
         // Register token on login
         _initPushToken();
+        
+        // Trigger generic profile fetch to get full data and cache it properly
+        // Or construct the state manually:
+        final fullState = {
+           'user': data['user'],
+           // 'driver': ... might be missing here. 
+           // Best to just fetch profile?
+        };
+        
+        // Let's rely on _fetchRealProfile to do the heavy lifting for cache
+        // But update state immediately
+        state = AsyncValue.data(fullState);
+        
+        // Trigger fetch to fill holes and cache
+        _fetchRealProfile(); 
         
         return {
           'is_new_user': false,
@@ -140,6 +192,9 @@ class Auth extends _$Auth {
       // Register token on register
       _initPushToken();
       
+      // Cache likely needs fetch
+      _fetchRealProfile();
+
       return data;
     });
   }
@@ -147,12 +202,14 @@ class Auth extends _$Auth {
   Future<void> logout() async {
     final service = ref.read(authServiceProvider);
     await service.logout();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('driverData');
     state = const AsyncValue.data(null);
   }
 
   Future<void> deleteAccount(String code) async {
     final service = ref.read(authServiceProvider);
     await service.deleteAccount(code);
-    state = const AsyncValue.data(null);
+    await logout();
   }
 }

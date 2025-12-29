@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../data/support_service.dart';
+import '../../../../core/widgets/custom_toast.dart';
 
 class CreateTicketScreen extends ConsumerStatefulWidget {
   const CreateTicketScreen({super.key});
@@ -32,8 +33,10 @@ class _CreateTicketScreenState extends ConsumerState<CreateTicketScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('support.send_error'.tr(args: [e.toString()]))),
+        CustomNotificationService().show(
+          context,
+          'support.send_error'.tr(args: [e.toString()]),
+          ToastType.error,
         );
       }
     } finally {

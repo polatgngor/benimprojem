@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/widgets/custom_toast.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'profile_screen.dart'; // To access the driverProfileProvider
 import '../../auth/data/auth_service.dart';
@@ -72,19 +73,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ref.refresh(driverProfileProvider);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('profile.updated'.tr())),
+        CustomNotificationService().show(
+          context,
+          'profile.updated'.tr(),
+          ToastType.success,
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('profile.error'.tr(args: [e.toString()])),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+        CustomNotificationService().show(
+          context,
+          'profile.error'.tr(args: [e.toString()]),
+          ToastType.error,
         );
       }
     } finally {

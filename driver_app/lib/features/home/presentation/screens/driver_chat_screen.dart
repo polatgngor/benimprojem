@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:dio/dio.dart';
+import 'package:dio/dio.dart';
+import '../../../../core/widgets/custom_toast.dart';
 import '../../../../core/services/socket_service.dart';
 import '../../../auth/data/auth_service.dart';
 import '../../../auth/presentation/auth_provider.dart';
@@ -122,11 +124,10 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
 
     socketService.on('join_failed', (data) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(data['message'] ?? 'Sohbet odasına katılınamadı: ${data['reason']}'),
-            backgroundColor: Colors.red,
-          ),
+        CustomNotificationService().show(
+          context,
+          data['message'] ?? 'Sohbet odasına katılınamadı: ${data['reason']}',
+          ToastType.error,
         );
       }
     });

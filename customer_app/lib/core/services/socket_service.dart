@@ -3,12 +3,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/constants/app_constants.dart';
 
+import '../../features/auth/presentation/auth_provider.dart';
+
 final socketServiceProvider = Provider<SocketService>((ref) {
-  return SocketService();
+  return SocketService(ref);
 });
 
 class SocketService {
   IO.Socket? _socket;
+  final Ref _ref;
+
+  SocketService(this._ref);
 
   IO.Socket get socket => _socket!;
 
@@ -27,6 +32,11 @@ class SocketService {
     _socket!.onConnect((_) {
       debugPrint('Socket connected: ${_socket!.id}');
       _socket!.emit('passenger:rejoin', {});
+    });
+
+    _socket!.on('force_logout', (_) {
+      debugPrint('Received force_logout event');
+      _ref.read(authProvider.notifier).logout();
     });
 
     _socket!.onConnectError((data) => debugPrint('Socket connect error: $data'));

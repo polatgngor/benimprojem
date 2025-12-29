@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -15,13 +16,13 @@ class SplashScreen extends StatelessWidget {
             Container(
               height: 120,
               width: 120,
-              decoration: const BoxDecoration( // Removed color/shape as png handles it
+              decoration: const BoxDecoration(
                  color: Colors.white,
                  shape: BoxShape.circle,
               ),
               padding: const EdgeInsets.all(20),
-              child: Image.asset(
-                'assets/images/splash_logo.png',
+              child: SvgPicture.asset(
+                'assets/images/logo.svg',
                 fit: BoxFit.contain,
               ),
             ),

@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../auth/data/auth_service.dart';
 import 'ride_detail_screen.dart';
+import '../../../core/widgets/shimmer_loading.dart';
 
 final driverRideHistoryProvider = FutureProvider.autoDispose<List<Map<String, dynamic>>>((ref) async {
   final authService = ref.read(authServiceProvider);
@@ -53,7 +54,7 @@ class RideHistoryScreen extends ConsumerWidget {
             },
           );
         },
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const RideHistorySkeleton(),
         error: (err, stack) => Center(child: Text('Hata: $err')),
       ),
     );
@@ -70,16 +71,8 @@ class RideHistoryScreen extends ConsumerWidget {
     return Container(
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 15,
-            offset: const Offset(0, 5),
-          ),
-        ],
-        border: Border.all(color: const Color(0xFFF1F4F8)),
+        color: const Color(0xFFF9FAFB),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: InkWell(
         onTap: () {
@@ -90,42 +83,74 @@ class RideHistoryScreen extends ConsumerWidget {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: IntrinsicHeight(
           child: Row(
             children: [
-              // Status Accent Strip
+              // Status Accent Strip Removed
+              /*
               Container(
                 width: 6,
                 color: statusColor,
               ),
+              */
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                     // Header: Date & Price
+                     // Header: Price, Payment & Date
                      Padding(
                       padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
+                          // Left: Price & Badge
+                          Row(
+                            children: [
                               Text(
-                                ride['formatted_date'] ?? '-',
-                                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                                fare != null ? '₺$fare' : '-',
+                                style: TextStyle(
+                                  fontSize: 20, // Enlarged
+                                  fontWeight: FontWeight.w800, 
+                                  color: Theme.of(context).primaryColor
+                                ),
                               ),
-                          Text(
-                            fare != null ? '₺$fare' : '-',
-                            style: TextStyle(
-                              fontSize: 18, 
-                              fontWeight: FontWeight.w800, 
-                              color: Theme.of(context).primaryColor
-                            ),
+                            ],
                           ),
+                          
+                          // Right: Date
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.transparent,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey.shade300, width: 1),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.calendar_month_rounded, size: 20, color: Colors.grey[700]),
+                                  const SizedBox(width: 8),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        DateFormat('dd MMM yyyy', 'tr').format(date),
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87),
+                                      ),
+                                      Text(
+                                        DateFormat('HH:mm').format(date),
+                                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.grey[600]),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
                         ],
                       ),
                     ),
   
-                    const Divider(height: 1, color: Colors.black12),
+                    const Divider(height: 1, color: Colors.black12, indent: 48, endIndent: 48),
   
                      // Route Info with Timeline
                     Padding(
@@ -166,58 +191,17 @@ class RideHistoryScreen extends ConsumerWidget {
                         ],
                       ),
                     ),
-                    
-                  if (ride['passenger'] != null) ...[
-                       Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFF8F9FA),
-                            border: Border(top: BorderSide(color: Color(0xFFF1F4F8))),
-                          ),
-                          child: Row(
-                            children: [
-                              ClipOval(
-                                child: Container(
-                                  width: 44,
-                                  height: 44,
-                                  color: Colors.white,
-                                  child: (ride['passenger']['profile_photo'] != null && ride['passenger']['profile_photo'].isNotEmpty)
-                                      ? Image.network(
-                                          ride['passenger']['profile_photo'].startsWith('http') 
-                                              ? ride['passenger']['profile_photo'] 
-                                              : '${AppConstants.baseUrl}/${ride['passenger']['profile_photo']}',
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) =>
-                                              Icon(Icons.person, size: 26, color: Colors.grey[400]),
-                                        )
-                                      : Icon(Icons.person, size: 26, color: Colors.grey[400]),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      '${ride['passenger']['first_name']?[0] ?? ''}*** ${ride['passenger']['last_name']?[0] ?? ''}***',
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87), 
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(color: Colors.grey.withOpacity(0.1)),
-                                ),
-                                child: Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey[400]),
-                              ),
-                            ],
-                          ),
-                       ),
-                  ],
+
+                    // Detail Arrow Row (Bottom Right)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                           Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Theme.of(context).primaryColor),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),

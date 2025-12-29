@@ -1,11 +1,14 @@
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../../../core/services/socket_service.dart';
 import '../data/ride_repository.dart';
 import '../data/directions_service.dart';
 import 'ride_state_provider.dart';
 import '../../../../core/utils/globals.dart';
+import '../../../../core/widgets/custom_toast.dart';
+import 'package:easy_localization/easy_localization.dart';
 
 part 'ride_controller.g.dart';
 
@@ -120,8 +123,10 @@ class RideController extends _$RideController {
     final rideState = ref.read(rideProvider);
     
     if (rideState.startLocation == null || rideState.endLocation == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen başlangıç ve bitiş noktalarını seçin.')),
+      CustomNotificationService().show(
+        context,
+        'Lütfen başlangıç ve bitiş noktalarını seçin.',
+        ToastType.error,
       );
       return;
     }
@@ -185,8 +190,10 @@ class RideController extends _$RideController {
       debugPrint('Create ride error: $e');
       state = AsyncError(e, st);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
+        CustomNotificationService().show(
+          context,
+          'Hata: $e',
+          ToastType.error,
         );
       }
     }
@@ -211,6 +218,7 @@ class RideController extends _$RideController {
       socketService.off('verify_code_result');
       socketService.off('start_ride_failed');
       socketService.off('end_ride_failed');
+      socketService.off('ride:driver_arrived');
       socketService.off('message_failed');
     }
 
@@ -226,6 +234,13 @@ class RideController extends _$RideController {
       if (!ref.mounted) return;
       
       if (data['ride_id'].toString() == rideId) {
+        // GUARD: If already assigned or transitioning, ignore duplicates to prevent flickering
+        final currentStatus = ref.read(rideProvider).status;
+        if (currentStatus == RideStatus.driverFound || currentStatus == RideStatus.driverFoundTransition) {
+          debugPrint('Duplicate ride:assigned event ignored.');
+          return;
+        }
+
         final driver = data['driver'] as Map<String, dynamic>;
         final code4 = data['code4'].toString();
         
@@ -238,8 +253,12 @@ class RideController extends _$RideController {
         await Future.delayed(const Duration(seconds: 3));
         
         // Then switch to the actual Driver Info Sheet
+        // Check mounted again and ensure we haven't been cancelled/completed in the meantime
         if (ref.mounted) {
-           ref.read(rideProvider.notifier).setRideStatus(RideStatus.driverFound);
+           final checkState = ref.read(rideProvider).status;
+           if (checkState == RideStatus.driverFoundTransition) {
+             ref.read(rideProvider.notifier).setRideStatus(RideStatus.driverFound);
+           }
         }
       }
     });
@@ -290,13 +309,55 @@ class RideController extends _$RideController {
        }
     });
 
-    socketService.on('ride:started', (data) {
-      debugPrint('Ride started: $data');
+    socketService.on('ride:driver_arrived', (data) {
+      debugPrint('Driver arrived: $data');
       if (!ref.mounted) return;
       if (data['ride_id'].toString() == rideId) {
-        ref.read(rideProvider.notifier).setRideStatus(RideStatus.rideStarted);
+         if (rootNavigatorKey.currentContext != null) {
+            // Haptic Feedback
+            HapticFeedback.heavyImpact();
+            
+            // Show Modal Dialog (User Request)
+            showDialog(
+              context: rootNavigatorKey.currentContext!,
+              builder: (context) => AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                title: Row(
+                  children: [
+                    const Icon(Icons.verified, color: Color(0xFF0865ff), size: 28),
+                    const SizedBox(width: 10),
+                    Text('ride.driver_arrived_title'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                content: Text('ride.driver_arrived_body'.tr(), style: const TextStyle(fontSize: 16)),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text('generic.ok'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0865ff))),
+                  ),
+                ],
+              ),
+            );
+         }
       }
     });
+
+      socketService.on('ride:started', (data) async {
+        debugPrint('Ride started: $data');
+        if (!ref.mounted) return;
+        if (data['ride_id'].toString() == rideId) {
+          ref.read(rideProvider.notifier).setRideStatus(RideStatus.rideStarted);
+          // Immediate route update (Pickup -> Dropoff)
+          // Use last known driver location if available
+          final driverLoc = ref.read(rideProvider).driverLocation;
+          if (driverLoc != null) {
+             final endLoc = ref.read(rideProvider).endLocation;
+             if (endLoc != null) {
+                await updateRoute(driverLoc, endLoc, false);
+             }
+          }
+        }
+      });
 
     socketService.on('ride:completed', (data) {
       debugPrint('Ride completed: $data');
@@ -313,9 +374,21 @@ class RideController extends _$RideController {
       if (data['ride_id'].toString() == rideId) {
         stopListening();
         ref.read(rideProvider.notifier).resetRide();
-        rootScaffoldMessengerKey.currentState?.showSnackBar(
-          SnackBar(content: Text('Yolculuk iptal edildi: ${data['reason'] ?? ''}')),
-        );
+        if (rootNavigatorKey.currentContext != null) {
+          CustomNotificationService().show(
+            rootNavigatorKey.currentContext!,
+            'Yolculuk iptal edildi: ${data['reason'] ?? ''}',
+            ToastType.info
+          );
+        } else {
+          if (rootNavigatorKey.currentContext != null) {
+            CustomNotificationService().show(
+              rootNavigatorKey.currentContext!,
+              'Yolculuk iptal edildi: ${data['reason'] ?? ''}',
+              ToastType.info
+            );
+          }
+        }
       }
     });
 
@@ -326,9 +399,13 @@ class RideController extends _$RideController {
       final ok = data['ok'] == true;
       if (!ok) {
         final reason = data['reason'] ?? 'unknown';
-        rootScaffoldMessengerKey.currentState?.showSnackBar(
-          SnackBar(content: Text('Kod doğrulama hatası: $reason')),
-        );
+        if (rootNavigatorKey.currentContext != null) {
+          CustomNotificationService().show(
+            rootNavigatorKey.currentContext!,
+            'Kod doğrulama hatası: $reason',
+            ToastType.error,
+          );
+        }
       }
     });
 
@@ -337,12 +414,13 @@ class RideController extends _$RideController {
       debugPrint('Start ride failed: $data');
       if (!ref.mounted) return;
       final reason = data['reason'] ?? 'unknown';
-      rootScaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Text('Yolculuk başlatılamadı: $reason'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (rootNavigatorKey.currentContext != null) {
+        CustomNotificationService().show(
+          rootNavigatorKey.currentContext!,
+          'Yolculuk başlatılamadı: $reason',
+          ToastType.error,
+        );
+      }
     });
 
     // End ride failed
@@ -350,12 +428,13 @@ class RideController extends _$RideController {
       debugPrint('End ride failed: $data');
       if (!ref.mounted) return;
       final reason = data['reason'] ?? 'unknown';
-      rootScaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(
-          content: Text('Yolculuk bitirilemedi: $reason'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      if (rootNavigatorKey.currentContext != null) {
+        CustomNotificationService().show(
+          rootNavigatorKey.currentContext!,
+          'Yolculuk bitirilemedi: $reason',
+          ToastType.error,
+        );
+      }
     });
 
     // Message send failed
@@ -363,9 +442,13 @@ class RideController extends _$RideController {
       debugPrint('Message failed: $data');
       if (!ref.mounted) return;
       final reason = data['reason'] ?? 'unknown';
-      rootScaffoldMessengerKey.currentState?.showSnackBar(
-        SnackBar(content: Text('Mesaj gönderilemedi: $reason')),
-      );
+      if (rootNavigatorKey.currentContext != null) {
+        CustomNotificationService().show(
+          rootNavigatorKey.currentContext!,
+          'Mesaj gönderilemedi: $reason',
+          ToastType.error,
+        );
+      }
     });
 
     // Polling fallback
@@ -430,8 +513,10 @@ class RideController extends _$RideController {
       stopListening();
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Arama iptal edildi.')),
+        CustomNotificationService().show(
+          context,
+          'Arama iptal edildi.',
+          ToastType.info,
         );
       }
 
@@ -442,8 +527,10 @@ class RideController extends _$RideController {
 
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('İptal edilemedi: $e')),
+        CustomNotificationService().show(
+          context,
+          'İptal edilemedi: $e',
+          ToastType.error,
         );
       }
     }

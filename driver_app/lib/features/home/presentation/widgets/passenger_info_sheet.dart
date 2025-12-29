@@ -12,6 +12,8 @@ import '../screens/driver_chat_screen.dart';
 import 'driver_cancellation_sheet.dart';
 import 'package:pinput/pinput.dart';
 import '../providers/optimistic_ride_provider.dart';
+import '../../../../core/widgets/custom_toast.dart';
+import 'package:flutter/services.dart';
 
 class PassengerInfoSheet extends ConsumerStatefulWidget {
   final Map<String, dynamic> rideData;
@@ -52,6 +54,7 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
 
   void _verifyAndStartRide(String code) {
     if (code.length == 4 && !_isVerifying) {
+      HapticFeedback.mediumImpact();
       final rideId = widget.rideData['ride_id']?.toString() ?? widget.rideData['id']?.toString();
       if (rideId != null) {
         // Optimistic UI: Start immediately without spinner
@@ -75,16 +78,27 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
   @override
   void initState() {
     super.initState();
-    bool isStarted = widget.rideData['status'] == 'started';
-    _currentMaxHeight = isStarted ? 0.31 : 0.5;
-
-    // Set initial position based on status after frame ready
+    // ADAPTIVE INIT
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (isStarted) {
-        if (widget.controller != null && widget.controller!.isAttached) {
-             widget.controller!.jumpTo(0.31);
-        }
-      }
+       if (mounted) {
+          final double screenHeight = MediaQuery.of(context).size.height;
+          final double safeAreaBottom = MediaQuery.of(context).viewPadding.bottom;
+          // BUFFER: Added +20px to ensure no internal scrolling
+          const double kPickupHeight = 420.0; 
+          const double kStartedHeight = 340.0;
+          
+          final bool isStarted = widget.rideData['status'] == 'started';
+          final double targetPixelHeight = isStarted ? kStartedHeight : kPickupHeight;
+          final double targetFraction = ((targetPixelHeight + safeAreaBottom) / screenHeight).clamp(0.20, 0.90);
+
+          setState(() {
+            _currentMaxHeight = targetFraction;
+          });
+          
+          if (widget.controller != null && widget.controller!.isAttached) {
+             widget.controller!.jumpTo(targetFraction);
+          }
+       }
     });
   }
 
@@ -95,7 +109,15 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
     final newStatus = widget.rideData['status'];
     
     if (oldStatus != newStatus) {
-       final double targetSize = (newStatus == 'started') ? 0.31 : 0.5;
+       // ADAPTIVE CALC
+       final double screenHeight = MediaQuery.of(context).size.height;
+       final double safeAreaBottom = MediaQuery.of(context).viewPadding.bottom;
+       // BUFFER: Added +20px
+       const double kPickupHeight = 420.0; 
+       const double kStartedHeight = 340.0;
+       
+       final double targetPixel = (newStatus == 'started') ? kStartedHeight : kPickupHeight;
+       final double targetSize = ((targetPixel + safeAreaBottom) / screenHeight).clamp(0.20, 0.90);
        final bool isExpanding = targetSize > _currentMaxHeight;
        final duration = const Duration(milliseconds: 300);
        
@@ -145,11 +167,36 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
         ? (widget.currentDistanceMeters! / 1000) 
         : ((widget.rideData['distance_meters'] as num?)?.toDouble() ?? 2500) / 1000;
 
+    // ADAPTIVE HEIGHT LOGIC
+    final double screenHeight = MediaQuery.of(context).size.height;
+    final double safeAreaBottom = MediaQuery.of(context).viewPadding.bottom;
+    
+    // Define heights (approximate pixels based on design)
+    // Pickup Mode: Header(100) + Timeline(80) + Actions(100) + Padding ~ 380px
+    const double kPickupHeight = 400.0; 
+    // Started Mode: Header(100) + Timeline(80) + FinishBtn(60) + Padding ~ 320px
+    const double kStartedHeight = 320.0;
+
+    final double targetPixelHeight = isStarted ? kStartedHeight : kPickupHeight;
+    final double totalTarget = targetPixelHeight + safeAreaBottom;
+    
+    // Calculate fraction
+    final double targetFraction = (totalTarget / screenHeight).clamp(0.25, 0.85);
+
+    // Update internal state variable if this build overrides it?
+    // Note: We use _currentMaxHeight for animation state.
+    // If we want purely adaptive, we should sync _currentMaxHeight with targetFraction
+    // BUT we need to respect the animation logic (didUpdateWidget). 
+    // Best approach: Initialize _currentMaxHeight with adaptive logic in initState/didChangeDependencies?
+    // For now, let's use the calculated fraction as the REFERENCE for maxChildSize.
+    
+    // Logic moved to variables above, this block just returns widget
+    // Clean build
     return DraggableScrollableSheet(
       controller: widget.controller,
-      initialChildSize: _currentMaxHeight,
-      minChildSize: _currentMaxHeight / 2, 
-      maxChildSize: _currentMaxHeight,
+      initialChildSize: targetFraction,
+      minChildSize: 0.2, 
+      maxChildSize: targetFraction,
       snap: true,
       builder: (context, scrollController) {
         return Container(
@@ -422,40 +469,46 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                        Row(
                          mainAxisAlignment: MainAxisAlignment.center,
                          children: [
-                           TextButton.icon(
-                            onPressed: () {
-                               final rideId = widget.rideData['ride_id']?.toString() ?? widget.rideData['id']?.toString();
-                                if (rideId != null) {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => DriverChatScreen(rideId: rideId)),
-                                  );
-                                }
-                            },
-                            icon: Icon(Icons.chat_bubble_outline_rounded, size: 18, color: Theme.of(context).primaryColor),
-                            label: Text('ride.send_message'.tr(), style: TextStyle(fontWeight: FontWeight.w600, color: Theme.of(context).primaryColor, fontSize: 13)),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              backgroundColor: Theme.of(context).primaryColor.withOpacity(0.05),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                           ),
+                           // Message Box
+                           OutlinedButton.icon(
+                              onPressed: () {
+                                 final rideId = widget.rideData['ride_id']?.toString() ?? widget.rideData['id']?.toString();
+                                  if (rideId != null) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (context) => DriverChatScreen(rideId: rideId)),
+                                    );
+                                  }
+                              },
+                              icon: Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Theme.of(context).primaryColor),
+                              label: Text('Mesaj Gönder', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor, fontSize: 13)),
+                              style: OutlinedButton.styleFrom(
+                                side: BorderSide(color: Theme.of(context).primaryColor),
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                backgroundColor: Colors.transparent,
+                              ),
+                             ),
+                           
                            const SizedBox(width: 12),
-                           TextButton.icon(
-                            onPressed: () {
-                               final rideId = widget.rideData['ride_id']?.toString() ?? widget.rideData['id']?.toString();
-                                if (rideId != null) {
-                                  _showCancelDialog(context, ref, rideId);
-                                }
-                            },
-                            icon: Icon(Icons.close, size: 18, color: Colors.red[400]),
-                            label: Text('ride.cancel_ride'.tr(), style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red[400], fontSize: 13)),
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                              backgroundColor: Colors.red.withOpacity(0.05),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                           ),
+
+                           // Cancel
+                           OutlinedButton.icon(
+                              onPressed: () {
+                                 final rideId = widget.rideData['ride_id']?.toString() ?? widget.rideData['id']?.toString();
+                                  if (rideId != null) {
+                                    _showCancelDialog(context, ref, rideId);
+                                  }
+                              },
+                              icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                              label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Colors.red),
+                                padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                backgroundColor: Colors.transparent,
+                              ),
+                             ),
                          ],
                        ),
                     ] else ...[
@@ -681,7 +734,8 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                         final fareText = fareController.text.replaceAll(',', '.');
                         final fare = double.tryParse(fareText);
                         
-                        if (fare != null && fare >= 175) {
+                        if (fare != null && fare >= 175 && fare <= 50000) {
+                          HapticFeedback.mediumImpact();
                           Navigator.pop(context);
                           
                           // OPTIMISTIC UI: Hide sheet instantly ('Zınk')
@@ -692,8 +746,10 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                             'fare_actual': fare,
                           });
                         } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text('ride.min_fare_error'.tr())),
+                          CustomNotificationService().show(
+                            context,
+                            'Tutar 175 TL ile 50.000 TL arasında olmalıdır.',
+                            ToastType.error
                           );
                         }
                       },

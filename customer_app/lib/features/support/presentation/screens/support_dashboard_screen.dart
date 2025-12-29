@@ -33,7 +33,7 @@ class SupportDashboardScreen extends ConsumerWidget {
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.go('/support/create'),
+        onPressed: () => context.push('/support/create'),
         label: Text('support.new_ticket'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
         icon: const Icon(Icons.add),
         backgroundColor: const Color(0xFF1A77F6), // Brand Blue
@@ -119,7 +119,7 @@ class SupportDashboardScreen extends ConsumerWidget {
                       ),
                     ),
                   ),
-                  onTap: () => context.go('/support/chat/${ticket['id']}'),
+                  onTap: () => context.push('/support/chat/${ticket['id']}'),
                 ),
               );
             },

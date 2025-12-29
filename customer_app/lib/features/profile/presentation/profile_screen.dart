@@ -8,6 +8,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/widgets/otp_sheet.dart';
+import '../../../core/widgets/custom_toast.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -74,15 +75,19 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ref.invalidate(authProvider); 
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('profile.updated'.tr())),
+        CustomNotificationService().show(
+          context,
+          'profile.updated'.tr(),
+          ToastType.success,
         );
         setState(() => _hasChanges = false);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('profile.error'.tr(args: [e.toString()]))),
+        CustomNotificationService().show(
+          context,
+          'profile.error'.tr(args: [e.toString()]),
+          ToastType.error,
         );
       }
     } finally {
@@ -104,14 +109,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ref.invalidate(authProvider);
         
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('profile.updated'.tr())),
-          );
+           CustomNotificationService().show(
+            context,
+            'profile.updated'.tr(),
+            ToastType.success,
+           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('profile.error'.tr(args: [e.toString()]))),
+          CustomNotificationService().show(
+            context,
+            'profile.error'.tr(args: [e.toString()]),
+            ToastType.error,
           );
         }
       } finally {
@@ -161,7 +170,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     child: ClipOval(
                       child: (user.profilePhoto != null && user.profilePhoto!.isNotEmpty)
                           ? Image.network(
-                              user.profilePhoto!.startsWith('http') ? user.profilePhoto! : '${AppConstants.baseUrl}/${user.profilePhoto}',
+                              user.profilePhoto!.startsWith('http') 
+                                  ? user.profilePhoto! 
+                                  : '${AppConstants.baseUrl}/${user.profilePhoto!.replaceAll(RegExp(r'^/+'), '')}',
                               fit: BoxFit.cover,
                               width: 100,
                               height: 100,
@@ -426,9 +437,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               if (phone != null) {
                 _showDeleteOtpSheet(context, ref, phone);
               } else {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Telefon numarası bulunamadı')),
-                 );
+                  CustomNotificationService().show(
+                    context,
+                    'Telefon numarası bulunamadı',
+                    ToastType.error,
+                  );
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -463,14 +476,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 await ref.read(authProvider.notifier).deleteAccount(code);
                 if (context.mounted) {
                   context.go('/login');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('profile.deleted'.tr())),
+                  CustomNotificationService().show(
+                    context,
+                    'profile.deleted'.tr(),
+                    ToastType.success,
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('profile.error'.tr(args: [e.toString()]))),
+                  CustomNotificationService().show(
+                    context,
+                    'profile.error'.tr(args: [e.toString()]),
+                    ToastType.error,
                   );
                 }
               }

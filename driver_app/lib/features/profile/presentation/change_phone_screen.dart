@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/custom_toast.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../auth/presentation/widgets/otp_sheet.dart';
 import '../../auth/data/auth_service.dart';
@@ -56,15 +57,19 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
       await ref.refresh(authProvider.future);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Telefon numaranız başarıyla güncellendi.')),
+        CustomNotificationService().show(
+          context,
+          'Telefon numaranız başarıyla güncellendi.',
+          ToastType.success,
         );
         Navigator.pop(context); // Go back to Profile
       }
     } catch (e) {
       if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: $e')),
+         CustomNotificationService().show(
+          context,
+          'Hata: $e',
+          ToastType.error,
         );
       }
     } finally {
@@ -75,8 +80,10 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
   Future<void> _startUpdate() async {
     final phone = _phoneController.text.trim();
     if (phone.isEmpty || phone.length < 10) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Geçerli bir telefon numarası giriniz')),
+      CustomNotificationService().show(
+        context,
+        'Geçerli bir telefon numarası giriniz',
+        ToastType.error,
       );
       return;
     }

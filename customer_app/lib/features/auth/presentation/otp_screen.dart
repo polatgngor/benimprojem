@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:pinput/pinput.dart';
 import 'auth_provider.dart';
+import '../../../../core/widgets/custom_toast.dart';
 
 import 'dart:async';
 
@@ -90,18 +91,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
       }
     } catch (e) {
       if (mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Hata', style: TextStyle(color: Colors.red)),
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Tamam'),
-              ),
-            ],
-          ),
+        CustomNotificationService().show(
+          context,
+          e.toString().replaceAll('Exception: ', ''),
+          ToastType.error,
         );
       }
     } finally {
@@ -152,9 +145,24 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const SizedBox(height: 20),
+              const SizedBox(height: 60), // Space for icon
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1A77F6).withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.mark_email_read_outlined,
+                    size: 64,
+                    color: Color(0xFF1A77F6),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
               Text(
-                'auth.otp_verification'.tr(),
+                'auth.verify_title'.tr(),
                 style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
                 textAlign: TextAlign.center,
               ),
@@ -206,8 +214,10 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
                    TextButton(
                      onPressed: _start == 0 ? () {
                        ref.read(authProvider.notifier).sendOtp(widget.phone);
-                       ScaffoldMessenger.of(context).showSnackBar(
-                         SnackBar(content: Text('auth.resend_code'.tr())), 
+                       CustomNotificationService().show(
+                         context,
+                         'auth.resend_code'.tr(),
+                        ToastType.success,
                        );
                        setState(() {
                          _start = 180;

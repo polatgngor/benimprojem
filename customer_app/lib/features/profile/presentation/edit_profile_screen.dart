@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/presentation/auth_provider.dart';
+import '../../../core/widgets/custom_toast.dart';
 
 class EditProfileScreen extends ConsumerStatefulWidget {
   const EditProfileScreen({super.key});
@@ -62,19 +63,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ref.refresh(authProvider);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('profile.updated'.tr())),
+        CustomNotificationService().show(
+          context,
+          'profile.updated'.tr(),
+          ToastType.success,
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('profile.error'.tr(args: [e.toString()])),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+        CustomNotificationService().show(
+          context,
+          'profile.error'.tr(args: [e.toString()]),
+          ToastType.error,
         );
       }
     } finally {

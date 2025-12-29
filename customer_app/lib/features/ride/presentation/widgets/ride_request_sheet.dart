@@ -209,7 +209,7 @@ class RideRequestSheet extends ConsumerWidget {
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
         ),
-        const SizedBox(height: 34), // Extra bottom padding for safe area
+        // SizedBox(height: 34) Removed - handled by RideBookingSheet
       ],
     );
   }

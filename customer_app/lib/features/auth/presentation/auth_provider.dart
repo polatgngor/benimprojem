@@ -2,9 +2,13 @@ import 'dart:io';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 import '../data/user_model.dart';
 import '../../../core/api/api_client.dart';
+
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 part 'auth_provider.g.dart';
 
@@ -17,24 +21,59 @@ class Auth extends _$Auth {
     // Check if token exists
     final token = await _storage.read(key: 'accessToken');
     if (token != null) {
-      // Register Push Token (Fire and Forget) - Correct placement
+      // Register Push Token
       _initPushToken();
 
-      try {
-        final repository = ref.read(authRepositoryProvider);
-        final user = await repository.getProfile();
-        return user;
-      } catch (e) {
-        // If profile fetch fails (e.g. token expired), clear token
-        await _storage.delete(key: 'accessToken');
-        return null;
-      }
-    }
-    // Listen for 401 events
-    final sub = apiClientUnauthorizedStream.stream.listen((_) => logout());
-    ref.onDispose(sub.cancel);
+      // Listen for 401 events
+      final sub = apiClientUnauthorizedStream.stream.listen((_) => logout());
+      ref.onDispose(sub.cancel);
 
+      // OPTIMISTIC START: Try to load from SharedPreferences
+      UserModel? optimisticUser;
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final userStr = prefs.getString('userData');
+        if (userStr != null) {
+          optimisticUser = UserModel.fromJson(jsonDecode(userStr));
+        }
+      } catch (e) {
+        debugPrint('Error loading cached user: $e');
+      }
+
+      // If no cached user, use fallback (though this should rarely happen if we save correctly)
+      optimisticUser ??= UserModel(
+        id: 0, 
+        firstName: 'Yolcu', 
+        lastName: '', 
+        phone: '', 
+        role: 'passenger',
+        profilePhoto: null,
+      );
+      
+      // Trigger background sync
+      Future.delayed(Duration.zero, () => _fetchRealProfile());
+
+      return optimisticUser;
+    }
+    
     return null;
+  }
+
+  Future<void> _fetchRealProfile() async {
+    try {
+      final repository = ref.read(authRepositoryProvider);
+      final user = await repository.getProfile();
+      
+      // Update cache
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userData', jsonEncode(user.toJson()));
+
+      state = AsyncValue.data(user);
+    } catch (e) {
+      debugPrint('Optimistic Auth Failed: $e');
+      // Only logout if it's a 401, which is handled by the stream listener.
+      // If it's a network error, we keep the optimistic user.
+    }
   }
 
   Future<void> _initPushToken() async {
@@ -83,6 +122,11 @@ class Auth extends _$Auth {
          final user = UserModel.fromJson(userJson);
 
          await _storage.write(key: 'accessToken', value: token);
+         
+         // Save to SharedPreferences
+         final prefs = await SharedPreferences.getInstance();
+         await prefs.setString('userData', jsonEncode(user.toJson()));
+
          state = AsyncValue.data(user);
          
          // Register token on login
@@ -127,6 +171,9 @@ class Auth extends _$Auth {
       // Register token on register
       _initPushToken();
       
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userData', jsonEncode(user.toJson()));
+      
       return user;
     });
   }
@@ -137,6 +184,8 @@ class Auth extends _$Auth {
       await repository.logout();
     } catch (_) {}
     await _storage.deleteAll();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userData');
     state = const AsyncValue.data(null);
   }
 

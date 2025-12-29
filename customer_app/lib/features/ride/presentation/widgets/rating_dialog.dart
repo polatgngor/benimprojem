@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../data/ride_repository.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../../../core/widgets/custom_toast.dart';
 
 class RatingDialog extends ConsumerStatefulWidget {
   final String rideId;
@@ -46,9 +47,11 @@ class _RatingDialogState extends ConsumerState<RatingDialog> with SingleTickerPr
     if (_rating == 0) return;
     
     // Optimistic UI: Close immediately, assume success
-    context.pop();
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('rating.success'.tr())),
+    context.pop(_rating);
+    CustomNotificationService().show(
+      context,
+      'rating.success'.tr(),
+      ToastType.success,
     );
 
     // Fire and forget (or handle error silently/later)

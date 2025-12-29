@@ -4,6 +4,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../home/presentation/screens/driver_chat_screen.dart';
 import '../../rides/presentation/widgets/rating_dialog.dart';
+import '../../../core/utils/string_utils.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/directions_service.dart';
 
@@ -128,7 +129,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     // Passenger Info
     final passenger = ride['passenger'];
     final passengerName = passenger != null 
-        ? '${passenger['first_name']} ${passenger['last_name']}'
+        ? StringUtils.maskName('${passenger['first_name']} ${passenger['last_name']}')
         : null;
     final profilePhoto = passenger?['profile_photo'];
 
@@ -143,8 +144,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
         title: const Text('Yolculuk Detayı'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        elevation: 0,
-        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 30),
@@ -183,35 +186,55 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                 children: [
                   // Fare & Date Header
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
+                       // Left: Price & Payment Type
                        Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '₺${fare ?? 0}',
                             style: TextStyle(
-                               fontSize: 36, 
+                               fontSize: 40, 
                                fontWeight: FontWeight.w900,
-                               color: Theme.of(context).primaryColor,
-                               letterSpacing: -1.5,
+                               color: Colors.black, // Changed to Black
+                               letterSpacing: -1.0,
+                               height: 1.0,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _buildPaymentBadge(paymentMethod),
-                              const SizedBox(width: 12),
-                              Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                              const SizedBox(width: 4),
-                              Text(
-                                dateStr,
-                                style: TextStyle(color: Colors.grey[800], fontSize: 13, fontWeight: FontWeight.w600),
-                              ),
-                            ],
-                          ),
+                          _buildPaymentText(paymentMethod),
                         ],
+                      ),
+                      
+                      // Right: Date & Time
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.transparent, // No background
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade300), // Border only
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_month_rounded, size: 24, color: Colors.grey[700]),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end, // Right align
+                              children: [
+                                Text(
+                                  DateFormat('dd MMM yyyy', 'tr').format(DateTime.tryParse(ride['created_at'] ?? '') ?? DateTime.now()),
+                                  style: TextStyle(color: Colors.grey[900], fontSize: 15, fontWeight: FontWeight.w900),
+                                ),
+                                Text(
+                                  DateFormat('HH:mm').format(DateTime.tryParse(ride['created_at'] ?? '') ?? DateTime.now()),
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -286,7 +309,15 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                     
                     // Rating Section
                     if (status == 'completed') ...[
-                      if (myRating != null) 
+                       if (myRating != null) ...[
+                         const Align(
+                           alignment: Alignment.centerLeft,
+                           child: Text(
+                              'Yolcuya Verdiğiniz Puan', 
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                           ),
+                         ),
+                         const SizedBox(height: 16),
                          Container(
                            width: double.infinity,
                            padding: const EdgeInsets.all(16),
@@ -314,28 +345,37 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                                ]
                              ],
                            ),
-                         )
-                      else
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                               showDialog(
-                                 context: context,
-                                 builder: (_) => DriverRatingDialog(rideId: ride['id'].toString(), passengerName: passengerName ?? ''),
-                               );
-                            },
-                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                              elevation: 0,
-                            ),
-                            icon: const Icon(Icons.star, size: 20),
-                            label: const Text('Yolculuyu Puanla', style: TextStyle(fontWeight: FontWeight.bold)),
-                          ),
-                        ),
+                         ), // Added closing
+                       ] else 
+                         SizedBox(
+                           width: double.infinity,
+                           child: ElevatedButton.icon(
+                             onPressed: () async {
+                                final result = await showDialog(
+                                  context: context,
+                                  builder: (_) => DriverRatingDialog(rideId: ride['id'].toString(), passengerName: passengerName ?? ''),
+                                );
+                                
+                                 if (result != null && result is int && mounted) {
+                                    setState(() {
+                                       ride['my_rating'] = {
+                                         'stars': result,
+                                         'comment': '', // Placeholder
+                                       };
+                                    });
+                                 }
+                             },
+                              style: ElevatedButton.styleFrom(
+                               backgroundColor: Colors.black,
+                               foregroundColor: Colors.white,
+                               padding: const EdgeInsets.symmetric(vertical: 16),
+                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                               elevation: 0,
+                             ),
+                             icon: const Icon(Icons.star, size: 20),
+                             label: const Text('Yolculuyu Puanla', style: TextStyle(fontWeight: FontWeight.bold)),
+                           ),
+                         ),
                     ],
                   ],
                 ],
@@ -347,13 +387,13 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     );
   }
   
-  Widget _buildPaymentBadge(String? method) {
-    bool isCard = method == 'card';
+  Widget _buildPaymentText(String? method) {
+    bool isCard = method == 'card' || method == 'credit_card';
     return Text(
       isCard ? 'POS' : 'Nakit',
       style: TextStyle(
         color: isCard ? const Color(0xFF6366F1) : const Color(0xFF22C55E),
-        fontSize: 16,
+        fontSize: 22, // Reduced size
         fontWeight: FontWeight.w900,
         letterSpacing: 0.5,
       ),

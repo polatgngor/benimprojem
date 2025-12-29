@@ -5,6 +5,7 @@ import 'package:easy_localization/easy_localization.dart';
 import '../../../../features/auth/data/auth_service.dart';
 import '../../../../core/services/socket_service.dart';
 import '../../../rides/data/ride_repository.dart';
+import '../../../../core/widgets/custom_toast.dart';
 
 class DriverCancellationSheet extends ConsumerStatefulWidget {
   final String rideId;
@@ -134,15 +135,19 @@ class _DriverCancellationSheetState extends ConsumerState<DriverCancellationShee
                             
                             if (context.mounted) {
                               Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(content: Text('ride.cancel_success'.tr())),
+                              CustomNotificationService().show(
+                                context, 
+                                'ride.cancel_success'.tr(), 
+                                ToastType.success
                               );
                             }
                           } catch (e) {
                              if (context.mounted) {
                                Navigator.pop(context); 
-                               ScaffoldMessenger.of(context).showSnackBar(
-                                 SnackBar(content: Text('ride.cancel_fail'.tr(args: [e.toString()]))),
+                               CustomNotificationService().show(
+                                 context, 
+                                 'ride.cancel_fail'.tr(args: [e.toString()]), 
+                                 ToastType.error
                                );
                              }
                           }

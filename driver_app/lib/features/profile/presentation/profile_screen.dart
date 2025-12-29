@@ -1,9 +1,10 @@
-import 'dart:io';
+import '../../../core/widgets/custom_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'dart:io';
 import '../../auth/data/auth_service.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../../../core/constants/app_constants.dart';
@@ -80,8 +81,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       ref.invalidate(driverProfileProvider);
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('profile.updated'.tr())),
+        CustomNotificationService().show(
+          context,
+          'profile.updated'.tr(),
+          ToastType.success,
         );
         setState(() => _hasChanges = false);
         // We set _isDataInitialized to false to allow re-syncing with new data if needed,
@@ -94,8 +97,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('profile.error'.tr(args: [e.toString()]))),
+        CustomNotificationService().show(
+          context,
+          'profile.error'.tr(args: [e.toString()]),
+          ToastType.error,
         );
       }
     } finally {
@@ -118,14 +123,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ref.invalidate(driverProfileProvider);
         
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('profile.updated'.tr())),
+           CustomNotificationService().show(
+            context,
+            'profile.updated'.tr(),
+            ToastType.success,
           );
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('profile.error'.tr(args: [e.toString()]))),
+          CustomNotificationService().show(
+            context,
+            'profile.error'.tr(args: [e.toString()]),
+            ToastType.error,
           );
         }
       } finally {
@@ -484,8 +493,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               if (phone != null) {
                 _showDeleteOtpSheet(context, ref, phone);
               } else {
-                 ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Telefon numarası bulunamadı')),
+                 CustomNotificationService().show(
+                    context,
+                    'Telefon numarası bulunamadı',
+                    ToastType.error,
                  );
               }
             },
@@ -521,14 +532,18 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 await ref.read(authProvider.notifier).deleteAccount(code);
                 if (context.mounted) {
                   context.go('/login');
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('profile.deleted'.tr())),
+                  CustomNotificationService().show(
+                    context,
+                    'profile.deleted'.tr(),
+                    ToastType.success,
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('profile.error'.tr(args: [e.toString()]))),
+                  CustomNotificationService().show(
+                    context,
+                    'profile.error'.tr(args: [e.toString()]),
+                    ToastType.error,
                   );
                 }
               }

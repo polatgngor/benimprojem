@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:easy_localization/easy_localization.dart';
+import 'package:flutter/services.dart';
 
 class RideRequestSheet extends StatelessWidget {
   final Map<String, dynamic> request;
@@ -95,7 +96,10 @@ class RideRequestSheet extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton(
-                  onPressed: onReject,
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    onReject();
+                  },
                   style: OutlinedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     side: const BorderSide(color: Colors.red, width: 2),
@@ -107,7 +111,10 @@ class RideRequestSheet extends StatelessWidget {
               const SizedBox(width: 16),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: onAccept,
+                  onPressed: () {
+                    HapticFeedback.mediumImpact();
+                    onAccept();
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     foregroundColor: Colors.white,

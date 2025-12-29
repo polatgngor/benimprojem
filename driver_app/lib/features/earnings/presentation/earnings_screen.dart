@@ -207,8 +207,9 @@ class EarningsScreen extends ConsumerWidget {
   
   Widget _buildTransactionCard(BuildContext context, Map<String, dynamic> ride) {
     final fare = (ride['fare_actual'] ?? 0).toString();
-    // Use server-provided Turkey Time formatted string
-    final simpleParams = ride['date_formatted'] ?? ''; 
+    final simpleParams = ride['date_formatted'] ?? '';
+    final paymentMethod = ride['payment_method'] ?? 'nakit';
+    final isCash = paymentMethod == 'nakit';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -221,11 +222,11 @@ class EarningsScreen extends ConsumerWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
               shape: BoxShape.circle,
             ),
-            child: Icon(Icons.attach_money, color: Theme.of(context).primaryColor),
+            child: Icon(Icons.payments_rounded, color: Theme.of(context).primaryColor),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -233,8 +234,8 @@ class EarningsScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'earnings.ride_id'.tr(args: [ride['id'].toString()]),
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+                  isCash ? 'earnings.payment_cash'.tr() : 'earnings.payment_pos'.tr(),
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -245,8 +246,8 @@ class EarningsScreen extends ConsumerWidget {
             ),
           ),
           Text(
-            '+ ₺$fare',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.green),
+            '₺$fare',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.green),
           ),
         ],
       ),

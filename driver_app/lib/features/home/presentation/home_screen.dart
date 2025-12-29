@@ -1,5 +1,8 @@
 import 'dart:async';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -10,6 +13,7 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/socket_service.dart';
 import '../../../core/services/notification_service.dart';
+import '../../../core/widgets/custom_toast.dart';
 import '../../auth/data/auth_service.dart';
 import 'widgets/match_processing_sheet.dart';
 import 'widgets/driver_stats_sheet.dart';
@@ -32,7 +36,10 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
   final Completer<GoogleMapController> _controller = Completer();
-  LatLng? _currentPosition;
+  // Default to Istanbul center if location not yet found
+  LatLng _currentPosition = const LatLng(41.0082, 28.9784); 
+  bool _hasRealLocation = false;
+  
   bool _isOnline = false;
   StreamSubscription<Position>? _positionSubscription;
   Map<String, dynamic>? _incomingRequest; 
@@ -41,10 +48,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   
   Timer? _locationUpdateTimer;
   
-  // Animation
-  late AnimationController _flowController;
-  List<LatLng> _currentRoutePoints = [];
-  List<LatLng> _flowPolylinePoints = [];
+  // Flow Animation Removed
 
   Set<Polyline> _polylines = {};
   
@@ -58,22 +62,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
-    _flowController = AnimationController(
-       vsync: this,
-       duration: const Duration(seconds: 2),
-    )..repeat();
-
-    _flowController.addListener(() {
-       if (_currentRoutePoints.isNotEmpty && mounted) {
-          final t = _flowController.value;
-          _calculateFlowPolyline(t);
-       } else if (mounted && _flowPolylinePoints.isNotEmpty) {
-           // Safety: clear if no route
-           setState(() {
-             _flowPolylinePoints = [];
-           });
-       }
-    });
+    // Flow Animation Removed
 
     _initializeLocation();
     WakelockPlus.enable();
@@ -95,27 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     });
   }
 
-  void _calculateFlowPolyline(double t) {
-      if (_currentRoutePoints.length < 2) return;
-      
-      final int totalPoints = _currentRoutePoints.length;
-      final int stripLength = (totalPoints * 0.20).clamp(5, 50).toInt(); 
-      
-      final int headIndex = (t * (totalPoints + stripLength)).floor(); 
-      final int tailIndex = headIndex - stripLength;
-      
-      final List<LatLng> visiblePoints = [];
-      
-      for (int i = 0; i < totalPoints; i++) {
-         if (i >= tailIndex && i <= headIndex) {
-            visiblePoints.add(_currentRoutePoints[i]);
-         }
-      }
-      
-      setState(() {
-         _flowPolylinePoints = visiblePoints;
-      }); 
-  }
+  // Methods Removed
 
   final DraggableScrollableController _statsSheetController = DraggableScrollableController();
   final DraggableScrollableController _passengerInfoController = DraggableScrollableController();
@@ -197,7 +166,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       controller.animateCamera(CameraUpdate.newCameraPosition(
         CameraPosition(
           target: LatLng(position.latitude, position.longitude),
-          zoom: 10, 
+          zoom: 12, 
         ),
       ));
     } catch (_) {}
@@ -205,7 +174,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
   @override
   void dispose() {
-    _flowController.dispose();
+    // Flow controller removed
     _statsSheetController.dispose();
     _passengerInfoController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -225,8 +194,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null;
           _polylines.clear();
-          _currentRoutePoints = [];
-          _flowPolylinePoints = [];
+          _activeRide = null;
+          _polylines.clear();
+          // Flow Reset Removed
         });
         debugPrint('Optimistic Completion Triggered');
         // We don't need to do anything else, the socket 'end_ride_ok' will eventually confirm,
@@ -246,50 +216,41 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
              setState(() {
                _activeRide = null;
                _polylines.clear();
-               _currentRoutePoints = [];
-               _flowPolylinePoints = [];
+               _polylines.clear();
+               // Flow Reset Removed
              });
          }
       }
     });
 
     return Scaffold(
+      resizeToAvoidBottomInset: false, // PERFORMANCE FIX: Prevent Map resize when keyboard opens
       drawer: const DriverDrawer(),
       body: LayoutBuilder(
         builder: (context, constraints) {
           return Stack(
             children: [
               // Map Layer
-              _currentPosition == null
-                  ? const Center(child: CircularProgressIndicator())
-                  : GoogleMap(
-                      trafficEnabled: true,
-                      mapType: MapType.normal,
-                      initialCameraPosition: CameraPosition(
-                        target: _currentPosition!,
-                        zoom: 10,
-                      ),
-                      myLocationEnabled: true,
+              GoogleMap(
+                  trafficEnabled: true,
+                  mapType: MapType.normal,
+                  initialCameraPosition: CameraPosition(
+                    target: _currentPosition,
+                    zoom: 12, // Standardized City View
+                  ),
+                  myLocationEnabled: true,
                       myLocationButtonEnabled: false,
                       zoomControlsEnabled: false,
-                      padding: const EdgeInsets.only(bottom: 280, top: 100),
+                      // Padding reduced to 0 to match Customer App (hiding Google Logo under sheet)
+                      padding: EdgeInsets.zero, 
                       onMapCreated: (GoogleMapController controller) {
                         _controller.complete(controller);
                       },
                       markers: _createMarkers(),
                       polylines: {
                         ..._polylines,
-                        if (_flowPolylinePoints.isNotEmpty)
-                           Polyline(
-                              polylineId: const PolylineId('route_flow'),
-                              points: _flowPolylinePoints,
-                              color: Colors.lightBlueAccent, // Neon effect
-                              width: 4,
-                              zIndex: 2,
-                              jointType: JointType.round,
-                              startCap: Cap.roundCap,
-                              endCap: Cap.roundCap,
-                           ),
+                        // Flow removed
+                           // Flow removed
                       },
                     ),
 
@@ -320,6 +281,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 ),
               ),
 
+                // BRANDING LOGO (Bottom Left - Floating with Sheet)
+                AnimatedBuilder(
+                  animation: Listenable.merge([_statsSheetController, _passengerInfoController]),
+                  builder: (context, child) {
+                    double bottomPosition = 16.0;
+                    double sheetHeight = 0.0;
+                    
+                    try {
+                      if (_activeRide != null) {
+                         if (_passengerInfoController.isAttached) {
+                           sheetHeight = _passengerInfoController.size * constraints.maxHeight;
+                         }
+                      } else {
+                         if (_statsSheetController.isAttached) {
+                           sheetHeight = _statsSheetController.size * constraints.maxHeight;
+                         }
+                      }
+                    } catch (_) {}
+                    
+                    if (sheetHeight == 0) {
+                      // Adaptive Fallback
+                      final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+                      double targetPixels = _activeRide != null ? 380.0 : 350.0;
+                      targetPixels += safeArea;
+                      sheetHeight = targetPixels;
+                    }
+                    
+                    // SAFE AREA VALIDATION
+                    double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
+                    bottomPosition = sheetHeight + 10;
+                    if (bottomPosition < minBottom) bottomPosition = minBottom;
+                    
+                    return Positioned(
+                      left: 16,
+                      bottom: bottomPosition,
+                      child: child!,
+                    );
+                  },
+                  child: Container(
+                    height: 48,
+                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                    // Decoration removed
+                    child: Center(
+                      child: Text(
+                        'taksibu',
+                        style: GoogleFonts.montserrat(
+                          color: const Color(0xFF0866ff),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -1.0,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
               // Custom Location Button
               AnimatedBuilder(
                 animation: Listenable.merge([_statsSheetController, _passengerInfoController]),
@@ -342,10 +359,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   
                   // Fallback defaults if not attached yet
                   if (sheetHeight == 0) {
-                    sheetHeight = (_activeRide != null ? 0.4 : 0.3) * constraints.maxHeight; 
+                      final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+                      double targetPixels = _activeRide != null ? 380.0 : 350.0;
+                      targetPixels += safeArea;
+                      sheetHeight = targetPixels; 
                   }
                   
+                  // SAFE AREA VALIDATION
+                  double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
                   bottomPosition = sheetHeight + 16;
+                  if (bottomPosition < minBottom) bottomPosition = minBottom;
                   
                   return Positioned(
                     right: 16,
@@ -530,18 +553,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null; 
           _polylines.clear();
-          _currentRoutePoints = [];
-          _flowPolylinePoints = [];
+          // Flow cleanup
         });
         
         ref.read(incomingRequestsProvider.notifier).removeRequest(data['ride_id'].toString());
         
         // Show error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Çağrı kabul edilemedi: ${data['reason'] ?? 'Başka sürücü aldı'}'),
-            backgroundColor: Colors.red,
-          )
+        CustomNotificationService().show(
+          context,
+          'Çağrı kabul edilemedi: ${data['reason'] ?? 'Başka sürücü aldı'}',
+          ToastType.error
         );
         debugPrint('Çağrı kabul edilemedi: ${data['reason'] ?? 'Bilinmeyen hata'}');
         
@@ -590,8 +611,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null;
           _polylines.clear();
-          _currentRoutePoints = [];
-          _flowPolylinePoints = [];
+          // Flow cleanup
         });
         
         _setDriverAvailable(); // Auto-available in background
@@ -621,8 +641,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       if (mounted) {
         ref.read(ringtoneServiceProvider).stopRingtone();
         ref.read(incomingRequestsProvider.notifier).removeRequest(data['ride_id'].toString());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Çağrı başka bir sürücü tarafından kabul edildi.'), duration: Duration(seconds: 2)),
+        CustomNotificationService().show(
+          context,
+          'Çağrı başka bir sürücü tarafından kabul edildi.',
+          ToastType.info
         );
       }
     });
@@ -631,8 +653,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       if (mounted) {
         ref.read(ringtoneServiceProvider).stopRingtone();
         ref.read(incomingRequestsProvider.notifier).removeRequest(data['ride_id'].toString());
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Yolcu çağrıyı iptal etti.'), duration: Duration(seconds: 2)),
+        CustomNotificationService().show(
+          context,
+          'Yolcu çağrıyı iptal etti.',
+          ToastType.info
         );
       }
     });
@@ -650,8 +674,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null;
           _polylines.clear();
-          _currentRoutePoints = [];
-          _flowPolylinePoints = [];
+          // Flow cleanup
         });
 
         _setDriverAvailable(); // Force availability
@@ -751,8 +774,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         setState(() {
           _activeRide = null;
           _polylines.clear();
-          _currentRoutePoints = [];
-          _flowPolylinePoints = [];
+          // Flow cleanup
         });
 
         _setDriverAvailable();
@@ -773,12 +795,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   Future<void> _initializeLocation() async {
     try {
       final position = await ref.read(locationServiceProvider).determinePosition();
+      if (!mounted) return;
+      
       setState(() {
         _currentPosition = LatLng(position.latitude, position.longitude);
+        _hasRealLocation = true;
       });
       
       final controller = await _controller.future;
-      controller.animateCamera(CameraUpdate.newLatLng(_currentPosition!));
+      controller.animateCamera(CameraUpdate.newLatLng(_currentPosition));
     } catch (e) {
       if (mounted) {
         debugPrint('Konum hatası: $e');
@@ -956,10 +981,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       LatLng start;
       LatLng end;
 
+      // Strict Status Check
+      // Only switch to Dropoff Route if status is EXPLICITLY 'started'
+      // This prevents "End Point" route showing up while still picking up passenger
       final isStarted = _activeRide!['status'] == 'started';
 
       if (isStarted) {
-        // Ride Started: Route from Driver's Current Location -> Dropoff
+        // PHASE 2: Driver -> Dropoff
         final endLat = double.tryParse(_activeRide!['end_lat']?.toString() ?? 
                                      _activeRide!['dropoff_location']?['lat']?.toString() ?? 
                                      _activeRide!['end']?['lat']?.toString() ?? '');
@@ -971,7 +999,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         start = _currentPosition!; 
         end = LatLng(endLat, endLng);
       } else {
-        // Driver -> Pickup
+        // PHASE 1: Driver -> Pickup (Default for assigned/accepted/driverFound)
         start = _currentPosition!;
         final pickupLat = double.tryParse(_activeRide!['start_lat']?.toString() ?? 
                                         _activeRide!['pickup_location']?['lat']?.toString() ?? 
@@ -997,8 +1025,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               Polyline(
                 polylineId: const PolylineId('route'),
                 points: points,
-                color: Colors.blue,
-                width: 4, // Thinner (was 5)
+                color: const Color(0xFF0865ff), // Deep Blue
+                width: 4, // Thinner (Standardized)
                 jointType: JointType.round,
                 startCap: Cap.roundCap,
                 endCap: Cap.roundCap,
@@ -1007,7 +1035,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             };
             _routeDistanceMeters = dist;
             _routeDurationSeconds = dur;
-            _currentRoutePoints = points; // Set for animation
+            // Flow cleanup
+            // Reset... Removed
+            // _flowPolylinePoints = []; // Removed 
           });
           
           if (fitBounds) {

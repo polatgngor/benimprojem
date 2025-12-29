@@ -5,6 +5,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../ride/presentation/chat_screen.dart';
 import '../../ride/presentation/widgets/rating_dialog.dart';
+import '../../../core/utils/string_utils.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/directions_service.dart';
 
@@ -130,7 +131,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     // Driver Info
     final driver = ride['driver'];
     final driverName = driver != null 
-        ? '${driver['first_name']} ${driver['last_name']}'
+        ? StringUtils.maskName('${driver['first_name']} ${driver['last_name']}')
         : null;
     final plate = driver?['driver']?['vehicle_plate'] ?? '';
     final profilePhoto = driver?['profile_photo'];
@@ -145,8 +146,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
         title: const Text('Yolculuk Detayı'),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
-        elevation: 0,
-        centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.only(bottom: 30),
@@ -183,43 +186,58 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Header: Price, Payment Badge, Date
+                  // Fare & Date Header
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
+                       // Left: Price & Payment Type
+                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '₺${fare ?? 0}',
                             style: TextStyle(
-                               fontSize: 36, 
+                               fontSize: 40, 
                                fontWeight: FontWeight.w900,
-                               color: Theme.of(context).primaryColor,
-                               letterSpacing: -1.5,
+                               color: Colors.black, // Changed from Primary Color
+                               letterSpacing: -1.0,
+                               height: 1.0,
                             ),
                           ),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _buildPaymentBadge(paymentMethod),
-                              const SizedBox(width: 12),
-                              Icon(Icons.calendar_today, size: 14, color: Colors.grey[600]),
-                              const SizedBox(width: 4),
-                              Text(
-                                dateStr,
-                                style: TextStyle(
-                                  color: Colors.grey[800], 
-                                  fontSize: 13, 
-                                  fontWeight: FontWeight.w600
-                                ),
-                              ),
-                            ],
-                          ),
+                          _buildPaymentText(paymentMethod),
                         ],
                       ),
-                      // Optional: Status Icon or something else
+                      
+                      // Right: Date & Time
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.transparent, // No background
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.grey.shade300), // Border only
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.calendar_month_rounded, size: 24, color: Colors.grey[700]),
+                            const SizedBox(width: 10),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end, // Right align date & time
+                              children: [
+                                Text(
+                                  DateFormat('dd MMM yyyy', 'tr').format(DateTime.tryParse(ride['created_at'] ?? '') ?? DateTime.now()),
+                                  style: TextStyle(color: Colors.grey[900], fontSize: 15, fontWeight: FontWeight.w900),
+                                ),
+                                Text(
+                                  DateFormat('HH:mm').format(DateTime.tryParse(ride['created_at'] ?? '') ?? DateTime.now()),
+                                  style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                   
@@ -312,7 +330,15 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                     
                     // Rating Section
                     if (status == 'completed') ...[
-                      if (myRating != null) 
+                       if (myRating != null) ...[
+                         const Align(
+                           alignment: Alignment.centerLeft,
+                           child: Text(
+                              'Sürücüye Verdiğiniz Puan', 
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                           ),
+                         ),
+                         const SizedBox(height: 16),
                          Container(
                            width: double.infinity,
                            padding: const EdgeInsets.all(16),
@@ -322,6 +348,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                            ),
                            child: Column(
                              children: [
+                               // Removed Text here, moved to header
                                Row(
                                  mainAxisAlignment: MainAxisAlignment.center,
                                  children: List.generate(5, (index) => Icon(
@@ -340,26 +367,35 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                                ]
                              ],
                            ),
-                         )
-                      else
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: () {
-                               showDialog(
-                                 context: context,
-                                 builder: (_) => RatingDialog(rideId: ride['id'].toString(), driverName: driverName ?? ''),
-                               );
-                            },
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              side: const BorderSide(color: Color(0xFFE2E8F0)), 
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            icon: const Icon(Icons.star_outline, size: 20, color: Colors.black),
-                            label: const Text('Sürücüyü Puanla', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
-                          ),
-                        ),
+                         ), // Closing container
+                       ] else 
+                         SizedBox(
+                           width: double.infinity,
+                             child: OutlinedButton.icon(
+                               onPressed: () async {
+                                  final result = await showDialog(
+                                    context: context,
+                                    builder: (_) => RatingDialog(rideId: ride['id'].toString(), driverName: driverName ?? ''),
+                                  );
+                                  
+                                   if (result != null && result is int && mounted) {
+                                      setState(() {
+                                         ride['my_rating'] = {
+                                           'stars': result,
+                                           'comment': '', // Placeholder
+                                         };
+                                      });
+                                   }
+                               },
+                               style: OutlinedButton.styleFrom(
+                                 padding: const EdgeInsets.symmetric(vertical: 16),
+                                 side: const BorderSide(color: Color(0xFFE2E8F0)), 
+                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                               ),
+                               icon: const Icon(Icons.star_outline, size: 20, color: Colors.black),
+                               label: const Text('Sürücüyü Puanla', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                             ),
+                         ),
                     ],
                   ],
                 ],
@@ -371,13 +407,13 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     );
   }
 
-  Widget _buildPaymentBadge(String? method) {
-    bool isCard = method == 'card';
+  Widget _buildPaymentText(String? method) {
+    bool isCard = method == 'card' || method == 'credit_card';
     return Text(
       isCard ? 'POS' : 'Nakit',
       style: TextStyle(
-        color: isCard ? const Color(0xFF6366F1) : const Color(0xFF22C55E), // Indigo for POS, Green for Cash
-        fontSize: 16,
+        color: isCard ? const Color(0xFF6366F1) : const Color(0xFF22C55E),
+        fontSize: 22, // Reduced from 28
         fontWeight: FontWeight.w900,
         letterSpacing: 0.5,
       ),

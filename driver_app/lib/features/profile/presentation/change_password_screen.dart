@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/widgets/custom_toast.dart';
 import '../../auth/data/auth_service.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
@@ -21,12 +22,10 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_newPasswordController.text != _confirmPasswordController.text) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Yeni şifreler eşleşmiyor'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
+      CustomNotificationService().show(
+        context,
+        'Yeni şifreler eşleşmiyor',
+        ToastType.error,
       );
       return;
     }
@@ -40,19 +39,19 @@ class _ChangePasswordScreenState extends ConsumerState<ChangePasswordScreen> {
       );
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Şifre başarıyla değiştirildi')),
+        CustomNotificationService().show(
+          context,
+          'Şifre başarıyla değiştirildi',
+          ToastType.success,
         );
         context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Hata: $e'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
+        CustomNotificationService().show(
+          context,
+          'Hata: $e',
+          ToastType.error,
         );
       }
     } finally {

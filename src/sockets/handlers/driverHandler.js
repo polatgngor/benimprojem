@@ -1,4 +1,4 @@
-const { Driver, Ride, RideRequest, User } = require('../../models');
+const { Driver, Ride, RideRequest, User, UserDevice } = require('../../models');
 const { Op } = require('sequelize');
 const Redis = require('ioredis');
 const socketProvider = require('../../lib/socketProvider');

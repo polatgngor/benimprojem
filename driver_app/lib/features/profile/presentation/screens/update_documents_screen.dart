@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:driver_app/features/auth/data/vehicle_repository.dart';
 import 'package:driver_app/features/auth/presentation/auth_provider.dart';
 import 'package:driver_app/features/auth/presentation/widgets/otp_sheet.dart';
+import '../../../../core/widgets/custom_toast.dart';
 
 class UpdateDocumentsScreen extends ConsumerStatefulWidget {
   const UpdateDocumentsScreen({super.key});
@@ -75,8 +76,10 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
     // Basic validation
     // Require Brand/Model selection if we are showing them
     if (_selectedBrand == null || _selectedModel == null) {
-       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Lütfen araç marka ve modelini seçiniz.')),
+       CustomNotificationService().show(
+        context,
+        'Lütfen araç marka ve modelini seçiniz.',
+        ToastType.error,
       );
       return;
     }
@@ -91,9 +94,11 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
     final phone = authState.value?['user']?['phone'];
     
     if (phone == null) {
-       ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Telefon numarası bulunamadı.'), backgroundColor: Colors.red),
-       );
+        CustomNotificationService().show(
+          context,
+          'Telefon numarası bulunamadı.',
+          ToastType.error,
+        );
       return;
     }
 
@@ -139,8 +144,10 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
       );
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Güncelleme talebiniz başarıyla gönderildi. Onay bekleniyor.')),
+        CustomNotificationService().show(
+          context,
+          'Güncelleme talebiniz başarıyla gönderildi. Onay bekleniyor.',
+          ToastType.success,
         );
         // Force refresh of auth state to catch 'pending' status
         await ref.refresh(authProvider.future);
@@ -154,8 +161,10 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Hata: ${e.toString()}')),
+        CustomNotificationService().show(
+          context,
+          'Hata: ${e.toString()}',
+          ToastType.error,
         );
       }
     } finally {
@@ -177,44 +186,77 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bilgilerimi Güncelle'), // Renamed
-        backgroundColor: const Color(0xFF1A77F6),
-        foregroundColor: Colors.white,
+        title: const Text('Bilgilerimi Güncelle'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Info Card
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade100),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.grey.withOpacity(0.1)),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    "Mevcut Plaka",
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(color: const Color(0xFF1A77F6).withOpacity(0.1), shape: BoxShape.circle),
+                        child: const Icon(Icons.directions_car_filled_rounded, color: Color(0xFF1A77F6)),
+                      ),
+                      const SizedBox(width: 12),
+                      const Text(
+                        "Mevcut Plaka",
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 4),
-                  Text(currentPlate, style: const TextStyle(fontSize: 18)),
+                  const SizedBox(height: 12),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 4),
+                    child: Text(
+                      currentPlate, 
+                      style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Color(0xFF2D3242))
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Divider(),
                   const SizedBox(height: 8),
-                  const Text(
-                    "Plaka değişikliği için lütfen 'Taksi Değiştir' menüsünü kullanınız.",
-                    style: TextStyle(fontSize: 12, color: Colors.grey),
+                  const Row(
+                    children: [
+                       Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey),
+                       SizedBox(width: 6),
+                       Expanded(
+                         child: Text(
+                          "Plaka değişikliği için 'Taksi Değiştir' menüsünü kullanın.",
+                          style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.3),
+                         ),
+                       ),
+                    ],
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
 
-            const Text('Araç Bilgileri', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Araç Bilgilerini Güncelle', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3242))),
             const SizedBox(height: 16),
 
              // Vehicle Type Dropdown
@@ -222,7 +264,10 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
               value: _selectedVehicleType,
               decoration: InputDecoration(
                 labelText: 'Araç Tipi',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
               ),
               items: [
                 DropdownMenuItem(value: 'sari', child: Text('Sarı Taksi')),
@@ -239,7 +284,10 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
               value: _selectedBrand,
               decoration: InputDecoration(
                 labelText: 'Araç Markası',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                filled: true,
+                fillColor: const Color(0xFFF9FAFB),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
               ),
               items: _vehicleData.keys.map((brand) {
                 return DropdownMenuItem(value: brand, child: Text(brand));
@@ -254,7 +302,10 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
               value: _selectedModel,
               decoration: InputDecoration(
                 labelText: 'Araç Modeli',
-                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
+                 filled: true,
+                 fillColor: const Color(0xFFF9FAFB),
+                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
               ),
               items: (_selectedBrand != null && _vehicleData.containsKey(_selectedBrand))
                   ? _vehicleData[_selectedBrand]!.map((model) {
@@ -268,10 +319,13 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
             const SizedBox(height: 32),
             
             const Text(
-              'Belgeler',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              'Belgeler (Opsiyonel)',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3242)),
             ),
-            const SizedBox(height: 16),
+            const Padding(
+               padding: EdgeInsets.only(top: 4, bottom: 16),
+               child: Text("Sadece güncellemek istediğiniz belgeleri yükleyin.", style: TextStyle(color: Colors.grey)),
+            ),
 
             _buildFilePicker(
               label: 'Ruhsat Fotoğrafı',
@@ -297,24 +351,27 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
             const SizedBox(height: 32),
             SizedBox(
               width: double.infinity,
-              height: 50,
+              height: 56,
               child: ElevatedButton(
                 onPressed: _isLoading ? null : _submitRequest,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF1A77F6),
                   foregroundColor: Colors.white,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
                     : const Text(
-                        'Onaya Gönder',
+                        'Değişiklikleri Onaya Gönder',
                         style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
             ),
+            const SizedBox(height: 20),
           ],
         ),
       ),
@@ -326,44 +383,66 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
     required File? file,
     required Function(File) onPicked,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            file != null ? Icons.check_circle : Icons.upload_file,
-            color: file != null ? Colors.green : Colors.grey,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(fontWeight: FontWeight.bold),
-                ),
-                if (file != null)
-                  Text(
-                    file.path.split('/').last,
-                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-              ],
-            ),
-          ),
-          TextButton(
-            onPressed: () => _pickFile(onPicked),
-            child: Text(file != null ? 'Değiştir' : 'Yükle'),
-          ),
-        ],
+    final isSelected = file != null;
+    return GestureDetector(
+      onTap: () => _pickFile(onPicked),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFF0FDF4) : Colors.white, // Green tint if selected
+          borderRadius: BorderRadius.circular(16),
+          border: isSelected 
+              ? Border.all(color: Colors.green.withOpacity(0.5))
+              : Border.all(color: Colors.grey.shade300), // Dashed border is hard in Flutter without package, stick to solid grey
+        ),
+        child: Row(
+          children: [
+             Container(
+               width: 40, height: 40,
+               decoration: BoxDecoration(
+                 color: isSelected ? Colors.green : const Color(0xFFF3F4F6),
+                 borderRadius: BorderRadius.circular(12),
+               ),
+               child: Icon(
+                 isSelected ? Icons.check_rounded : Icons.cloud_upload_rounded,
+                 color: isSelected ? Colors.white : Colors.grey[600],
+                 size: 20,
+               ),
+             ),
+             const SizedBox(width: 16),
+             Expanded(
+               child: Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   Text(
+                     label,
+                     style: TextStyle(
+                       fontWeight: FontWeight.bold, 
+                       color: isSelected ? Colors.green[900] : Colors.black87
+                     ),
+                   ),
+                   if (isSelected)
+                     Text(
+                       (file?.path.split('/').last) ?? '',
+                       style: TextStyle(fontSize: 12, color: Colors.green[700]),
+                       maxLines: 1,
+                       overflow: TextOverflow.ellipsis,
+                     )
+                   else
+                    Text(
+                      'Yüklemek için dokunun',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                    ),
+                 ],
+               ),
+             ),
+             if (isSelected)
+                Icon(Icons.edit_outlined, color: Colors.green[700], size: 20)
+             else
+                Icon(Icons.chevron_right_rounded, color: Colors.grey[300]),
+          ],
+        ),
       ),
     );
   }

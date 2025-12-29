@@ -3,23 +3,25 @@ import 'package:socket_io_client/socket_io_client.dart' as IO;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/foundation.dart';
 import '../constants/app_constants.dart';
+import '../../features/auth/presentation/auth_provider.dart';
 
 part 'socket_service.g.dart';
 
 @Riverpod(keepAlive: true)
 SocketService socketService(Ref ref) {
-  return SocketService(const FlutterSecureStorage());
+  return SocketService(const FlutterSecureStorage(), ref);
 }
 
 class SocketService {
   late IO.Socket _socket;
   bool _initialized = false;
   final FlutterSecureStorage _storage;
+  final Ref _ref;
   
   // Store listeners to re-register on reconnect/re-init
   final Map<String, List<Function(dynamic)>> _activeListeners = {};
 
-  SocketService(this._storage);
+  SocketService(this._storage, this._ref);
 
   Future<void> connect() async {
     // If already connected, do nothing
@@ -91,6 +93,11 @@ class SocketService {
 
     _socket.on('error', (data) {
       debugPrint('Socket error: $data');
+    });
+
+    _socket.on('force_logout', (_) {
+      debugPrint('Received force_logout event');
+      _ref.read(authProvider.notifier).logout();
     });
   }
 
