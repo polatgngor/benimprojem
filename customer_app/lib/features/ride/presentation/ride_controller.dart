@@ -7,8 +7,9 @@ import '../data/ride_repository.dart';
 import '../data/directions_service.dart';
 import 'ride_state_provider.dart';
 import '../../../../core/utils/globals.dart';
-import '../../../../core/widgets/custom_toast.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../../../../core/widgets/custom_toast.dart';
+import 'widgets/driver_arrived_dialog.dart';
 
 part 'ride_controller.g.dart';
 
@@ -320,23 +321,8 @@ class RideController extends _$RideController {
             // Show Modal Dialog (User Request)
             showDialog(
               context: rootNavigatorKey.currentContext!,
-              builder: (context) => AlertDialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                title: Row(
-                  children: [
-                    const Icon(Icons.verified, color: Color(0xFF0865ff), size: 28),
-                    const SizedBox(width: 10),
-                    Text('ride.driver_arrived_title'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
-                  ],
-                ),
-                content: Text('ride.driver_arrived_body'.tr(), style: const TextStyle(fontSize: 16)),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: Text('generic.ok'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF0865ff))),
-                  ),
-                ],
-              ),
+              barrierDismissible: true,
+              builder: (context) => const DriverArrivedDialog(),
             );
          }
       }

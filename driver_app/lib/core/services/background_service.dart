@@ -51,15 +51,15 @@ class BackgroundService {
     await service.configure(
       androidConfiguration: AndroidConfiguration(
         onStart: onStart,
-        autoStart: true, // Auto start on boot
+        autoStart: false, // Manual start only (controlled by Online/Offline switch)
         isForegroundMode: true,
         notificationChannelId: 'my_foreground',
         initialNotificationTitle: 'Taksibu Sürücü',
-        initialNotificationContent: 'Sürücü modu aktif',
+        initialNotificationContent: 'Müsait',
         foregroundServiceNotificationId: 888,
       ),
       iosConfiguration: IosConfiguration(
-        autoStart: true,
+        autoStart: false,
         onForeground: onStart,
         onBackground: onIosBackground,
       ),
@@ -94,7 +94,7 @@ class BackgroundService {
           service.setAsForegroundService();
           service.setForegroundNotificationInfo(
             title: "Taksibu Sürücü",
-            content: "Sürücü modu aktif (Arkaplan Servisi)",
+            content: "Müsait",
           );
       }
 
@@ -132,7 +132,7 @@ class BackgroundService {
         if (service is AndroidServiceInstance) {
           service.setForegroundNotificationInfo(
             title: "Taksibu Sürücü",
-            content: "Bağlandı - Çağrı bekleniyor",
+            content: "Müsait",
           );
         }
       });

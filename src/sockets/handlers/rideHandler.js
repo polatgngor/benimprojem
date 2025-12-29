@@ -170,6 +170,28 @@ module.exports = (io, socket) => {
             ride.status = 'completed';
             ride.fare_actual = fare_actual;
 
+            // Validate Fare
+            const estimate = parseFloat(ride.fare_estimate);
+            const actual = parseFloat(fare_actual);
+
+            if (!isNaN(estimate) && estimate > 0) {
+                const minFare = estimate * 0.90;
+                const maxFare = estimate * 1.25;
+
+                if (actual < minFare || actual > maxFare) {
+                    return socket.emit('end_ride_failed', {
+                        ride_id,
+                        reason: 'fare_out_of_range',
+                        message: `Tutar tahmini tutardan (${estimate} TL) çok farklı olamaz. (${minFare.toFixed(2)} - ${maxFare.toFixed(2)} TL arası)`
+                    });
+                }
+            } else {
+                // Fallback validation if no estimate
+                if (actual < 175 || actual > 50000) {
+                    return socket.emit('end_ride_failed', { ride_id, reason: 'fare_out_of_range' });
+                }
+            }
+
             // Persist route
             try {
                 const rawPoints = await redis.lrange(`ride:${ride.id}:route`, 0, -1);

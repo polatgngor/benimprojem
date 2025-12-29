@@ -47,7 +47,7 @@ class DriverApp extends ConsumerWidget {
       localizationsDelegates: context.localizationDelegates,
       supportedLocales: context.supportedLocales,
       locale: context.locale,
-      title: 'Taksibu Sürücü',
+      title: 'taksibu sürücü',
       theme: ThemeData(
         fontFamily: 'Inter',
         scaffoldBackgroundColor: Colors.white,

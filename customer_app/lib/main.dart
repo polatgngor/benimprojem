@@ -47,7 +47,7 @@ class MyApp extends ConsumerWidget {
       supportedLocales: context.supportedLocales,
       locale: context.locale,
       scaffoldMessengerKey: rootScaffoldMessengerKey,
-      title: 'TaksiBu',
+      title: 'taksibu',
       theme: ThemeData(
         fontFamily: 'Inter',
         scaffoldBackgroundColor: Colors.white,

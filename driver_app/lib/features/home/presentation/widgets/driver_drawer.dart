@@ -6,6 +6,8 @@ import '../../../auth/data/auth_service.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/legal_constants.dart';
+import '../../../../core/presentation/screens/legal_viewer_screen.dart';
 
 
 // Update provider to return Map instead of String
@@ -225,14 +227,80 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                     context.push('/support');
                   },
                 ),
-                _buildDrawerItem(
-                  context,
-                  icon: Icons.gavel_rounded,
-                  title: 'drawer.legal_info'.tr(),
-                  onTap: () {
-                    Navigator.pop(context);
-                    context.push('/legal');
-                  },
+                Theme(
+                  data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                  child: ExpansionTile(
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F4F8),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.gavel_rounded, color: Color(0xFF424242), size: 22),
+                    ),
+                    title: Text(
+                      'drawer.legal_info'.tr(),
+                      style: const TextStyle(
+                        color: Color(0xFF424242),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 16,
+                      ),
+                    ),
+                    childrenPadding: const EdgeInsets.only(left: 60),
+                    children: [
+                      ListTile(
+                        title: const Text('Kullanım Koşulları', style: TextStyle(fontSize: 14)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LegalViewerScreen(
+                                title: 'Kullanım Koşulları',
+                                content: LegalConstants.termsOfUse,
+                              ),
+                            ),
+                          );
+                        },
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      ListTile(
+                        title: const Text('Aydınlatma Metni', style: TextStyle(fontSize: 14)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LegalViewerScreen(
+                                title: 'Aydınlatma Metni',
+                                content: LegalConstants.clarificationText,
+                              ),
+                            ),
+                          );
+                        },
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      ListTile(
+                        title: const Text('Gizlilik Politikası', style: TextStyle(fontSize: 14)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LegalViewerScreen(
+                                title: 'Gizlilik Politikası',
+                                content: LegalConstants.privacyPolicy,
+                              ),
+                            ),
+                          );
+                        },
+                        dense: true,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                    ],
+                  ),
                 ),
 
                 const SizedBox(height: 16),

@@ -359,8 +359,8 @@ async function cancelRide(req, res) {
       return res.status(404).json({ message: 'Ride not found' });
     }
 
-    // Only allow cancel if ride is requested or assigned
-    if (!['requested', 'assigned'].includes(ride.status)) {
+    // Only allow cancel if ride is requested, assigned, or started
+    if (!['requested', 'assigned', 'started'].includes(ride.status)) {
       await t.rollback();
       return res.status(400).json({ message: 'Cannot cancel ride in status ' + ride.status });
     }

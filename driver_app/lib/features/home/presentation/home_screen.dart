@@ -71,12 +71,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     // Sync state on startup
     _syncState();
     
-    // Start Service if not running (Resurrection)
-    FlutterBackgroundService().isRunning().then((isRunning) {
-      if (!isRunning) {
-        FlutterBackgroundService().startService();
-      }
-    });
+    // Start Service REMOVED (Manual Control)
 
     // Check for Overlay Permission (Critical for background launch)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -870,7 +865,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       _setupSocketListeners();
       
       final service = FlutterBackgroundService();
-      final token = await authService.getToken();
+    if (!await service.isRunning()) {
+      await service.startService();
+    }
+
+    final token = await authService.getToken();
       if (token != null) {
         service.invoke("setToken", {"token": token});
       }

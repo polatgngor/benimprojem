@@ -222,7 +222,24 @@ class DriverAssignedSheet extends ConsumerWidget {
            ),
            const SizedBox(height: 24),
         ] else ...[
-           const SizedBox(height: 24),
+            const SizedBox(height: 8),
+             TextButton(
+               onPressed: () {
+                   showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (context) => const CancellationReasonSheet(),
+                  );
+               },
+               style: TextButton.styleFrom(
+                 minimumSize: Size.zero, 
+                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
+                 tapTargetSize: MaterialTapTargetSize.shrinkWrap 
+               ),
+               child: Text('İptal Et', style: TextStyle(color: Colors.red.withOpacity(0.8), fontSize: 13, fontWeight: FontWeight.normal)),
+             ),
+            const SizedBox(height: 12),
         ],
 
         // ACTION BUTTONS (Contact & Cancel)

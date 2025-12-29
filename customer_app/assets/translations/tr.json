@@ -38,10 +38,10 @@
             "driver_coming": "Sürücü Yolda",
             "ride_started": "Yolculuk Başladı",
             "driver_coming_desc": "Taksiniz konumunuza doğru geliyor!",
-            "ride_started_desc": "İyi yolculuklar dileriz.",
-            "driver_arrived_title": "Sürücü Geldi",
-            "driver_arrived_body": "Sürücünüz konumunuza ulaştı!"
+            "ride_started_desc": "İyi yolculuklar dileriz."
         },
+        "driver_arrived_title": "Sürücünüz Konumunuza Geldi",
+        "driver_arrived_body": "Lütfen size gelen aracın plakasını kontrol etmeyi unutmayın.",
         "verification_code": "DOĞRULAMA KODU",
         "enter_code": "Yolculuğu Başlatmak İçin Kodu Girin",
         "finish_trip": "YOLCULUĞU BİTİR",
@@ -53,6 +53,11 @@
         "cancel_desc": "Yolculuğu neden iptal etmek istiyorsunuz? Lütfen bir sebep seçin.",
         "cancel_success": "Yolculuk iptal edildi.",
         "cancel_fail": "İptal işlemi başarısız: {}"
+    },
+    "generic": {
+        "ok": "Tamam",
+        "cancel": "İptal",
+        "error": "Hata"
     },
     "reason": {
         "driver_far": "Sürücü çok uzakta",

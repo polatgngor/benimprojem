@@ -356,6 +356,33 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                                     ],
                                   ),
                                ),
+                               if (isStarted) ...[
+                                 const SizedBox(height: 8),
+                                  TextButton.icon(
+                                    onPressed: () {
+                                      final rideId = widget.rideData['ride_id']?.toString() ?? widget.rideData['id']?.toString();
+                                      if (rideId != null) {
+                                        _showCancelDialog(context, ref, rideId);
+                                      }
+                                    },
+                                    icon: const Icon(Icons.close_rounded, size: 18, color: Colors.red),
+                                    label: Text(
+                                      'İptal Et',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red,
+                                        fontSize: 14,
+                                        decoration: TextDecoration.underline,
+                                        decorationColor: Colors.red.withOpacity(0.5),
+                                      )
+                                    ),
+                                    style: TextButton.styleFrom(
+                                      minimumSize: Size.zero,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap
+                                    ),
+                                  ),
+                               ]
                             ],
                           ),
                         ],
@@ -734,23 +761,47 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                         final fareText = fareController.text.replaceAll(',', '.');
                         final fare = double.tryParse(fareText);
                         
-                        if (fare != null && fare >= 175 && fare <= 50000) {
-                          HapticFeedback.mediumImpact();
-                          Navigator.pop(context);
+                if (fare != null) {
+                          double minFare = 175;
+                          double maxFare = 50000;
                           
-                          // OPTIMISTIC UI: Hide sheet instantly ('Zınk')
-                          ref.read(optimisticRideProvider.notifier).completeRide();
-                          
-                          ref.read(socketServiceProvider).socket.emit('driver:end_ride', {
-                            'ride_id': rideId,
-                            'fare_actual': fare,
-                          });
+                          // Dynamic limits based on estimate
+                          // Ensure we handle string or number types for `fare_estimate`
+                          final estimateRaw = widget.rideData['fare_estimate'];
+                          double? estimate;
+                          if (estimateRaw != null) {
+                            estimate = double.tryParse(estimateRaw.toString());
+                          }
+
+                          if (estimate != null && estimate > 0) {
+                              minFare = estimate * 0.90;
+                              maxFare = estimate * 1.25;
+                          }
+
+                          if (fare >= minFare && fare <= maxFare) {
+                              HapticFeedback.mediumImpact();
+                              Navigator.pop(context);
+                              
+                              // OPTIMISTIC UI: Hide sheet instantly ('Zınk')
+                              ref.read(optimisticRideProvider.notifier).completeRide();
+                              
+                              ref.read(socketServiceProvider).socket.emit('driver:end_ride', {
+                                'ride_id': rideId,
+                                'fare_actual': fare,
+                              });
+                          } else {
+                              CustomNotificationService().show(
+                                context,
+                                'Tutar ${minFare.toStringAsFixed(2)} TL ile ${maxFare.toStringAsFixed(2)} TL arasında olmalıdır.',
+                                ToastType.error
+                              );
+                          }
                         } else {
-                          CustomNotificationService().show(
-                            context,
-                            'Tutar 175 TL ile 50.000 TL arasında olmalıdır.',
-                            ToastType.error
-                          );
+                           CustomNotificationService().show(
+                                context,
+                                'Geçerli bir tutar giriniz.',
+                                ToastType.error
+                              );
                         }
                       },
                        style: ElevatedButton.styleFrom(

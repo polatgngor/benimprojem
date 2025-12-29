@@ -14,7 +14,7 @@
 
 
     <application
-        android:label="Taksibu Sürücü"
+        android:label="taksibu sürücü"
         android:name="${applicationName}"
         android:usesCleartextTraffic="true"
         android:icon="@mipmap/launcher_icon">

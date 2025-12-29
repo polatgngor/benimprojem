@@ -6,6 +6,9 @@ import 'package:easy_localization/easy_localization.dart';
 import 'auth_provider.dart';
 import '../../../../core/widgets/custom_toast.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:flutter/gestures.dart';
+import '../../../../core/constants/legal_constants.dart';
+import '../../../../core/presentation/screens/legal_viewer_screen.dart';
 import 'package:intl_phone_field/country_picker_dialog.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
@@ -249,11 +252,68 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               height: 1.5,
                             ),
                             children: [
-                              TextSpan(text: 'Kullanım Koşulları', style: const TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.bold)),
+                              TextSpan(
+                                text: 'Kullanım Koşulları',
+                                style: const TextStyle(
+                                  decoration: TextDecoration.underline,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0866ff),
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const LegalViewerScreen(
+                                          title: 'Kullanım Koşulları',
+                                          content: LegalConstants.termsOfUse,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                              ),
                               const TextSpan(text: ', '),
-                              TextSpan(text: 'Aydınlatma Metni', style: const TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.bold)),
+                              TextSpan(
+                                text: 'Aydınlatma Metni',
+                                style: const TextStyle(
+                                  decoration: TextDecoration.underline,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0866ff),
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const LegalViewerScreen(
+                                          title: 'Aydınlatma Metni',
+                                          content: LegalConstants.clarificationText,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                              ),
                               const TextSpan(text: ' ve '),
-                              TextSpan(text: 'Gizlilik Politikası', style: const TextStyle(decoration: TextDecoration.underline, fontWeight: FontWeight.bold)),
+                              TextSpan(
+                                text: 'Gizlilik Politikası',
+                                style: const TextStyle(
+                                  decoration: TextDecoration.underline,
+                                  fontWeight: FontWeight.bold,
+                                  color: Color(0xFF0866ff),
+                                ),
+                                recognizer: TapGestureRecognizer()
+                                  ..onTap = () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => const LegalViewerScreen(
+                                          title: 'Gizlilik Politikası',
+                                          content: LegalConstants.privacyPolicy,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                              ),
                               const TextSpan(text: "'nı okudum ve kabul ediyorum."),
                             ],
                           ),
