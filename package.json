@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "db:reset": "node src/scripts/reset_data.js"
+    "db:reset": "node src/scripts/reset_data.js",
+    "driver:approve": "node src/scripts/approve_driver.js"
   },
   "dependencies": {
     "axios": "^1.13.2",
