@@ -37,10 +37,7 @@ class DriverApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     final authState = ref.watch(authProvider);
     
-    // Remove splash screen when auth is initialized
-    if (!authState.isLoading) {
-      FlutterNativeSplash.remove();
-    }
+    // Splash Removal is deferred to screens for seamless transition
     
     return MaterialApp.router(
       routerConfig: router,

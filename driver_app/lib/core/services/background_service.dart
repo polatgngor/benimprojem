@@ -89,13 +89,57 @@ class BackgroundService {
       final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
           FlutterLocalNotificationsPlugin();
 
-      // FORCE NOTIFICATION IMMEDIATELY to verify service is alive
+      // CRITICAL: Initialize plugin specifically for Background Isolate
+      // This ensures the custom logic knows which icon to use
+      const AndroidInitializationSettings initializationSettingsAndroid =
+          AndroidInitializationSettings('ic_launcher');
+      
+      const InitializationSettings initializationSettings =
+          InitializationSettings(android: initializationSettingsAndroid);
+      
+      await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+      
+      // SMART STATE VARIABLES
+      // We define them here to scope them to this onStart instance
+      // Note: In Dart, local variables in async functions survive await calls.
+      bool isOnTrip = false;
+      DateTime? lastEmitTime;
+      String? lastNotificationContent;
+      
+      // Helper to update notification INTELLIGENTLY (No spam)
+      Future<void> updateNotification(String title, String content) async {
+         if (lastNotificationContent == content) return; // Debounce
+         
+         debugPrint('Background Notification Update: $content');
+         lastNotificationContent = content;
+         const AndroidNotificationDetails androidPlatformChannelSpecifics =
+             AndroidNotificationDetails(
+           'my_foreground',
+           'Taksibu Sürücü Servisi',
+           importance: Importance.low,
+           priority: Priority.low,
+           ongoing: true, // GUARANTEED STICKY
+           autoCancel: false,
+           showWhen: false,
+           icon: 'ic_launcher',
+         );
+         
+         const NotificationDetails platformChannelSpecifics =
+             NotificationDetails(android: androidPlatformChannelSpecifics);
+
+         await flutterLocalNotificationsPlugin.show(
+           888,
+           title,
+           content,
+           platformChannelSpecifics,
+         );
+      }
+
+      // FORCE NOTIFICATION IMMEDIATELY
       if (service is AndroidServiceInstance) {
-          service.setAsForegroundService();
-          service.setForegroundNotificationInfo(
-            title: "Taksibu Sürücü",
-            content: "Müsait",
-          );
+          service.setAsForegroundService(); // Necessary to keep service alive
+          await updateNotification('Taksibu Sürücü', 'Müsait');
       }
 
       // Initialize Socket with Token if available
@@ -119,7 +163,7 @@ class BackgroundService {
 
       socket.connect();
 
-      socket.onConnect((_) {
+      socket.onConnect((_) async {
         debugPrint('Background Service: Socket Connected to ${AppConstants.apiUrl}');
         socket.emit('driver:rejoin', {});
         // Ensure we are marked as available in the background
@@ -128,22 +172,16 @@ class BackgroundService {
           'vehicle_type': 'sari', // Default, or pass via 'configure'
         });
         
-        // Update notification to show "Connected"
+        // Update notification to show "Connected" (Sticky)
         if (service is AndroidServiceInstance) {
-          service.setForegroundNotificationInfo(
-            title: "Taksibu Sürücü",
-            content: "Müsait",
-          );
+           await updateNotification("Taksibu Sürücü", "Müsait");
         }
       });
       
-      socket.onDisconnect((_) {
+      socket.onDisconnect((_) async {
          debugPrint('Background Service: Socket Disconnected. Reconnecting...');
          if (service is AndroidServiceInstance) {
-          service.setForegroundNotificationInfo(
-            title: "Taksibu Sürücü",
-            content: "Bağlantı koptu - Yeniden bağlanılıyor...",
-          );
+           await updateNotification("Taksibu Sürücü", "Bağlantı koptu - Yeniden bağlanılıyor...");
         }
       });
 
@@ -286,30 +324,60 @@ class BackgroundService {
          }
       });
 
-      // Location Stream
+      // STATE MANAGEMENT LISTENERS
+      socket.on('start_ride_ok', (_) { 
+          isOnTrip = true; 
+          updateNotification("Taksibu Sürücü", "Yolculukta");
+          debugPrint('Background Mode: TRIP (High Freq)');
+      });
+      socket.on('end_ride_ok', (_) { 
+          isOnTrip = false; 
+          updateNotification("Taksibu Sürücü", "Müsait");
+          debugPrint('Background Mode: IDLE (Power Save)');
+      });
+      socket.on('ride:cancelled', (_) { 
+          isOnTrip = false; 
+          updateNotification("Taksibu Sürücü", "Müsait");
+      });
+
+      // Location Stream (Fixed 3s Internal, Smart Output)
       final locationSettings = AndroidSettings(
-        accuracy: LocationAccuracy.bestForNavigation, // Highest accuracy
-        distanceFilter: 0, // Report ALL movements (Aggressive)
-        forceLocationManager: true, // Use legacy location manager if fused provider is problematic in background
-        intervalDuration: const Duration(seconds: 5), // More frequent updates
-        // REMOVED: foregroundNotificationConfig - This conflicts with FlutterBackgroundService's own notification
+        accuracy: LocationAccuracy.bestForNavigation, 
+        distanceFilter: 0, 
+        forceLocationManager: false, // Play Services (Battery Efficient)
+        intervalDuration: const Duration(seconds: 3), 
       );
 
       final StreamSubscription<Position> positionStream = Geolocator.getPositionStream(
         locationSettings: locationSettings,
       ).listen(
-        (Position position) {
+        (Position position) async {
           if (service is AndroidServiceInstance) {
-            service.setForegroundNotificationInfo(
-              title: "Taksibu Sürücü",
-              content: "Konum: ${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}",
-            );
+             // Location-based Notification updates are usually spammy.
+             // We only update if something significant happens or if we want to show coords (Debugging)
+             // For production, "Müsait" or "Yolculukta" is enough, we don't need coords in notification title.
+             // Kept simple to satisfy "don't update every 3s" rule.
           }
 
-          debugPrint('Background Location: ${position.latitude}, ${position.longitude}');
+          debugPrint('Background Location: ${position.latitude}, ${position.longitude} (Trip: $isOnTrip)');
           
-          // Emit location via socket (if connected)
-          if (socket.connected) {
+          // SMART NETWORK EMISSION
+          final now = DateTime.now();
+          final timeDiff = lastEmitTime == null ? 1000 : now.difference(lastEmitTime!).inSeconds;
+          
+          // Logic:
+          // If ON TRIP: Send Every Update (3s)
+          // If IDLE: Send every 10s (Save Data/Battery)
+          bool shouldEmit = false;
+          
+          if (isOnTrip) {
+             shouldEmit = true; // Always send in trip
+          } else {
+             if (timeDiff >= 10) shouldEmit = true; // Throttle idle
+          }
+
+          if (shouldEmit && socket.connected) {
+             lastEmitTime = now;
              socket.emit('driver:update_location', {
                'lat': position.latitude,
                'lng': position.longitude,
@@ -319,10 +387,10 @@ class BackgroundService {
         onError: (e) {
           debugPrint('Background Location Error: $e');
         },
-        cancelOnError: false, // Keep listening
+        cancelOnError: false, 
       );
       
-      debugPrint('Background Service: Setup complete');
+      debugPrint('Background Service: Smart Setup complete');
 
     } catch (e, stack) {
       debugPrint('Background Service Error: $e');

@@ -222,75 +222,83 @@ class DriverAssignedSheet extends ConsumerWidget {
            ),
            const SizedBox(height: 24),
         ] else ...[
-            const SizedBox(height: 8),
-             TextButton(
-               onPressed: () {
-                   showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (context) => const CancellationReasonSheet(),
-                  );
-               },
-               style: TextButton.styleFrom(
-                 minimumSize: Size.zero, 
-                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8), 
-                 tapTargetSize: MaterialTapTargetSize.shrinkWrap 
-               ),
-               child: Text('İptal Et', style: TextStyle(color: Colors.red.withOpacity(0.8), fontSize: 13, fontWeight: FontWeight.normal)),
-             ),
-            const SizedBox(height: 12),
+             const SizedBox(height: 8),
+             // Duplicate button removed
         ],
 
-        // ACTION BUTTONS (Contact & Cancel)
-        if (!isStarted)
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Contact
-              OutlinedButton.icon(
-                onPressed: () {
-                    final rideId = ref.read(rideProvider).currentRideId;
-                    if (rideId != null) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => ChatScreen(rideId: rideId)),
-                      );
-                    }
-                },
-                icon: Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Theme.of(context).primaryColor),
-                label: Text('Mesaj Gönder', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor, fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: Theme.of(context).primaryColor),
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  backgroundColor: Colors.transparent,
-                ),
-              ),
-              
-              const SizedBox(width: 12),
-              
-              // Cancel
-             OutlinedButton.icon(
-                onPressed: () {
-                   showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
+          // ACTION BUTTONS (Contact & Cancel)
+          if (!isStarted)
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Contact
+                OutlinedButton.icon(
+                  onPressed: () {
+                      final rideId = ref.read(rideProvider).currentRideId;
+                      if (rideId != null) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (context) => ChatScreen(rideId: rideId)),
+                        );
+                      }
+                  },
+                  icon: Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Theme.of(context).primaryColor),
+                  label: Text('Mesaj Gönder', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor, fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: Theme.of(context).primaryColor),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     backgroundColor: Colors.transparent,
-                    builder: (context) => const CancellationReasonSheet(),
-                  );
-                },
-                icon: Icon(Icons.close, size: 16, color: Colors.red),
-                label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: Colors.red),
-                  padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  backgroundColor: Colors.transparent,
+                  ),
                 ),
+                
+                const SizedBox(width: 12),
+                
+                // Cancel (Waiting - Outlined)
+                OutlinedButton.icon(
+                  onPressed: () {
+                    showModalBottomSheet(
+                       context: context,
+                       isScrollControlled: true,
+                       backgroundColor: Colors.transparent,
+                       builder: (context) => const CancellationReasonSheet(),
+                     );
+                  },
+                  icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                  label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Colors.red),
+                    padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    backgroundColor: Colors.transparent,
+                  ),
+                ),
+              ],
+            )
+          else
+            // Cancel (Started - Outlined)
+            OutlinedButton.icon(
+               onPressed: () {
+                  showModalBottomSheet(
+                   context: context,
+                   isScrollControlled: true,
+                   backgroundColor: Colors.transparent,
+                   builder: (context) => const CancellationReasonSheet(),
+                 );
+               },
+               icon: const Icon(Icons.close, size: 16, color: Colors.red),
+               label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
+               style: OutlinedButton.styleFrom(
+                 side: const BorderSide(color: Colors.red),
+                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
+                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                 backgroundColor: Colors.transparent,
                ),
-            ],
-          ),
+            ),
+            
+            ),
+            
+          SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16), // Dynamic Safe Area Padding
 
       ],
     );

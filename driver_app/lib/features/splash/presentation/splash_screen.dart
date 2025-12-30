@@ -1,34 +1,20 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends ConsumerWidget {
   const SplashScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final primaryColor = Theme.of(context).primaryColor;
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: Center(
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              height: 120,
-              width: 120,
-              decoration: const BoxDecoration(
-                 color: Colors.white,
-                 shape: BoxShape.circle,
-              ),
-              padding: const EdgeInsets.all(20),
-              child: SvgPicture.asset(
-                'assets/images/logo.svg',
-                fit: BoxFit.contain,
-              ),
-            ),
-            const SizedBox(height: 32),
-            CircularProgressIndicator(
-              color: primaryColor,
+            Image.asset(
+              'assets/images/splash_logo_padded.png',
             ),
           ],
         ),

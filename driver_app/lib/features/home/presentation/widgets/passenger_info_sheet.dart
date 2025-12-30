@@ -358,28 +358,21 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                                ),
                                if (isStarted) ...[
                                  const SizedBox(height: 8),
-                                  TextButton.icon(
+                                  // Cancel (Started - Outlined)
+                                  OutlinedButton.icon(
                                     onPressed: () {
                                       final rideId = widget.rideData['ride_id']?.toString() ?? widget.rideData['id']?.toString();
                                       if (rideId != null) {
                                         _showCancelDialog(context, ref, rideId);
                                       }
                                     },
-                                    icon: const Icon(Icons.close_rounded, size: 18, color: Colors.red),
-                                    label: Text(
-                                      'İptal Et',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        color: Colors.red,
-                                        fontSize: 14,
-                                        decoration: TextDecoration.underline,
-                                        decorationColor: Colors.red.withOpacity(0.5),
-                                      )
-                                    ),
-                                    style: TextButton.styleFrom(
-                                      minimumSize: Size.zero,
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap
+                                    icon: const Icon(Icons.close, size: 16, color: Colors.red),
+                                    label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
+                                    style: OutlinedButton.styleFrom(
+                                      side: const BorderSide(color: Colors.red),
+                                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      backgroundColor: Colors.transparent,
                                     ),
                                   ),
                                ]

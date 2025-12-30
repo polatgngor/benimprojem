@@ -46,14 +46,15 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     navigatorKey: rootNavigatorKey,
     refreshListenable: listenable,
-    initialLocation: '/login',
+    initialLocation: '/', // Start at Splash
     redirect: (context, state) {
       // Read latest state
       final authState = ref.read(authProvider);
       
-      if (authState.isLoading) return null; // Stay on "loading"
+      if (authState.isLoading) return null; // Stay on Splash if loading
       
       final isLoggedIn = authState.value != null;
+      final isSplash = state.uri.toString() == '/';
       final isLoggingIn = state.uri.toString() == '/login';
       final isRegistering = state.uri.toString() == '/register';
       final isVerifyingOtp = state.uri.toString() == '/otp-verify';
@@ -64,9 +65,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/login';
       }
       
-      
-      // If logged in, don't allow auth pages
-      if (isLoggedIn && (isLoggingIn || isRegistering || isVerifyingOtp)) {
+      // If logged in but on Splash or Auth pages -> Go Home/Perms
+      if (isLoggedIn && (isSplash || isLoggingIn || isRegistering || isVerifyingOtp)) {
            final onboardingState = ref.read(onboardingProvider);
            
            if (onboardingState.isLoading) return null; // Wait for onboarding check
@@ -101,6 +101,10 @@ final routerProvider = Provider<GoRouter>((ref) {
 
 
     routes: [
+      GoRoute(
+        path: '/',
+        builder: (context, state) => const SplashScreen(),
+      ),
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),

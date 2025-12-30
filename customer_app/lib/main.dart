@@ -38,9 +38,8 @@ class MyApp extends ConsumerWidget {
     final router = ref.watch(routerProvider);
     final authState = ref.watch(authProvider);
 
-    if (!authState.isLoading) {
-      FlutterNativeSplash.remove();
-    }
+    // Splash Removal is now handled by the specific screens (Login/Home)
+    // to ensure seamless transition.
 
     return MaterialApp.router(
       localizationsDelegates: context.localizationDelegates,
