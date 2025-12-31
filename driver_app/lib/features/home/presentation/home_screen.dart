@@ -26,8 +26,6 @@ import '../../rides/presentation/widgets/rating_dialog.dart';
 import '../../rides/data/ride_repository.dart';
 import '../../../core/services/ringtone_service.dart';
 import '../../../core/services/directions_service.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
-import '../../../../core/utils/globals.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -42,8 +40,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   // Default to Istanbul center if location not yet found
   LatLng _currentPosition = const LatLng(41.0082, 28.9784); 
   bool _hasRealLocation = false;
-  bool _isMapReady = false; // Controls Curtain Opacity (False = Visible)
-  bool _renderMap = false; // Deferred Rendering State
   
   bool _isOnline = false;
   StreamSubscription<Position>? _positionSubscription;
@@ -71,45 +67,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
     _initializeLocation();
     WakelockPlus.enable();
-
-    // Logic: If Native Splash is active, we don't show internal overlay (Cut Transition)
-    // If Native Splash is gone (Permissions), we show internal overlay (Fade Transition)
-    
-    _isMapReady = isNativeSplashVisible; 
-
     // Initialize Notifications
     ref.read(notificationServiceProvider).initialize();
     // Sync state on startup
     _syncState();
     
-    // LAUNCH SEQUENCER
-    if (isNativeSplashVisible) {
-       // --- COLD LAUNCH (Native -> Map) ---
-       // 1. Wait for Map Init (500ms)
-       Future.delayed(const Duration(milliseconds: 500), () {
-          if (mounted) {
-             setState(() {
-                _renderMap = true;
-             });
-          }
-       });
-       // 2. Remove Native Splash (800ms - giving time for map to render 1st frame)
-       Future.delayed(const Duration(milliseconds: 800), () {
-          FlutterNativeSplash.remove();
-          isNativeSplashVisible = false;
-          // Overlay is already hidden by _isMapReady = true logic check in Build
-       });
-    } else {
-       // --- WARM LAUNCH (Permissions -> Overlay -> Map) ---
-       // 1. Init Map (Delayed)
-       Future.delayed(const Duration(milliseconds: 500), () {
-         if (mounted) setState(() => _renderMap = true);
-       });
-       // 2. Lift Overlay
-       Future.delayed(const Duration(milliseconds: 1500), () {
-          if (mounted) setState(() => _isMapReady = true);
-       });
-    }
+    // Start Service REMOVED (Manual Control)
+
+    // Check for Overlay Permission (Critical for background launch)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkOverlayPermission();
+    });
   }
 
   // Methods Removed
@@ -259,8 +227,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           return Stack(
             children: [
               // Map Layer
-              // Map Layer
-              if (_renderMap)
               GoogleMap(
                   trafficEnabled: true,
                   mapType: MapType.normal,
@@ -279,10 +245,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       markers: _createMarkers(),
                       polylines: {
                         ..._polylines,
+                        // Flow removed
+                           // Flow removed
                       },
-                    )
-              else 
-                const SizedBox.expand(child: ColoredBox(color: Colors.white)), // Placeholder
+                    ),
 
               // Menu Button (Top Left)
               Positioned(
@@ -353,6 +319,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                     height: 48,
                     padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
                     // Decoration removed
+                    child: Center(
+                      child: Text(
+                        'taksibu',
+                        style: GoogleFonts.montserrat(
+                          color: const Color(0xFF0866ff),
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: -1.0,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
 
@@ -462,30 +439,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                           onStatusChanged: _toggleOnlineStatus,
                         );
                   }(),
-                ),
-              ),
-              // SOFT LANDING CURTAIN (Transition Overlay)
-              IgnorePointer(
-                ignoring: _isMapReady, 
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 800), 
-                  curve: Curves.easeOut,
-                  opacity: _isMapReady ? 0.0 : 1.0,
-                  child: Container(
-                    color: Colors.white,
-                    width: double.infinity,
-                    height: double.infinity,
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Image.asset(
-                            'assets/images/splash_logo_padded.png',
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
                 ),
               ),
             ],

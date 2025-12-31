@@ -296,9 +296,7 @@ class DriverAssignedSheet extends ConsumerWidget {
                ),
             ),
             
-            ),
-            
-          SizedBox(height: MediaQuery.of(context).viewPadding.bottom + 16), // Dynamic Safe Area Padding
+          const SizedBox(height: 12),
 
       ],
     );

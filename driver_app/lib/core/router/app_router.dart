@@ -25,8 +25,6 @@ import '../../features/auth/presentation/permissions/notification_permission_scr
 import '../../features/auth/presentation/permissions/background_permission_screen.dart';
 import '../../core/providers/onboarding_provider.dart';
 
-import '../../features/splash/presentation/splash_screen.dart';
-
 final routerProvider = Provider<GoRouter>((ref) {
   final listenable = ValueNotifier<bool>(true);
 
@@ -37,7 +35,7 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   return GoRouter(
     refreshListenable: listenable,
-    initialLocation: '/', // Splash Start
+    initialLocation: '/login',
     redirect: (context, state) {
       // 1. Handle Deep Links
       if (state.uri.scheme == 'taksibudriver' || state.uri.toString().contains('taksibudriver://')) {
@@ -50,7 +48,6 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isLoggedIn = authState.value != null;
       final isLoggingIn = state.uri.toString() == '/login';
-      final isSplash = state.uri.toString() == '/';
       final isRegistering = state.uri.toString() == '/register';
       final isVerifyingOtp = state.uri.toString() == '/otp-verify';
       final isPendingScreen = state.uri.toString() == '/pending';
@@ -92,12 +89,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           return '/pending';
       }
 
-      if (isSplash || isLoggingIn || isRegistering || isVerifyingOtp || isPendingScreen) return '/home';
+      if (isLoggingIn || isRegistering || isVerifyingOtp || isPendingScreen) return '/home';
 
       return null;
     },
     routes: [
-      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginScreen()),
       GoRoute(path: '/otp-verify', builder: (context, state) => OtpScreen(phone: state.extra as String)),
       GoRoute(path: '/register', builder: (context, state) => const RegisterScreen()),

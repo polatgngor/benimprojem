@@ -1,4 +1,4 @@
-const { User, Driver, UserDevice, Wallet } = require('../models');
+const { User, Driver, UserDevice, Wallet, Rating, sequelize } = require('../models');
 const { hashPassword, comparePassword } = require('../utils/hash');
 const { blacklistToken } = require('../utils/tokenBlacklist');
 const jwt = require('jsonwebtoken');
@@ -52,7 +52,27 @@ async function getProfile(req, res) {
       }
     }
 
-    return res.json({ user: userJson, driver });
+    // Calulate Average Rating
+    const ratingStats = await Rating.findOne({
+      where: { rated_id: userId },
+      attributes: [
+        [sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'count']
+      ],
+      raw: true
+    });
+
+    const avgRating = ratingStats && ratingStats.avg_rating ? parseFloat(ratingStats.avg_rating).toFixed(1) : "5.0";
+    const ratingCount = ratingStats ? parseInt(ratingStats.count) : 0;
+
+    return res.json({
+      user: {
+        ...userJson,
+        rating: avgRating,
+        rating_count: ratingCount
+      },
+      driver
+    });
   } catch (err) {
     console.error('getProfile err', err);
     return res.status(500).json({ message: 'Server error' });

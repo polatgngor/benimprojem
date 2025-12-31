@@ -20,8 +20,6 @@ import '../../ride/data/ride_repository.dart';
 import '../../ride/data/places_service.dart';
 import '../../ride/presentation/ride_controller.dart';
 import '../../../core/utils/map_utils.dart'; // Import MapUtils
-import 'package:flutter_native_splash/flutter_native_splash.dart';
-import '../../../../core/utils/globals.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -52,10 +50,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   LatLng? _currentAnimatedPos;
   BitmapDescriptor? _driverIcon;
   
-  // Transition State
-  bool _isMapReady = false; 
-  bool _renderMap = false; 
-
   // Flow Animation Removed
 
 
@@ -110,46 +104,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     }
   }
 
-
   Future<void> _initialize() async {
-    _initSocket();
-    
-    // Setup state based on launch type
-    // Cold Launch: Native Splash covers everything. We hide internal overlay to avoid pixel mismatch.
-    // Warm Launch: Native Splash gone. We show internal overlay.
-    if (isNativeSplashVisible) {
-       _isMapReady = true; // Hide Curtain immediately (Native is covering)
-    } else {
-       _isMapReady = false; // Show Curtain (Warm start)
-    }
-
+    await _initSocket();
+    if (mounted) {
       // Initialize Notifications
       ref.read(notificationServiceProvider).initialize();
       // Sync ride state on startup
-      // Sync ride state on startup
       await _syncRideState();
-      
-      // LAUNCH SEQUENCER
-      if (isNativeSplashVisible) {
-         // --- COLD LAUNCH ---
-         Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) setState(() => _renderMap = true);
-         });
-         Future.delayed(const Duration(milliseconds: 800), () {
-            FlutterNativeSplash.remove();
-            isNativeSplashVisible = false;
-         });
-      } else {
-         // --- WARM LAUNCH ---
-         Future.delayed(const Duration(milliseconds: 500), () {
-            if (mounted) setState(() => _renderMap = true);
-         });
-         Future.delayed(const Duration(milliseconds: 1500), () {
-            if (mounted) setState(() => _isMapReady = true); // Lift Curtain
-         });
-      }
-
-      // Adjust sheet size after sync
 
       // Adjust sheet size after sync
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -160,15 +121,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
              final double screenHeight = MediaQuery.of(context).size.height;
              final double safeArea = MediaQuery.of(context).viewPadding.bottom;
              double pixelHeight = 350.0;
-             // ... logic continues ...
-             
-             // Check logic below manually if needed or assume existing is fine 
+
+             // REF: User Requests & Buffer for Fixed Content
+             // Searching/Found -> 220 + Buffer = 240
              if (status == RideStatus.searching) pixelHeight = 240.0;
              else if (status == RideStatus.driverFound) pixelHeight = 370.0; 
              else if (status == RideStatus.rideStarted) pixelHeight = 230.0; 
              else if (status == RideStatus.driverFoundTransition) pixelHeight = 240.0;
-             else if (status == RideStatus.noDriverFound) pixelHeight = 340.0; // Increased to fit content
-             else pixelHeight = 410.0; 
+             else if (status == RideStatus.noDriverFound) pixelHeight = 240.0;
+             else pixelHeight = 410.0; // Reduced from 460 (Removed bottom padding)
 
              // Strict clamp to ensure it fits but doesn't overflow
              double targetHeight = ((pixelHeight + safeArea) / screenHeight).clamp(0.12, 0.95);
@@ -177,6 +138,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
          }
       });
     }
+  }
 
   Future<void> _syncRideState() async {
     try {
@@ -502,8 +464,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               // Map Layer
               Listener(
                 onPointerDown: (_) => _isUserInteracting = true,
-                child: _renderMap 
-                ? GoogleMap(
+                child: GoogleMap(
                   trafficEnabled: false,
                   mapType: MapType.normal,
                   initialCameraPosition: _kDefaultLocation,
@@ -517,9 +478,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   markers: _createMarkers(rideState),
                   polylines: {
                      ...rideState.polylines,
+                     // Flow Polyline Removed
                   },
-                )
-                : const SizedBox.expand(child: ColoredBox(color: Colors.white)),
+                ),
               ),
               
               // Menu Button (Top Left)
@@ -666,7 +627,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
               // MAP SELECTION OVERLAY (Pin + Confirm Button)
               if (rideState.isSelectingOnMap) ...[
-                // ... (Existing selection UI) ...
                 // Center PIN
                 Center(
                   child: Padding(
@@ -783,27 +743,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   ),
                 ),
               ],
-              
-              // SOFT LANDING CURTAIN (Transition Overlay)
-              // Covers the map initialization freeze
-              IgnorePointer(
-                ignoring: _isMapReady, 
-                child: AnimatedOpacity(
-                  duration: const Duration(milliseconds: 800), 
-                  curve: Curves.easeOut,
-                  opacity: _isMapReady ? 0.0 : 1.0,
-                  child: Container(
-                    color: Colors.white,
-                    width: double.infinity,
-                    height: double.infinity,
-                    child: Center(
-                      child: Image.asset(
-                        'assets/images/splash_logo_padded.png',
-                      ),
-                    ),
-                  ),
-                ),
-              ),
             ],
           );
         }

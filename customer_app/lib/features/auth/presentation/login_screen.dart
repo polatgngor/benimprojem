@@ -12,10 +12,6 @@ import '../../../../core/widgets/custom_toast.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/country_picker_dialog.dart';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../../core/utils/globals.dart';
-import 'package:flutter_native_splash/flutter_native_splash.dart';
-
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
 
@@ -25,16 +21,6 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _phoneController = TextEditingController();
-  @override
-  void initState() {
-    super.initState();
-    // Ensure splash is removed if we land here
-    if (isNativeSplashVisible) {
-      FlutterNativeSplash.remove();
-      isNativeSplashVisible = false;
-    }
-  }
-
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isAgreed = false;
