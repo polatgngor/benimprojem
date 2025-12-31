@@ -65,6 +65,8 @@ async function getProfile(req, res) {
     const avgRating = ratingStats && ratingStats.avg_rating ? parseFloat(ratingStats.avg_rating).toFixed(1) : "5.0";
     const ratingCount = ratingStats ? parseInt(ratingStats.count) : 0;
 
+    console.log(`[PROFILE DEBUG] User: ${userId}, Rating: ${avgRating}, Count: ${ratingCount}`); // DEBUG LOG
+
     return res.json({
       user: {
         ...userJson,
