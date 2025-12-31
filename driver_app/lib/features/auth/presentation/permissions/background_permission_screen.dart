@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,6 +17,9 @@ class _BackgroundPermissionScreenState extends ConsumerState<BackgroundPermissio
   @override
   void initState() {
     super.initState();
+    // Valid entry point, remove splash
+    FlutterNativeSplash.remove();
+
     WidgetsBinding.instance.addObserver(this);
     _checkPermissions(); // Check immediately on enter
   }

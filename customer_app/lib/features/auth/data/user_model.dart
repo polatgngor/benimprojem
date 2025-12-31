@@ -1,23 +1,15 @@
-import 'package:json_annotation/json_annotation.dart';
-
-part 'user_model.g.dart';
-
-@JsonSerializable()
 class UserModel {
   final int id;
   final String role;
   final String phone;
-  @JsonKey(name: 'first_name')
   final String firstName;
-  @JsonKey(name: 'last_name')
   final String lastName;
   final String? level;
-  @JsonKey(name: 'ref_code')
   final String? refCode;
-  @JsonKey(name: 'ref_count')
   final int? refCount;
-  @JsonKey(name: 'profile_photo')
   final String? profilePhoto;
+  final String? rating;
+  final int? ratingCount;
 
   UserModel({
     required this.id,
@@ -29,10 +21,39 @@ class UserModel {
     this.refCode,
     this.refCount,
     this.profilePhoto,
+    this.rating,
+    this.ratingCount,
   });
 
-  factory UserModel.fromJson(Map<String, dynamic> json) =>
-      _$UserModelFromJson(json);
+  factory UserModel.fromJson(Map<String, dynamic> json) {
+    return UserModel(
+      id: json['id'] as int,
+      role: json['role'] as String,
+      phone: json['phone'] as String,
+      firstName: json['first_name'] as String,
+      lastName: json['last_name'] as String,
+      level: json['level'] as String?,
+      refCode: json['ref_code'] as String?,
+      refCount: json['ref_count'] as int?,
+      profilePhoto: json['profile_photo'] as String?,
+      rating: json['rating'] as String?,
+      ratingCount: json['rating_count'] as int?,
+    );
+  }
 
-  Map<String, dynamic> toJson() => _$UserModelToJson(this);
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'role': role,
+      'phone': phone,
+      'first_name': firstName,
+      'last_name': lastName,
+      'level': level,
+      'ref_code': refCode,
+      'ref_count': refCount,
+      'profile_photo': profilePhoto,
+      'rating': rating,
+      'rating_count': ratingCount,
+    };
+  }
 }

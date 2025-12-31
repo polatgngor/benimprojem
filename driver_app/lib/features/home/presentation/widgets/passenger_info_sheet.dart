@@ -173,15 +173,15 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
     
     // Define heights (approximate pixels based on design)
     // Pickup Mode: Header(100) + Timeline(80) + Actions(100) + Padding ~ 380px
-    const double kPickupHeight = 400.0; 
-    // Started Mode: Header(100) + Timeline(80) + FinishBtn(60) + Padding ~ 320px
-    const double kStartedHeight = 320.0;
+    const double kPickupHeight = 420.0; // Slightly taller
+    // Started Mode: Header(100) + Timeline(80) + FinishBtn(60) + Padding ~ 320px -> Increased to 360
+    const double kStartedHeight = 380.0; 
 
     final double targetPixelHeight = isStarted ? kStartedHeight : kPickupHeight;
     final double totalTarget = targetPixelHeight + safeAreaBottom;
     
     // Calculate fraction
-    final double targetFraction = (totalTarget / screenHeight).clamp(0.25, 0.85);
+    final double targetFraction = (totalTarget / screenHeight).clamp(0.25, 0.90);
 
     // Update internal state variable if this build overrides it?
     // Note: We use _currentMaxHeight for animation state.
@@ -223,8 +223,8 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                   20, 
                   8, 
                   20, 
-                  MediaQuery.of(context).viewPadding.bottom + 16 // System padding + extra
-                ), 
+                  MediaQuery.of(context).viewPadding.bottom + 32 // Increased bottom padding
+                ),  
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.center,

@@ -1,3 +1,4 @@
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +11,7 @@ import 'package:flutter/gestures.dart';
 import '../../../../core/constants/legal_constants.dart';
 import '../../../../core/presentation/screens/legal_viewer_screen.dart';
 import 'package:intl_phone_field/country_picker_dialog.dart';
+
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -26,10 +28,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _fullPhoneNumber;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       // Pre-cache splash logo
+       try {
+         precacheImage(const AssetImage('assets/images/splash_logo_padded.png'), context);
+       } catch (_) {}
+
+       // Check immediately (in case already loaded)
+       final authState = ref.read(authProvider);
+       if (!authState.isLoading && authState.value == null) {
+          FlutterNativeSplash.remove();
+       }
+    });
+  }
+
+
+  @override
   void dispose() {
     _phoneController.dispose();
     super.dispose();
   }
+
 
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
@@ -66,6 +87,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
+
+    // Listen for Auth Loading Completion to remove Splash
+    ref.listen(authProvider, (previous, next) {
+       if (!next.isLoading && next.value == null) {
+          FlutterNativeSplash.remove();
+       }
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,

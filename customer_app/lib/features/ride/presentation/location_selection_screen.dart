@@ -32,20 +32,8 @@ class _LocationSelectionScreenState extends ConsumerState<LocationSelectionScree
   @override
   void initState() {
     super.initState();
-    final rideState = ref.read(rideProvider);
-    if (rideState.startAddress != null) {
-      _startController.text = rideState.startAddress!;
-    } else {
-      _startController.text = "location_selection.current_location".tr();
-      // If start location is missing, try fetching it
-      if (rideState.startLocation == null) {
-         _fetchCurrentLocation();
-      }
-    }
-    if (rideState.endAddress != null) {
-      _endController.text = rideState.endAddress!;
-    }
-
+    _initializeFields();
+    
     _startFocus.addListener(() {
       if (_startFocus.hasFocus) {
         setState(() {
@@ -65,9 +53,35 @@ class _LocationSelectionScreenState extends ConsumerState<LocationSelectionScree
     });
   }
 
+  void _initializeFields() {
+     final rideState = ref.read(rideProvider);
+     
+     // 1. Handle Start Address
+     if (rideState.startAddress != null && rideState.startAddress!.isNotEmpty) {
+       _startController.text = rideState.startAddress!;
+     } else {
+       // Placeholder while loading or default
+       _startController.text = "location_selection.current_location".tr();
+       
+       // Force fetch if missing or generic
+       _fetchCurrentLocation();
+     }
+
+     // 2. Handle End Address
+     if (rideState.endAddress != null) {
+       _endController.text = rideState.endAddress!;
+     }
+  }
+
   Future<void> _fetchCurrentLocation() async {
     try {
-      final position = await ref.read(locationServiceProvider).getCurrentPosition();
+      // 1. Try last known position first (FAST)
+      // Note: locationServiceProvider needs a method for this, otherwise determinePosition is cached usually
+      // If determinePosition is slow, user sees "Current Location" text which is fine.
+      
+      final position = await ref.read(locationServiceProvider).getCurrentPosition(); // assuming this is determinesPosition
+      
+      // 2. Reverse Geocode
       final address = await ref.read(placesServiceProvider).getAddressFromCoordinates(
         position.latitude, 
         position.longitude
@@ -75,18 +89,24 @@ class _LocationSelectionScreenState extends ConsumerState<LocationSelectionScree
       
       final displayAddress = address ?? "location_selection.current_location".tr();
       
+      // 3. Update Provider
       ref.read(rideProvider.notifier).setStartLocation(
         LatLng(position.latitude, position.longitude),
         displayAddress,
       );
       
+      // 4. Update UI
       if (mounted) {
-        setState(() {
-          _startController.text = displayAddress;
-        });
+        // Only update if user hasn't typed something else
+        if (_startController.text == "location_selection.current_location".tr() || _startController.text.isEmpty) {
+           setState(() {
+             _startController.text = displayAddress;
+           });
+        }
       }
     } catch (e) {
-      // Handle error
+      debugPrint('Location fetch error: $e');
+      // If error, leave as default or clear? Default is better.
     }
   }
 

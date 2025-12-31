@@ -26,7 +26,10 @@ async function start() {
   try {
     await sequelize.authenticate();
     logger.info('✅ MySQL connected (Sequelize).');
-    await sequelize.sync({ alter: true });
+
+    // Disable alter: true to prevent "Too many keys" error due to duplicate indexes
+    // We assume the schema is mostly correct or will be managed by migrations later.
+    await sequelize.sync({ alter: false });
     logger.info('✅ Sequelize models synced.');
 
     // Init Socket.IO (attaches to server)

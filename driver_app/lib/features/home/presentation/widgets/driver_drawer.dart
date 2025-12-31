@@ -227,9 +227,10 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                     context.push('/support');
                   },
                 ),
-                Theme(
+                  Theme(
                   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4), // Match _buildDrawerItem
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(

@@ -204,6 +204,54 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
             ),
           ),
+const SizedBox(height: 16),
+          // RATING DISPLAY
+          // Assuming user model has rating fields added or we access via map if explicit model update not done
+          // Since Customer User Model might not have these fields mapped yet, we need to ensure they are available.
+          // If using Freezed/JsonSerializable, we might need to update model.
+          // For now, let's assume dynamic access or we updated model. 
+          // EDIT: The User model in customer_app uses AuthProvider.
+          // Let's modify User model first? Or just try safe access if it's dynamic.
+          // The code uses `user.firstName` (object access).
+          // We need to check if we can access `user.rating`.
+          // If not, we might need to map it in `UserModel.fromJson`.
+          
+          Builder(
+            builder: (context) {
+              final rating = user.rating ?? "5.0";
+              final count = user.ratingCount ?? 0;
+              
+              return Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.star_rounded, color: Colors.amber, size: 28),
+                      const SizedBox(width: 8),
+                      Text(
+                        rating,
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF424242),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    '$count değerlendirme',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
+              );
+            }
+          ),
+
           const SizedBox(height: 30),
 
           // --- Personal Info Section ---

@@ -234,6 +234,38 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
         ),
+const SizedBox(height: 16),
+        // RATING DISPLAY
+        if (user['rating'] != null)
+        Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.star_rounded, color: Colors.amber, size: 28),
+                const SizedBox(width: 8),
+                Text(
+                  user['rating'].toString(),
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF424242),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${user['rating_count'] ?? 0} değerlendirme',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+
         const SizedBox(height: 30),
 
          // --- Personal Info Section ---

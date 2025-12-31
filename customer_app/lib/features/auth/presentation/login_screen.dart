@@ -1,3 +1,4 @@
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,6 +12,7 @@ import '../../../../core/widgets/custom_toast.dart';
 
 import 'package:intl_phone_field/intl_phone_field.dart';
 import 'package:intl_phone_field/country_picker_dialog.dart';
+
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -27,10 +29,36 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   String? _fullPhoneNumber;
 
   @override
+  void initState() {
+    super.initState();
+    // Pre-cache splash logo for smooth transition to Home
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       precacheImage(const AssetImage('assets/images/splash_logo_padded.png'), context);
+       _checkAndRemoveSplash();
+    });
+  }
+
+  void _checkAndRemoveSplash() {
+      // Check current state
+      final authState = ref.read(authProvider);
+      
+      if (!authState.isLoading && authState.value == null) {
+         FlutterNativeSplash.remove();
+      } else {
+         // If still loading, we rely on the listener in build() or here?
+         // Actually, let's use a one-shot listener logic here strictly for splash
+         // But simplest is to just ensure we check in build/listener too if needed.
+         // However, ref.listen in build is safer.
+      }
+  }
+
+
+  @override
   void dispose() {
     _phoneController.dispose();
     super.dispose();
   }
+
 
   Future<void> _submit() async {
     if (_formKey.currentState!.validate()) {
@@ -69,6 +97,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final primaryColor = Theme.of(context).primaryColor;
+    
+    // Listen for Auth Loading Completion to remove Splash
+    ref.listen(authProvider, (previous, next) {
+       if (!next.isLoading && next.value == null) {
+          FlutterNativeSplash.remove();
+       }
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,

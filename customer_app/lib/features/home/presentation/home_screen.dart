@@ -19,7 +19,9 @@ import '../../ride/presentation/widgets/rating_dialog.dart';
 import '../../ride/data/ride_repository.dart';
 import '../../ride/data/places_service.dart';
 import '../../ride/presentation/ride_controller.dart';
-import '../../../core/utils/map_utils.dart'; // Import MapUtils
+import '../../../core/utils/map_utils.dart';
+import '../../splash/presentation/home_loading_screen.dart'; // Import Loading Screen
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -32,6 +34,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   final Completer<GoogleMapController> _controller = Completer();
   GoogleMapController? _mapController;
   bool _isUserInteracting = false;
+  
+  // Loading State
+  bool _isLoading = true;
+  // Lazy Loading for "Heavy" widgets (Map) to prevent transition freeze
+  bool _readyForHeavyContent = false;
+
   
   // Default location (Istanbul Ataşehir)
   static const CameraPosition _kDefaultLocation = CameraPosition(
@@ -53,11 +61,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   // Flow Animation Removed
 
 
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // OPTIMIZED: Delay heavy content (Map) initialization by one frame
+    // This ensures the navigation to this screen is INSTANT (showing the loading screen)
+    // before we block the thread with Map creation.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) setState(() => _readyForHeavyContent = true);
+       });
+    });
+
     
     _markerController = AnimationController(
       vsync: this,
@@ -79,6 +96,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
     _initialize();
     _loadDriverIcon();
+    
+    // Smooth Transition Timer
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      if (mounted) {
+        FlutterNativeSplash.remove(); // Remove NATIVE splash now
+        setState(() => _isLoading = false); // Fade out overlay
+      }
+    });
   }
 
   // Flow Methods Removed
@@ -124,12 +149,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
              // REF: User Requests & Buffer for Fixed Content
              // Searching/Found -> 220 + Buffer = 240
-             if (status == RideStatus.searching) pixelHeight = 240.0;
-             else if (status == RideStatus.driverFound) pixelHeight = 370.0; 
-             else if (status == RideStatus.rideStarted) pixelHeight = 230.0; 
-             else if (status == RideStatus.driverFoundTransition) pixelHeight = 240.0;
-             else if (status == RideStatus.noDriverFound) pixelHeight = 240.0;
-             else pixelHeight = 410.0; // Reduced from 460 (Removed bottom padding)
+             if (status == RideStatus.searching) pixelHeight = 280.0;
+             else if (status == RideStatus.driverFound) pixelHeight = 380.0; 
+             else if (status == RideStatus.rideStarted) pixelHeight = 320.0; 
+             else if (status == RideStatus.driverFoundTransition) pixelHeight = 280.0;
+             else if (status == RideStatus.noDriverFound) pixelHeight = 320.0;
+             else pixelHeight = 440.0; // Reduced from 460 (Removed bottom padding)
 
              // Strict clamp to ensure it fits but doesn't overflow
              double targetHeight = ((pixelHeight + safeArea) / screenHeight).clamp(0.12, 0.95);
@@ -364,22 +389,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             
             switch (next.status) {
               case RideStatus.searching:
-                pixelHeight = 240.0;
+                pixelHeight = 280.0; // Increased
                 break;
               case RideStatus.noDriverFound:
-                pixelHeight = 240.0;
+                pixelHeight = 320.0; // Increased from 240 for visibility
                 break;
               case RideStatus.driverFoundTransition:
-                pixelHeight = 240.0;
+                pixelHeight = 280.0;
                 break;
               case RideStatus.driverFound: // Pickup
-                pixelHeight = 370.0; 
+                pixelHeight = 380.0; 
                 break;
               case RideStatus.rideStarted: // Trip
-                pixelHeight = 230.0; 
+                pixelHeight = 320.0; // Increased from 230 to show details/button better
                 break;
               default: // Ride Request / Initial
-                pixelHeight = 410.0; 
+                pixelHeight = 440.0; // Slightly increased back
             }
             
              double targetHeight = ((pixelHeight + safeArea) / screenHeight).clamp(0.12, 0.95);
@@ -464,7 +489,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               // Map Layer
               Listener(
                 onPointerDown: (_) => _isUserInteracting = true,
-                child: GoogleMap(
+                child: _readyForHeavyContent ? GoogleMap(
                   trafficEnabled: false,
                   mapType: MapType.normal,
                   initialCameraPosition: _kDefaultLocation,
@@ -480,7 +505,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                      ...rideState.polylines,
                      // Flow Polyline Removed
                   },
-                ),
+                ) : const SizedBox.shrink(), // Lightweight on first frame
               ),
               
               // Menu Button (Top Left)
@@ -743,6 +768,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   ),
                 ),
               ],
+              
+              // Loading Overlay (Soft Transition)
+              Positioned.fill(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 1500), // Slower fade
+                  switchOutCurve: Curves.easeOut, // Soft curve
+                  child: _isLoading 
+                      ? const HomeLoadingScreen()
+                      : const SizedBox.shrink(),
+                ),
+              ),
             ],
           );
         }

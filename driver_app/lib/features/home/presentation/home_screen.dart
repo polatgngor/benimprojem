@@ -26,6 +26,8 @@ import '../../rides/presentation/widgets/rating_dialog.dart';
 import '../../rides/data/ride_repository.dart';
 import '../../../core/services/ringtone_service.dart';
 import '../../../core/services/directions_service.dart';
+import '../../splash/presentation/home_loading_screen.dart'; // Import Loading Screen
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -35,11 +37,16 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver, TickerProviderStateMixin {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   final Completer<GoogleMapController> _controller = Completer();
   GoogleMapController? _mapController; // Added as per instruction
   // Default to Istanbul center if location not yet found
   LatLng _currentPosition = const LatLng(41.0082, 28.9784); 
   bool _hasRealLocation = false;
+  
+  // Loading State
+  bool _isLoading = true;
+
   
   bool _isOnline = false;
   StreamSubscription<Position>? _positionSubscription;
@@ -57,11 +64,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   int? _routeDistanceMeters;
   int? _routeDurationSeconds;
   DateTime? _lastRouteFetchTime;
+  
+  // Lazy Loading for "Heavy" widgets (Map) to prevent transition freeze
+  bool _readyForHeavyContent = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    
+    // OPTIMIZED: Delay heavy content (Map) initialization
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       Future.delayed(const Duration(milliseconds: 500), () {
+          if (mounted) setState(() => _readyForHeavyContent = true);
+       });
+    });
+
     
     // Flow Animation Removed
 
@@ -78,7 +96,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkOverlayPermission();
     });
-  }
+
+    // Smooth Transition Timer
+    Future.delayed(const Duration(milliseconds: 2500), () {
+      if (mounted) {
+        FlutterNativeSplash.remove(); // Remove NATIVE splash now
+        setState(() => _isLoading = false); // Fade out overlay
+      }
+    });
+  } // End of initState
 
   // Methods Removed
 
@@ -220,6 +246,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     });
 
     return Scaffold(
+      key: _scaffoldKey,
       resizeToAvoidBottomInset: false, // PERFORMANCE FIX: Prevent Map resize when keyboard opens
       drawer: const DriverDrawer(),
       body: LayoutBuilder(
@@ -227,7 +254,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           return Stack(
             children: [
               // Map Layer
-              GoogleMap(
+              _readyForHeavyContent ? GoogleMap(
                   trafficEnabled: true,
                   mapType: MapType.normal,
                   initialCameraPosition: CameraPosition(
@@ -248,7 +275,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                         // Flow removed
                            // Flow removed
                       },
-                    ),
+                    ) : const SizedBox.shrink(), // Lightweight on first frame
 
               // Menu Button (Top Left)
               Positioned(
@@ -441,6 +468,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   }(),
                 ),
               ),
+
+              // Loading Overlay (Soft Transition)
+              Positioned.fill(
+                child: AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 1500), // Slower fade
+                  switchOutCurve: Curves.easeOut, // Soft curve
+                  child: _isLoading 
+                      ? const HomeLoadingScreen()
+                      : const SizedBox.shrink(),
+                ),
+              ),
             ],
           );
         },
@@ -486,27 +524,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           _fetchAndDrawRoute(fitBounds: fitBounds);
         });
 
-
-        
         if (_isOnline) {
            ref.read(socketServiceProvider).emit('driver:rejoin');
+           // DO NOT emit available if we have a ride, we are busy (usually backend handles this, but safe to be passive)
         }
       } else {
-        // 2. If no active ride, we remain in our current state (Online or Offline)
-        // Do NOT force offline just because there is no ride.
+        // 2. No active ride.
+        // FORCE availability if logic says we should be online.
         if (_isOnline) {
-           // We are online but have no ride -> We are searching/available
+           debugPrint('🔄 Sync State: No active ride, forcing Availability TRUE');
+           
+           // EMIT REJOIN FIRST (To identify socket)
            ref.read(socketServiceProvider).emit('driver:rejoin');
+           
+           // THEN EMIT AVAILABLE
+           // We add a slight delay to ensure rejoin processes if needed, but usually can cause race. 
+           // Better to just emit.
            ref.read(socketServiceProvider).emitAvailability(true);
-        } else {
-           // We are offline, do nothing or ensure offline
-           // ref.read(socketServiceProvider).emitAvailability(false);
         }
       }
     } catch (e) {
       debugPrint('Error syncing driver state: $e');
     }
   }
+
+
 
   void _setupSocketListeners() {
     final socket = ref.read(socketServiceProvider).socket;
@@ -583,13 +625,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     socket.on('request:accepted_confirm', (data) {
       if (mounted) {
         ref.read(ringtoneServiceProvider).stopRingtone();
+        
+        // FORCE NAVIGATION TO HOME (Root)
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        
+        // Close Drawer if open (using ScaffoldState context via GlobalKey if available, or finding scaffold)
+        // Since we are popping to first, the drawer might be associated with the Home Scaffold.
+        // It's safer to pop context if we can, but popping to first usually closes dialogs.
+        // If drawer is open, it might be overlay.
+        // Let's try to pop one more time if needed, OR explicit check.
+        // Actually, popUntil((route) => route.isFirst) closes the drawer if it's a ModalRoute (which it usually is).
+        // IF it doesn't, we can try:
+        // Scaffold.of(context).closeDrawer(); // This might fail if context is not under scaffold.
+        // BUT, since we are inside HomeScreen State, we can access the ScaffoldState if we assign a GlobalKey.
+        if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+          _scaffoldKey.currentState?.closeDrawer();
+        }
+        
         setState(() {
           _activeRide = data;
           ref.read(incomingRequestsProvider.notifier).clearRequests();
           _syncState(fitBounds: true); // Revert to true to trigger smart zoom
         });
-
-
       }
     });
 

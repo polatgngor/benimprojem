@@ -13,50 +13,65 @@ class RingtoneService {
   final AudioPlayer _audioPlayer = AudioPlayer();
   bool _isPlaying = false;
 
-  Future<void> playRingtone() async {
-    if (_isPlaying) return;
+  RingtoneService() {
+    _initAudioContext();
+  }
 
+  Future<void> _initAudioContext() async {
     try {
-      // Ensure loud volume
-      await _audioPlayer.setVolume(1.0);
-      
-      // Release mode: Loop the ringtone
-      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-
-      // Force Audio Context (Android specific tuning)
-      // This ensures we play even if media volume is weird, and we respect silent mode preferences if needed,
-      // but for a "Ringtone" we want it audible.
       await _audioPlayer.setAudioContext(AudioContext(
         android: AudioContextAndroid(
            isSpeakerphoneOn: true,
            stayAwake: true,
            contentType: AndroidContentType.music,
-           usageType: AndroidUsageType.notificationRingtone,
-           audioFocus: AndroidAudioFocus.gainTransientMayDuck,
+           usageType: AndroidUsageType.alarm,
+           audioFocus: AndroidAudioFocus.gainTransient,
         ),
         iOS: AudioContextIOS(
            category: AVAudioSessionCategory.playback,
-           options: {AVAudioSessionOptions.duckOthers, AVAudioSessionOptions.mixWithOthers}, 
+           options: {
+             AVAudioSessionOptions.duckOthers, 
+             AVAudioSessionOptions.mixWithOthers,
+             AVAudioSessionOptions.defaultToSpeaker // Ensure speaker on iOS
+           }, 
         ),
       ));
-
-      // Play from assets
-      await _audioPlayer.play(AssetSource('sounds/ringtone.mp3'));
-      _isPlaying = true;
-      debugPrint('Ringtone Playing... (Loop Mode)');
     } catch (e) {
-      debugPrint('Error playing ringtone: $e');
+      debugPrint('Error init audio context: $e');
+    }
+  }
+
+  Future<void> playRingtone() async {
+    if (_isPlaying) return;
+
+    try {
+      // Stop previous if any
+      await _audioPlayer.stop();
+      _isPlaying = true; 
+
+      await _audioPlayer.setVolume(1.0);
+      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
+
+      // Play
+      await _audioPlayer.play(AssetSource('sounds/ringtone.mp3'));
+      
+      debugPrint('🔔 RINGTONE STARTED (Loop Mode) 🔔');
+    } catch (e) {
+      _isPlaying = false;
+      debugPrint('❌ Error playing ringtone: $e');
     }
   }
 
   Future<void> stopRingtone() async {
-    if (!_isPlaying) return;
-
     try {
-      await _audioPlayer.stop();
-      _isPlaying = false;
+      if (_isPlaying) {
+        await _audioPlayer.stop();
+        await _audioPlayer.setReleaseMode(ReleaseMode.stop); 
+        _isPlaying = false;
+        debugPrint('🔕 Ringtone Stopped');
+      }
     } catch (e) {
-      print('Error stopping ringtone: $e');
+      debugPrint('Error stopping ringtone: $e');
     }
   }
 }

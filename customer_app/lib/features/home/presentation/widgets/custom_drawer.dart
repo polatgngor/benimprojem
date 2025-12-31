@@ -199,6 +199,7 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                 Theme(
                   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4), // Fixed alignment
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
