@@ -61,7 +61,7 @@ class RideBookingSheet extends ConsumerWidget {
               // Fix: Conditional padding or just revert to standard + safeArea
               // The status 'initial' or 'request' might be adding too much gap.
               // Let's use standard 16 + bottom.
-              16 + MediaQuery.of(context).viewPadding.bottom 
+              30 + MediaQuery.of(context).viewPadding.bottom 
             ), 
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 300),

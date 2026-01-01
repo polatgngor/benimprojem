@@ -34,7 +34,7 @@ class _DriverCancellationSheetState extends ConsumerState<DriverCancellationShee
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 50),
       child: Column(
         mainAxisSize: MainAxisSize.min, // Auto-height
         children: [

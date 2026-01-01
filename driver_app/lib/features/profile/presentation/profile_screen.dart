@@ -39,6 +39,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     
     _firstNameController.addListener(_checkForChanges);
     _lastNameController.addListener(_checkForChanges);
+    
+    // Refresh profile on init to get latest rating
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(driverProfileProvider);
+    });
   }
 
   @override

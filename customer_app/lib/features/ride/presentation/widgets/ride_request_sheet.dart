@@ -5,11 +5,18 @@ import '../ride_state_provider.dart';
 import '../ride_controller.dart';
 import 'package:easy_localization/easy_localization.dart';
 
-class RideRequestSheet extends ConsumerWidget {
+class RideRequestSheet extends ConsumerStatefulWidget {
   const RideRequestSheet({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<RideRequestSheet> createState() => _RideRequestSheetState();
+}
+
+class _RideRequestSheetState extends ConsumerState<RideRequestSheet> {
+  bool _isLoading = false;
+
+  @override
+  Widget build(BuildContext context) {
     final rideState = ref.watch(rideProvider);
 
     return Column(
@@ -191,15 +198,28 @@ class RideRequestSheet extends ConsumerWidget {
 
         // Call Taxi Button
         ElevatedButton(
-          onPressed: rideState.endLocation == null
+          onPressed: (rideState.endLocation == null)
               ? null // Disable if no destination
-              : () {
-                  ref.read(rideControllerProvider.notifier).createRide(context);
+              : () async {
+                  // OPTIMISTIC UI: Immediately switch to searching state
+                  // This removes the button and prevents double taps instantly.
+                  ref.read(rideProvider.notifier).setRideStatus(RideStatus.searching);
+                  
+                  try {
+                    await ref.read(rideControllerProvider.notifier).createRide(context);
+                    // Success: State will be updated by socket/controller further
+                  } catch (e) {
+                     // Failure: Revert state so user can try again
+                     if (context.mounted) {
+                        ref.read(rideProvider.notifier).setRideStatus(RideStatus.idle);
+                        // Error toast is handled by controller usually, but safe to revert here.
+                     }
+                  }
                 },
           style: ElevatedButton.styleFrom(
             backgroundColor: Theme.of(context).primaryColor, // Primary Blue
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16), // Slightly reduced padding
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             elevation: 2,
             shadowColor: Theme.of(context).primaryColor.withOpacity(0.4),

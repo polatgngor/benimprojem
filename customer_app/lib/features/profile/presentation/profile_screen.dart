@@ -31,7 +31,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _lastNameController = TextEditingController(text: user?.lastName ?? '');
     
     _firstNameController.addListener(_checkForChanges);
+    _firstNameController.addListener(_checkForChanges);
     _lastNameController.addListener(_checkForChanges);
+    
+    // Refresh profile data to get latest rating
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authProvider.notifier).refreshProfile();
+    });
   }
 
   @override

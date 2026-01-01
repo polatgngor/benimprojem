@@ -50,6 +50,18 @@ async function createRide(req, res) {
     return res.status(400).json({ message: 'Invalid vehicle_type' });
   }
 
+  // Prevent multiple active rides
+  const existingRide = await Ride.findOne({
+    where: {
+      passenger_id: userId,
+      status: { [Op.notIn]: ['completed', 'cancelled', 'auto_rejected'] }
+    }
+  });
+
+  if (existingRide) {
+    return res.status(400).json({ message: 'Devam eden bir yolculuğunuz var.' });
+  }
+
   const t = await sequelize.transaction();
 
   try {

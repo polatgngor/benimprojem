@@ -202,7 +202,10 @@ module.exports = (io, socket) => {
 
             if (pendingRequest) {
                 const parentRide = await Ride.findOne({
-                    where: { id: pendingRequest.ride_id, status: 'searching' },
+                    where: {
+                        id: pendingRequest.ride_id,
+                        status: { [Op.or]: ['requested', 'searching'] }
+                    },
                     include: [
                         { model: User, as: 'passenger', attributes: ['id', 'first_name', 'last_name', 'phone', 'profile_picture'] }
                     ]

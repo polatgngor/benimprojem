@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:android_intent_plus/android_intent.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -38,9 +39,46 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 }
 
 class NotificationService {
+  final FlutterLocalNotificationsPlugin _flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
   Future<void> initialize() async {
      await Firebase.initializeApp();
      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+
+     // Initialize Local Notifications
+     const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/ic_launcher');
+
+     const InitializationSettings initializationSettings = InitializationSettings(
+       android: initializationSettingsAndroid,
+     );
+
+     await _flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+     // Create Channel
+     const AndroidNotificationChannel channel = AndroidNotificationChannel(
+       'high_importance_channel', // id
+       'High Importance Notifications', // title
+       description: 'This channel is used for important notifications.', // description
+       importance: Importance.max,
+     );
+
+     await _flutterLocalNotificationsPlugin
+         .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+         ?.createNotificationChannel(channel);
+
+     // Foreground Handler
+     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+        // If app is in foreground, we might NOT want to show a notification if user is active.
+        // User request: "uygulamaya girdiysem o bildirimler olmasın"
+        // So we do NOTHING here for now, or only show critical alerts.
+        // If we want to show non-intrusive in-app messages, we use Snackbars/Toasts separately.
+        debugPrint("Foreground message received: ${message.data}");
+     });
+  }
+
+  Future<void> cancelAllNotifications() async {
+    await _flutterLocalNotificationsPlugin.cancelAll();
   }
 }
 

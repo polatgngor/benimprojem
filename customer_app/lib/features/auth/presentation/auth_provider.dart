@@ -51,7 +51,7 @@ class Auth extends _$Auth {
       );
       
       // Trigger background sync
-      Future.delayed(Duration.zero, () => _fetchRealProfile());
+      Future.delayed(Duration.zero, () => refreshProfile());
 
       return optimisticUser;
     }
@@ -59,7 +59,7 @@ class Auth extends _$Auth {
     return null;
   }
 
-  Future<void> _fetchRealProfile() async {
+  Future<void> refreshProfile() async {
     try {
       final repository = ref.read(authRepositoryProvider);
       final user = await repository.getProfile();

@@ -245,72 +245,143 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       }
     });
 
-    return Scaffold(
-      key: _scaffoldKey,
-      resizeToAvoidBottomInset: false, // PERFORMANCE FIX: Prevent Map resize when keyboard opens
-      drawer: const DriverDrawer(),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Stack(
-            children: [
-              // Map Layer
-              _readyForHeavyContent ? GoogleMap(
-                  trafficEnabled: true,
-                  mapType: MapType.normal,
-                  initialCameraPosition: CameraPosition(
-                    target: _currentPosition,
-                    zoom: 12, // Standardized City View
-                  ),
-                  myLocationEnabled: true,
-                      myLocationButtonEnabled: false,
-                      zoomControlsEnabled: false,
-                      // Padding reduced to 0 to match Customer App (hiding Google Logo under sheet)
-                      padding: EdgeInsets.zero, 
-                      onMapCreated: (GoogleMapController controller) {
-                        _controller.complete(controller);
-                      },
-                      markers: _createMarkers(),
-                      polylines: {
-                        ..._polylines,
-                        // Flow removed
-                           // Flow removed
-                      },
-                    ) : const SizedBox.shrink(), // Lightweight on first frame
-
-              // Menu Button (Top Left)
-              Positioned(
-                top: 50,
-                left: 16,
-                child: Builder(
-                  builder: (context) => Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        // Simulate Home Button to background app instead of killing it
+        if (Theme.of(context).platform == TargetPlatform.android) {
+             const intent = AndroidIntent(
+               action: 'android.intent.action.MAIN',
+               category: 'android.intent.category.HOME',
+               flags: <int>[0x10000000], // FLAG_ACTIVITY_NEW_TASK
+             );
+             await intent.launch();
+        }
+      },
+      child: Scaffold(
+        key: _scaffoldKey,
+        resizeToAvoidBottomInset: false, // PERFORMANCE FIX: Prevent Map resize when keyboard opens
+        drawer: const DriverDrawer(),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return Stack(
+              children: [
+                // Map Layer
+                _readyForHeavyContent ? GoogleMap(
+                    trafficEnabled: true,
+                    mapType: MapType.normal,
+                    initialCameraPosition: CameraPosition(
+                      target: _currentPosition,
+                      zoom: 12, // Standardized City View
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.black),
-                      onPressed: () {
-                        Scaffold.of(context).openDrawer();
-                      },
+                    myLocationEnabled: true,
+                        myLocationButtonEnabled: false,
+                        zoomControlsEnabled: false,
+                        // Padding reduced to 0 to match Customer App (hiding Google Logo under sheet)
+                        padding: EdgeInsets.zero, 
+                        onMapCreated: (GoogleMapController controller) {
+                          _controller.complete(controller);
+                        },
+                        markers: _createMarkers(),
+                        polylines: {
+                          ..._polylines,
+                          // Flow removed
+                             // Flow removed
+                        },
+                      ) : const SizedBox.shrink(), // Lightweight on first frame
+  
+                // Menu Button (Top Left)
+                Positioned(
+                  top: 50,
+                  left: 16,
+                  child: Builder(
+                    builder: (context) => Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.menu, color: Colors.black),
+                        onPressed: () {
+                          Scaffold.of(context).openDrawer();
+                        },
+                      ),
                     ),
                   ),
                 ),
-              ),
-
-                // BRANDING LOGO (Bottom Left - Floating with Sheet)
+  
+                  // BRANDING LOGO (Bottom Left - Floating with Sheet)
+                  AnimatedBuilder(
+                    animation: Listenable.merge([_statsSheetController, _passengerInfoController]),
+                    builder: (context, child) {
+                      double bottomPosition = 16.0;
+                      double sheetHeight = 0.0;
+                      
+                      try {
+                        if (_activeRide != null) {
+                           if (_passengerInfoController.isAttached) {
+                             sheetHeight = _passengerInfoController.size * constraints.maxHeight;
+                           }
+                        } else {
+                           if (_statsSheetController.isAttached) {
+                             sheetHeight = _statsSheetController.size * constraints.maxHeight;
+                           }
+                        }
+                      } catch (_) {}
+                      
+                      if (sheetHeight == 0) {
+                        // Adaptive Fallback
+                        final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+                        double targetPixels = _activeRide != null ? 380.0 : 350.0;
+                        targetPixels += safeArea;
+                        sheetHeight = targetPixels;
+                      }
+                      
+                      // SAFE AREA VALIDATION
+                      double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
+                      bottomPosition = sheetHeight + 10;
+                      if (bottomPosition < minBottom) bottomPosition = minBottom;
+                      
+                      return Positioned(
+                        left: 16,
+                        bottom: bottomPosition,
+                        child: child!,
+                      );
+                    },
+                    child: Container(
+                      height: 48,
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+                      // Decoration removed
+                      child: Center(
+                        child: Text(
+                          'taksibu',
+                          style: GoogleFonts.montserrat(
+                            color: const Color(0xFF0866ff),
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -1.0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+  
+                // Custom Location Button
                 AnimatedBuilder(
                   animation: Listenable.merge([_statsSheetController, _passengerInfoController]),
                   builder: (context, child) {
                     double bottomPosition = 16.0;
                     double sheetHeight = 0.0;
                     
+                    // Calculate height based on active sheet
                     try {
                       if (_activeRide != null) {
                          if (_passengerInfoController.isAttached) {
@@ -323,165 +394,109 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       }
                     } catch (_) {}
                     
+                    // Fallback defaults if not attached yet
                     if (sheetHeight == 0) {
-                      // Adaptive Fallback
-                      final double safeArea = MediaQuery.of(context).viewPadding.bottom;
-                      double targetPixels = _activeRide != null ? 380.0 : 350.0;
-                      targetPixels += safeArea;
-                      sheetHeight = targetPixels;
+                        final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+                        double targetPixels = _activeRide != null ? 380.0 : 350.0;
+                        targetPixels += safeArea;
+                        sheetHeight = targetPixels; 
                     }
                     
                     // SAFE AREA VALIDATION
                     double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
-                    bottomPosition = sheetHeight + 10;
+                    bottomPosition = sheetHeight + 16;
                     if (bottomPosition < minBottom) bottomPosition = minBottom;
                     
                     return Positioned(
-                      left: 16,
+                      right: 16,
                       bottom: bottomPosition,
                       child: child!,
                     );
                   },
-                  child: Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
-                    // Decoration removed
-                    child: Center(
-                      child: Text(
-                        'taksibu',
-                        style: GoogleFonts.montserrat(
-                          color: const Color(0xFF0866ff),
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -1.0,
+                  child: Material(
+                    color: Colors.white,
+                    shape: const CircleBorder(),
+                    elevation: 4,
+                    shadowColor: Colors.black26,
+                    child: InkWell(
+                      onTap: _animateToLocation,
+                      customBorder: const CircleBorder(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Icon(
+                          Icons.my_location,
+                          color: Theme.of(context).primaryColor,
+                          size: 24,
                         ),
                       ),
                     ),
                   ),
                 ),
-
-              // Custom Location Button
-              AnimatedBuilder(
-                animation: Listenable.merge([_statsSheetController, _passengerInfoController]),
-                builder: (context, child) {
-                  double bottomPosition = 16.0;
-                  double sheetHeight = 0.0;
-                  
-                  // Calculate height based on active sheet
-                  try {
-                    if (_activeRide != null) {
-                       if (_passengerInfoController.isAttached) {
-                         sheetHeight = _passengerInfoController.size * constraints.maxHeight;
+  
+                // Bottom Sheets (Swappable)
+                Positioned.fill(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    switchInCurve: Curves.easeOut,
+                    switchOutCurve: Curves.easeIn,
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                       return SlideTransition(
+                         position: Tween<Offset>(
+                           begin: const Offset(0.0, 1.0),
+                           end: Offset.zero,
+                         ).animate(animation),
+                         child: child,
+                       );
+                    },
+                    child: () {
+                       // 1. Optimistic Matching State ("Zınk" Transition Sheet)
+                       final optimisticState = ref.watch(optimisticRideProvider);
+                       
+                       if (optimisticState.isMatching) {
+                         return MatchProcessingSheet(
+                           key: const ValueKey('match_processing_sheet'),
+                         );
                        }
-                    } else {
-                       if (_statsSheetController.isAttached) {
-                         sheetHeight = _statsSheetController.size * constraints.maxHeight;
+                       
+                       // 2. Active Ride (Passenger Info)
+                       if (_activeRide != null) {
+                         return PassengerInfoSheet(
+                            key: const ValueKey('passenger_info_sheet'),
+                            rideData: _activeRide!,
+                            controller: _passengerInfoController,
+                            driverLocation: _currentPosition,
+                            currentDistanceMeters: _routeDistanceMeters,
+                            currentDurationSeconds: _routeDurationSeconds,
+                          );
                        }
-                    }
-                  } catch (_) {}
-                  
-                  // Fallback defaults if not attached yet
-                  if (sheetHeight == 0) {
-                      final double safeArea = MediaQuery.of(context).viewPadding.bottom;
-                      double targetPixels = _activeRide != null ? 380.0 : 350.0;
-                      targetPixels += safeArea;
-                      sheetHeight = targetPixels; 
-                  }
-                  
-                  // SAFE AREA VALIDATION
-                  double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
-                  bottomPosition = sheetHeight + 16;
-                  if (bottomPosition < minBottom) bottomPosition = minBottom;
-                  
-                  return Positioned(
-                    right: 16,
-                    bottom: bottomPosition,
-                    child: child!,
-                  );
-                },
-                child: Material(
-                  color: Colors.white,
-                  shape: const CircleBorder(),
-                  elevation: 4,
-                  shadowColor: Colors.black26,
-                  child: InkWell(
-                    onTap: _animateToLocation,
-                    customBorder: const CircleBorder(),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Icon(
-                        Icons.my_location,
-                        color: Theme.of(context).primaryColor,
-                        size: 24,
-                      ),
-                    ),
+                       
+                       // 3. Default (Driver Stats)
+                       return DriverStatsSheet(
+                            key: const ValueKey('driver_stats_sheet'),
+                            refCount: 12, 
+                            refCode: _refCode,
+                            controller: _statsSheetController,
+                            isOnline: _isOnline,
+                            onStatusChanged: _toggleOnlineStatus,
+                          );
+                    }(),
                   ),
                 ),
-              ),
-
-              // Bottom Sheets (Swappable)
-              Positioned.fill(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 300),
-                  switchInCurve: Curves.easeOut,
-                  switchOutCurve: Curves.easeIn,
-                  transitionBuilder: (Widget child, Animation<double> animation) {
-                     return SlideTransition(
-                       position: Tween<Offset>(
-                         begin: const Offset(0.0, 1.0),
-                         end: Offset.zero,
-                       ).animate(animation),
-                       child: child,
-                     );
-                  },
-                  child: () {
-                     // 1. Optimistic Matching State ("Zınk" Transition Sheet)
-                     final optimisticState = ref.watch(optimisticRideProvider);
-                     
-                     if (optimisticState.isMatching) {
-                       return MatchProcessingSheet(
-                         key: const ValueKey('match_processing_sheet'),
-                       );
-                     }
-                     
-                     // 2. Active Ride (Passenger Info)
-                     if (_activeRide != null) {
-                       return PassengerInfoSheet(
-                          key: const ValueKey('passenger_info_sheet'),
-                          rideData: _activeRide!,
-                          controller: _passengerInfoController,
-                          driverLocation: _currentPosition,
-                          currentDistanceMeters: _routeDistanceMeters,
-                          currentDurationSeconds: _routeDurationSeconds,
-                        );
-                     }
-                     
-                     // 3. Default (Driver Stats)
-                     return DriverStatsSheet(
-                          key: const ValueKey('driver_stats_sheet'),
-                          refCount: 12, 
-                          refCode: _refCode,
-                          controller: _statsSheetController,
-                          isOnline: _isOnline,
-                          onStatusChanged: _toggleOnlineStatus,
-                        );
-                  }(),
+  
+                // Loading Overlay (Soft Transition)
+                Positioned.fill(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 1500), // Slower fade
+                    switchOutCurve: Curves.easeOut, // Soft curve
+                    child: _isLoading 
+                        ? const HomeLoadingScreen()
+                        : const SizedBox.shrink(),
+                  ),
                 ),
-              ),
-
-              // Loading Overlay (Soft Transition)
-              Positioned.fill(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 1500), // Slower fade
-                  switchOutCurve: Curves.easeOut, // Soft curve
-                  child: _isLoading 
-                      ? const HomeLoadingScreen()
-                      : const SizedBox.shrink(),
-                ),
-              ),
-            ],
-          );
-        },
+              ],
+            );
+          },
+        ),
       ),
     );
   }
@@ -489,6 +504,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
+      ref.read(notificationServiceProvider).cancelAllNotifications();
       _syncState(fitBounds: false);
     } else if (state == AppLifecycleState.detached) {
       // Release service if app is killed

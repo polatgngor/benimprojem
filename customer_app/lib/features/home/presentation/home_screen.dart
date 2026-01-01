@@ -8,7 +8,25 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../../../core/services/location_service.dart';
+import 'package:android_intent_plus/android_intent.dart'; // Added
+import 'package:android_intent_plus/flag.dart'; // Added
+
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+         // Simulate Home Button to background app instead of killing it
+        if (Theme.of(context).platform == TargetPlatform.android) {
+             const intent = AndroidIntent(
+               action: 'android.intent.action.MAIN',
+               category: 'android.intent.category.HOME',
+               flags: <int>[Flag.FLAG_ACTIVITY_NEW_TASK],
+             );
+             await intent.launch();
+        }
+      },
+      child: Scaffold(
+      resizeToAvoidBottomInset: false, // PERFORMANCE FIX
 import '../../../core/services/socket_service.dart';
 import '../../../core/services/directions_service.dart';
 import '../../ride/presentation/ride_booking_sheet.dart';
@@ -154,11 +172,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
              else if (status == RideStatus.rideStarted) pixelHeight = 320.0; 
              else if (status == RideStatus.driverFoundTransition) pixelHeight = 280.0;
              else if (status == RideStatus.noDriverFound) pixelHeight = 320.0;
-             else pixelHeight = 440.0; // Reduced from 460 (Removed bottom padding)
+             else pixelHeight = 395.0; // Optimized for content fit 
 
              // Strict clamp to ensure it fits but doesn't overflow
              double targetHeight = ((pixelHeight + safeArea) / screenHeight).clamp(0.12, 0.95);
 
+             if (mounted) {
+               setState(() {
+                 _sheetMaxHeight = targetHeight;
+               });
+             }
              _sheetController.jumpTo(targetHeight);
          }
       });
@@ -404,7 +427,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 pixelHeight = 320.0; // Increased from 230 to show details/button better
                 break;
               default: // Ride Request / Initial
-                pixelHeight = 440.0; // Slightly increased back
+                pixelHeight = 395.0; // Optimized: 365 + 30px padding
             }
             
              double targetHeight = ((pixelHeight + safeArea) / screenHeight).clamp(0.12, 0.95);
