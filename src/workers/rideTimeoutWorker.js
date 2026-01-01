@@ -1,6 +1,7 @@
 const { Worker } = require('bullmq');
 const { connection } = require('../queues/rideTimeoutQueue');
 const { Ride, RideRequest, Notification, UserDevice } = require('../models');
+const { Op } = require('sequelize');
 const socketProvider = require('../lib/socketProvider');
 const Redis = require('ioredis');
 const logger = require('../lib/logger');
@@ -67,6 +68,9 @@ const worker = new Worker(
       // Notify drivers who received the request
       try {
         const requests = await RideRequest.findAll({ where: { ride_id: rideId } });
+        const driverIds = requests.map(r => r.driver_id);
+
+        // 1. Send Socket Event (Existing)
         for (const req of requests) {
           if (io) {
             io.to(`driver:${req.driver_id}`).emit('request:timeout', {
@@ -75,6 +79,30 @@ const worker = new Worker(
             });
           }
         }
+
+        // 2. Send Push Notification (New - For Ringtone Stop)
+        if (driverIds.length > 0) {
+          const driverDevices = await UserDevice.findAll({
+            where: { user_id: { [Op.in]: driverIds } }
+          });
+          const driverTokens = driverDevices.map(d => d.device_token);
+
+          if (driverTokens.length > 0) {
+            await sendPushToTokens(
+              driverTokens,
+              {
+                title: 'Çağrı Düştü',
+                body: 'Cevap süresi doldu.'
+              },
+              {
+                type: 'request_timeout',
+                ride_id: String(rideId)
+              }
+            );
+            logger.info({ count: driverTokens.length }, 'sent request_timeout push to drivers');
+          }
+        }
+
       } catch (e) {
         logger.warn({ err: e }, 'Failed to notify drivers of timeout');
       }
