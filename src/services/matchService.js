@@ -22,9 +22,11 @@ function geoKeyForVehicle(vt) {
 
 async function findNearbyDrivers(vehicle_type, lat, lng, radiusKm = DEFAULT_RADIUS_KM, limit = MAX_CANDIDATES) {
   const key = geoKeyForVehicle(vehicle_type);
-  // console.log(`[findNearbyDrivers] searching key:${key} lat:${lat} lng:${lng} radius:${radiusKm} limit:${limit}`);
+  console.log(`[findNearbyDrivers] Searching Key: ${key} | Lat: ${lat} | Lng: ${lng} | Radius: ${radiusKm}km`);
 
   const raw = await redis.georadius(key, lng, lat, radiusKm, 'km', 'WITHDIST', 'ASC', 'COUNT', limit);
+  console.log(`[findNearbyDrivers] Key: ${key} found ${raw ? raw.length : 0} raw results`);
+
   if (!raw) return [];
   return raw.map((item) => {
     if (Array.isArray(item) && item.length > 0) {

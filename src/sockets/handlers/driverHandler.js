@@ -88,6 +88,8 @@ module.exports = (io, socket) => {
             const vehicle_type = vType || 'sari';
             const key = geoKeyForVehicle(vehicle_type);
 
+            console.log(`[driver:update_location] Driver: ${userId} | Type: ${vehicle_type} | Key: ${key} | Lat: ${lat} | Lng: ${lng}`);
+
             Promise.all([
                 redis.geoadd(key, lng, lat, String(userId)),
                 redis.hset(`driver:${userId}:meta`, 'last_loc_update', Date.now(), 'lat', lat, 'lng', lng)
