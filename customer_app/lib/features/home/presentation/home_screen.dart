@@ -3,30 +3,15 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:android_intent_plus/android_intent.dart'; // Added
-import 'package:android_intent_plus/flag.dart'; // Added
+import 'package:android_intent_plus/android_intent.dart';
+import 'package:android_intent_plus/flag.dart';
+import 'package:flutter_native_splash/flutter_native_splash.dart';
 
-    return PopScope(
-      canPop: false,
-      onPopInvoked: (didPop) async {
-        if (didPop) return;
-         // Simulate Home Button to background app instead of killing it
-        if (Theme.of(context).platform == TargetPlatform.android) {
-             const intent = AndroidIntent(
-               action: 'android.intent.action.MAIN',
-               category: 'android.intent.category.HOME',
-               flags: <int>[Flag.FLAG_ACTIVITY_NEW_TASK],
-             );
-             await intent.launch();
-        }
-      },
-      child: Scaffold(
-      resizeToAvoidBottomInset: false, // PERFORMANCE FIX
+import '../../../core/services/location_service.dart';
 import '../../../core/services/socket_service.dart';
 import '../../../core/services/directions_service.dart';
 import '../../ride/presentation/ride_booking_sheet.dart';
@@ -38,8 +23,7 @@ import '../../ride/data/ride_repository.dart';
 import '../../ride/data/places_service.dart';
 import '../../ride/presentation/ride_controller.dart';
 import '../../../core/utils/map_utils.dart';
-import '../../splash/presentation/home_loading_screen.dart'; // Import Loading Screen
-import 'package:flutter_native_splash/flutter_native_splash.dart';
+import '../../splash/presentation/home_loading_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -76,29 +60,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   LatLng? _currentAnimatedPos;
   BitmapDescriptor? _driverIcon;
   
-  // Flow Animation Removed
-
-
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     
     // OPTIMIZED: Delay heavy content (Map) initialization by one frame
-    // This ensures the navigation to this screen is INSTANT (showing the loading screen)
-    // before we block the thread with Map creation.
     WidgetsBinding.instance.addPostFrameCallback((_) {
        Future.delayed(const Duration(milliseconds: 500), () {
           if (mounted) setState(() => _readyForHeavyContent = true);
        });
     });
 
-    
     _markerController = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 2), // Smooth 2s transition
+        vsync: this,
+        duration: const Duration(seconds: 2), // Smooth 2s transition
     );
-    
+
     _markerController.addListener(() {
       if (_prevDriverPos != null && _targetDriverPos != null) {
         final double t = _markerController.value;
@@ -109,8 +87,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         });
       }
     });
-    
-    // Flow Animation Removed
 
     _initialize();
     _loadDriverIcon();
@@ -123,8 +99,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       }
     });
   }
-
-  // Flow Methods Removed
 
   Future<void> _loadDriverIcon() async {
     try {
@@ -166,7 +140,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
              double pixelHeight = 350.0;
 
              // REF: User Requests & Buffer for Fixed Content
-             // Searching/Found -> 220 + Buffer = 240
              if (status == RideStatus.searching) pixelHeight = 280.0;
              else if (status == RideStatus.driverFound) pixelHeight = 380.0; 
              else if (status == RideStatus.rideStarted) pixelHeight = 320.0; 
@@ -219,10 +192,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             polylineId: const PolylineId('route'),
             points: points,
             color: const Color(0xFF0865ff), // Deep Blue (Requested)
-            width: 5, // Slightly thinner (was 4 or 5?) - User said "birazcık daha ince" 
-            // Wait, previous was 4. "Daha ince" means 3 or 3.5. Let's make it 3.5.
-            // Oh wait, previous code showed width: 4.
-            // Let's try 3.5.
+            width: 5, 
             jointType: JointType.round,
             startCap: Cap.roundCap,
             endCap: Cap.roundCap,
@@ -288,10 +258,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       ),
     );
   }
-
-    // Flow Marker removed in favor of Polyline Overlay
-
-
     return markers;
   }
 
@@ -336,7 +302,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
  
   @override
   void dispose() {
-    // _flowController.dispose(); // Removed
     _markerController.dispose();
     _sheetController.dispose();
     WidgetsBinding.instance.removeObserver(this);
@@ -347,9 +312,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   Widget build(BuildContext context) {
     final rideState = ref.watch(rideProvider);
     
-    // Auto-tracking disabled as per user request
-    // ref.listen(currentLocationProvider, ...);
-
     ref.listen(rideProvider, (previous, next) {
       // Delay state updates to avoid 'setState during build' or 'markNeedsBuild'
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -380,28 +342,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
              final points = next.polylines.first.points;
              if (points.isNotEmpty) {
                 if (next.status == RideStatus.driverFound) {
-                   // User request: "Biraz yaklaşsın ama zorla fitBounds yapmasın"
-                   // Animate to driver/start location with a comfortable zoom level
                    _mapController!.animateCamera(
                       CameraUpdate.newCameraPosition(
                         CameraPosition(target: points.first, zoom: 14.5),
                       ),
                    );
                 } else {
-                   // Default: Fit bounds for other states
                    _fitBounds(points);
                 }
              }
           }
 
-          // Update local route points for animation
-          // if (next.polylines.isNotEmpty) {
-          //    _currentRoutePoints = next.polylines.first.points;
-          // } else {
-          //    _currentRoutePoints = [];
-          //    _flowPolylinePoints = [];
-          // }
-          
           // Animate Sheet based on Status
           if (_sheetController.isAttached) {
             // ADAPTIVE CALCULATION
@@ -439,7 +390,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 final curve = Curves.easeInOutCubic;
 
                 if (isExpanding) {
-                    // Growing: Unlock ceiling first so it can expand
                     setState(() {
                        _sheetMaxHeight = targetHeight;
                     });
@@ -449,12 +399,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                         }
                      });
                 } else {
-                    // Shrinking: Animate down first while ceiling is still high
                     if (_sheetController.isAttached) {
                        _sheetController.animateTo(targetHeight, duration: duration, curve: curve);
                     }
-                    
-                    // Lock ceiling after animation finishes prevents snapping
                     Future.delayed(duration + const Duration(milliseconds: 50), () {
                        if (mounted) {
                           setState(() {
@@ -489,8 +436,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       _currentAnimatedPos = null;
                       _prevDriverPos = null;
                       _targetDriverPos = null;
-                      // _currentRoutePoints = []; // Removed
-                      // _flowPolylinePoints = []; // Removed
                   });
                 }
               });
@@ -501,310 +446,323 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
       });
     });
 
-
-    return Scaffold(
-      resizeToAvoidBottomInset: false, // PERFORMANCE FIX
-      drawer: const CustomDrawer(),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          return Stack(
-            children: [
-              // Map Layer
-              Listener(
-                onPointerDown: (_) => _isUserInteracting = true,
-                child: _readyForHeavyContent ? GoogleMap(
-                  trafficEnabled: false,
-                  mapType: MapType.normal,
-                  initialCameraPosition: _kDefaultLocation,
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: false, // Disable default button
-                  zoomControlsEnabled: false,
-                  onMapCreated: (GoogleMapController controller) {
-                    _controller.complete(controller);
-                    _mapController = controller;
-                  },
-                  markers: _createMarkers(rideState),
-                  polylines: {
-                     ...rideState.polylines,
-                     // Flow Polyline Removed
-                  },
-                ) : const SizedBox.shrink(), // Lightweight on first frame
-              ),
-              
-              // Menu Button (Top Left)
-              Positioned(
-                top: 50,
-                left: 16,
-                child: Builder(
-                  builder: (context) => Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.15),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.black),
-                      onPressed: () {
-                        Scaffold.of(context).openDrawer();
-                      },
-                    ),
-                  ),
-                ),
-              ),
-
-              // BRANDING LOGO (Bottom Left - Floating)
-               if (!rideState.isSelectingOnMap)
-              AnimatedBuilder(
-                animation: _sheetController,
-                builder: (context, child) {
-                  double sheetHeight = 0.0;
-                  try {
-                     if (_sheetController.isAttached) {
-                        sheetHeight = _sheetController.size * constraints.maxHeight;
-                     } else {
-                        // ADAPTIVE FALLBACK
-                        final double safeArea = MediaQuery.of(context).viewPadding.bottom;
-                        sheetHeight = 410.0 + safeArea; 
-                     }
-                  } catch (e) {
-                     sheetHeight = 0;
-                  }
-
-                  // SAFE AREA validation for buttons
-                  double bottomPos = sheetHeight + 10;
-                  double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
-                  if (bottomPos < minBottom) bottomPos = minBottom;
-
-                  return Positioned(
-                    left: 16,
-                    bottom: bottomPos,
-                    child: child!,
-                  );
-                },
-                child: Container(
-                    height: 48,
-                    // padding removed to bring text closer to edge if needed, or kept minimal
-                    padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8), 
-                    // Decoration removed for transparent look
-                    child: Center(
-                      child: Text(
-                        'taksibu',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -1.0,
-                          color: const Color(0xFF0866ff),
-                        ),
-                      ),
-                    ),
-                  ),
-              ),
-
-              // Custom Location Button (Animated)
-              if (rideState.status != RideStatus.searching && rideState.status != RideStatus.noDriverFound)
-              AnimatedBuilder(
-                animation: _sheetController,
-                builder: (context, child) {
-                  // Calculate position based on sheet size
-                  double sheetHeight = 0.0;
-                  try {
-                    // size is fraction (0.0 - 1.0)
-                     if (_sheetController.isAttached) {
-                        sheetHeight = _sheetController.size * constraints.maxHeight;
-                     } else {
-                        // ADAPTIVE FALLBACK
-                        final double safeArea = MediaQuery.of(context).viewPadding.bottom;
-                        sheetHeight = 410.0 + safeArea; 
-                     }
-                  } catch (e) {
-                     sheetHeight = 0;
-                  }
-
-                  // SAFE AREA validation for buttons
-                  double bottomPos = sheetHeight + 16;
-                  double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
-                  if (bottomPos < minBottom) bottomPos = minBottom;
-
-                  return Positioned(
-                    right: 16,
-                    bottom: bottomPos,
-                    child: child!,
-                  );
-                },
-                child: Material(
-                  color: Colors.white,
-                  shape: const CircleBorder(),
-                  elevation: 4,
-                  shadowColor: Colors.black26,
-                  child: InkWell(
-                    onTap: _animateToUser,
-                    customBorder: const CircleBorder(),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Icon(
-                        Icons.my_location,
-                        color: Theme.of(context).primaryColor, 
-                        size: 24,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-
-              // Ride Booking Sheet
-              if (!rideState.isSelectingOnMap)
-              Padding( // Wrap in Padding/Container if needed, or just the sheet
-                 padding: EdgeInsets.zero,
-                  child: DraggableScrollableSheet(
-                    controller: _sheetController,
-                    initialChildSize: _sheetMaxHeight, // Open at max height directly
-                    minChildSize: 0.12, // Ultra-low min size for compact sheets
-                    maxChildSize: _sheetMaxHeight, 
-                    snap: true, 
-                    builder: (context, scrollController) {
-                      return RideBookingSheet(scrollController: scrollController);
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) async {
+        if (didPop) return;
+        // Simulate Home Button to background app instead of killing it
+        if (Theme.of(context).platform == TargetPlatform.android) {
+             const intent = AndroidIntent(
+               action: 'android.intent.action.MAIN',
+               category: 'android.intent.category.HOME',
+               flags: <int>[Flag.FLAG_ACTIVITY_NEW_TASK],
+             );
+             await intent.launch();
+        }
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false, // PERFORMANCE FIX
+        drawer: const CustomDrawer(),
+        body: LayoutBuilder(
+          builder: (context, constraints) {
+            return Stack(
+              children: [
+                // Map Layer
+                Listener(
+                  onPointerDown: (_) => _isUserInteracting = true,
+                  child: _readyForHeavyContent ? GoogleMap(
+                    trafficEnabled: false,
+                    mapType: MapType.normal,
+                    initialCameraPosition: _kDefaultLocation,
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: false, // Disable default button
+                    zoomControlsEnabled: false,
+                    onMapCreated: (GoogleMapController controller) {
+                      _controller.complete(controller);
+                      _mapController = controller;
                     },
-                  ),
-              ),
-
-              // MAP SELECTION OVERLAY (Pin + Confirm Button)
-              if (rideState.isSelectingOnMap) ...[
-                // Center PIN
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.only(bottom: 35.0), // Adjust for pin tip
-                    child: Icon(
-                      Icons.location_on, 
-                      size: 50, 
-                      color: rideState.selectionMode == 'start' 
-                          ? Theme.of(context).primaryColor 
-                          : Colors.red,
-                    ),
-                  ),
-                ),
-                // Center Shadow/Dot
-                 Center(
-                  child: Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                         BoxShadow(
-                           color: Colors.black.withOpacity(0.2),
-                           blurRadius: 4,
-                         )
-                      ]
-                    ),
-                  ),
+                    markers: _createMarkers(rideState),
+                    polylines: {
+                       ...rideState.polylines,
+                    },
+                  ) : const SizedBox.shrink(), // Lightweight on first frame
                 ),
                 
-                // Top "Cancel" Button
+                // Menu Button (Top Left)
                 Positioned(
                   top: 50,
                   left: 16,
-                  child: SafeArea(
-                    child: CircleAvatar(
-                      backgroundColor: Colors.white,
+                  child: Builder(
+                    builder: (context) => Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.15),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
                       child: IconButton(
-                        icon: const Icon(Icons.close, color: Colors.black),
+                        icon: const Icon(Icons.menu, color: Colors.black),
                         onPressed: () {
-                           ref.read(rideProvider.notifier).toggleMapSelection(false);
+                          Scaffold.of(context).openDrawer();
                         },
                       ),
                     ),
                   ),
                 ),
-
-                // Bottom "Confirm" Button
-                Positioned(
-                  bottom: 30,
-                  left: 20,
-                  right: 20,
-                  child: SafeArea(
-                    child: ElevatedButton(
-                      onPressed: () async {
-                         if (_mapController != null) {
-                            try {
-                               // Get center location
-                               final bounds = await _mapController!.getVisibleRegion();
-                               final centerLat = (bounds.northeast.latitude + bounds.southwest.latitude) / 2;
-                               final centerLng = (bounds.northeast.longitude + bounds.southwest.longitude) / 2;
-                               
-                               // Get Address
-                               final places = ref.read(placesServiceProvider);
-                               String address = "Harita Konumu"; // Default fallback
-                               try {
-                                   final addr = await places.getAddressFromCoordinates(centerLat, centerLng);
-                                   if (addr != null && addr.isNotEmpty) {
-                                      address = addr;
-                                   }
-                               } catch (e) {
-                                  debugPrint('Address fetch error: $e');
-                               }
-                               
-                               if (rideState.selectionMode == 'start') {
-                                  ref.read(rideProvider.notifier).setStartLocation(LatLng(centerLat, centerLng), address);
-                                  ref.read(rideProvider.notifier).toggleMapSelection(false);
-                                  // RETURN TO FORM
-                                  if (mounted) context.push('/location-selection'); 
-                               } else {
-                                  // 1. Set State
-                                  ref.read(rideProvider.notifier).setEndLocation(LatLng(centerLat, centerLng), address);
-                                  
-                                  // 2. Close Selection UI IMMEDIATELY for instant feedback
-                                  ref.read(rideProvider.notifier).toggleMapSelection(false);
-                                  
-                                  // 3. Calculate Route (Async)
-                                  // Pass explicit coordinates to ensure it uses the fresh values
-                                  final rideState = ref.read(rideProvider);
-                                  ref.read(rideControllerProvider.notifier).updateRoute(
-                                     rideState.startLocation, // Ensure start is used if available
-                                     LatLng(centerLat, centerLng)
-                                  );
-                               }
-                               
-                            } catch (e) {
-                               debugPrint('Selection error $e');
-                            }
-                         }
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.black,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        elevation: 4,
+  
+                // BRANDING LOGO (Bottom Left - Floating)
+                 if (!rideState.isSelectingOnMap)
+                AnimatedBuilder(
+                  animation: _sheetController,
+                  builder: (context, child) {
+                    double sheetHeight = 0.0;
+                    try {
+                       if (_sheetController.isAttached) {
+                          sheetHeight = _sheetController.size * constraints.maxHeight;
+                       } else {
+                          // ADAPTIVE FALLBACK
+                          final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+                          sheetHeight = 410.0 + safeArea; 
+                       }
+                    } catch (e) {
+                       sheetHeight = 0;
+                    }
+  
+                    // SAFE AREA validation for buttons
+                    double bottomPos = sheetHeight + 10;
+                    double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
+                    if (bottomPos < minBottom) bottomPos = minBottom;
+  
+                    return Positioned(
+                      left: 16,
+                      bottom: bottomPos,
+                      child: child!,
+                    );
+                  },
+                  child: Container(
+                      height: 48,
+                      // padding removed to bring text closer to edge if needed, or kept minimal
+                      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8), 
+                      // Decoration removed for transparent look
+                      child: Center(
+                        child: Text(
+                          'taksibu',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -1.0,
+                            color: const Color(0xFF0866ff),
+                          ),
+                        ),
                       ),
-                      child: Text(
-                        'location_selection.confirm_location'.tr(), 
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                    ),
+                ),
+  
+                // Custom Location Button (Animated)
+                if (rideState.status != RideStatus.searching && rideState.status != RideStatus.noDriverFound)
+                AnimatedBuilder(
+                  animation: _sheetController,
+                  builder: (context, child) {
+                    // Calculate position based on sheet size
+                    double sheetHeight = 0.0;
+                    try {
+                      // size is fraction (0.0 - 1.0)
+                       if (_sheetController.isAttached) {
+                          sheetHeight = _sheetController.size * constraints.maxHeight;
+                       } else {
+                          // ADAPTIVE FALLBACK
+                          final double safeArea = MediaQuery.of(context).viewPadding.bottom;
+                          sheetHeight = 410.0 + safeArea; 
+                       }
+                    } catch (e) {
+                       sheetHeight = 0;
+                    }
+  
+                    // SAFE AREA validation for buttons
+                    double bottomPos = sheetHeight + 16;
+                    double minBottom = MediaQuery.of(context).viewPadding.bottom + 16;
+                    if (bottomPos < minBottom) bottomPos = minBottom;
+  
+                    return Positioned(
+                      right: 16,
+                      bottom: bottomPos,
+                      child: child!,
+                    );
+                  },
+                  child: Material(
+                    color: Colors.white,
+                    shape: const CircleBorder(),
+                    elevation: 4,
+                    shadowColor: Colors.black26,
+                    child: InkWell(
+                      onTap: _animateToUser,
+                      customBorder: const CircleBorder(),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Icon(
+                          Icons.my_location,
+                          color: Theme.of(context).primaryColor, 
+                          size: 24,
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ],
-              
-              // Loading Overlay (Soft Transition)
-              Positioned.fill(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 1500), // Slower fade
-                  switchOutCurve: Curves.easeOut, // Soft curve
-                  child: _isLoading 
-                      ? const HomeLoadingScreen()
-                      : const SizedBox.shrink(),
+  
+                // Ride Booking Sheet
+                if (!rideState.isSelectingOnMap)
+                Padding( // Wrap in Padding/Container if needed, or just the sheet
+                   padding: EdgeInsets.zero,
+                    child: DraggableScrollableSheet(
+                      controller: _sheetController,
+                      initialChildSize: _sheetMaxHeight, // Open at max height directly
+                      minChildSize: 0.12, // Ultra-low min size for compact sheets
+                      maxChildSize: _sheetMaxHeight, 
+                      snap: true, 
+                      builder: (context, scrollController) {
+                        return RideBookingSheet(scrollController: scrollController);
+                      },
+                    ),
                 ),
-              ),
-            ],
-          );
-        }
+  
+                // MAP SELECTION OVERLAY (Pin + Confirm Button)
+                if (rideState.isSelectingOnMap) ...[
+                  // Center PIN
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 35.0), // Adjust for pin tip
+                      child: Icon(
+                        Icons.location_on, 
+                        size: 50, 
+                        color: rideState.selectionMode == 'start' 
+                            ? Theme.of(context).primaryColor 
+                            : Colors.red,
+                      ),
+                    ),
+                  ),
+                  // Center Shadow/Dot
+                   Center(
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                           BoxShadow(
+                             color: Colors.black.withOpacity(0.2),
+                             blurRadius: 4,
+                           )
+                        ]
+                      ),
+                    ),
+                  ),
+                  
+                  // Top "Cancel" Button
+                  Positioned(
+                    top: 50,
+                    left: 16,
+                    child: SafeArea(
+                      child: CircleAvatar(
+                        backgroundColor: Colors.white,
+                        child: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.black),
+                          onPressed: () {
+                             ref.read(rideProvider.notifier).toggleMapSelection(false);
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+  
+                  // Bottom "Confirm" Button
+                  Positioned(
+                    bottom: 30,
+                    left: 20,
+                    right: 20,
+                    child: SafeArea(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                           if (_mapController != null) {
+                              try {
+                                 // Get center location
+                                 final bounds = await _mapController!.getVisibleRegion();
+                                 final centerLat = (bounds.northeast.latitude + bounds.southwest.latitude) / 2;
+                                 final centerLng = (bounds.northeast.longitude + bounds.southwest.longitude) / 2;
+                                 
+                                 // Get Address
+                                 final places = ref.read(placesServiceProvider);
+                                 String address = "Harita Konumu"; // Default fallback
+                                 try {
+                                     final addr = await places.getAddressFromCoordinates(centerLat, centerLng);
+                                     if (addr != null && addr.isNotEmpty) {
+                                        address = addr;
+                                     }
+                                 } catch (e) {
+                                    debugPrint('Address fetch error: $e');
+                                 }
+                                 
+                                 if (rideState.selectionMode == 'start') {
+                                    ref.read(rideProvider.notifier).setStartLocation(LatLng(centerLat, centerLng), address);
+                                    ref.read(rideProvider.notifier).toggleMapSelection(false);
+                                    // RETURN TO FORM
+                                    if (mounted) context.push('/location-selection'); 
+                                 } else {
+                                    // 1. Set State
+                                    ref.read(rideProvider.notifier).setEndLocation(LatLng(centerLat, centerLng), address);
+                                    
+                                    // 2. Close Selection UI IMMEDIATELY for instant feedback
+                                    ref.read(rideProvider.notifier).toggleMapSelection(false);
+                                    
+                                    // 3. Calculate Route (Async)
+                                    // Pass explicit coordinates to ensure it uses the fresh values
+                                    final rideState = ref.read(rideProvider);
+                                    ref.read(rideControllerProvider.notifier).updateRoute(
+                                       rideState.startLocation, // Ensure start is used if available
+                                       LatLng(centerLat, centerLng)
+                                    );
+                                 }
+                                 
+                              } catch (e) {
+                                 debugPrint('Selection error $e');
+                              }
+                           }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.black,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                          elevation: 4,
+                        ),
+                        child: Text(
+                          'location_selection.confirm_location'.tr(), 
+                          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                
+                // Loading Overlay (Soft Transition)
+                Positioned.fill(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 1500), // Slower fade
+                    switchOutCurve: Curves.easeOut, // Soft curve
+                    child: _isLoading 
+                        ? const HomeLoadingScreen()
+                        : const SizedBox.shrink(),
+                  ),
+                ),
+              ],
+            );
+          }
+        ),
       ),
     );
   }

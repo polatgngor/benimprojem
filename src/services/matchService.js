@@ -17,7 +17,7 @@ const BROADCAST_BATCH = 5;
 const ACCEPT_TIMEOUT_SECONDS = parseInt(process.env.RIDE_ACCEPT_TIMEOUT_SECONDS || '20'); // seconds
 
 function geoKeyForVehicle(vt) {
-  return `drivers:geo:${vt || 'sari'}`;
+  return `drivers:geo:${(vt || 'sari').toLowerCase()}`;
 }
 
 async function findNearbyDrivers(vehicle_type, lat, lng, radiusKm = DEFAULT_RADIUS_KM, limit = MAX_CANDIDATES) {

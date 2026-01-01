@@ -12,7 +12,7 @@ const createRideSchema = Joi.object({
     end_lat: Joi.number().min(-90).max(90).allow(null).optional(),
     end_lng: Joi.number().min(-180).max(180).allow(null).optional(),
     end_address: Joi.string().allow('').optional(),
-    vehicle_type: Joi.string().valid('sari', 'turkuaz', 'vip', '8+1').default('sari'),
+    vehicle_type: Joi.string().trim().lowercase().valid('sari', 'turkuaz', 'vip', '8+1').default('sari'),
     payment_method: Joi.string().valid('cash', 'card', 'pos', 'nakit').default('cash'), // covering all bases
     options: Joi.object().optional()
 });

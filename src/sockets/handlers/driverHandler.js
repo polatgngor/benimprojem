@@ -10,7 +10,7 @@ const redis = new Redis({
 });
 
 function geoKeyForVehicle(vehicleType) {
-    return `drivers:geo:${vehicleType}`;
+    return `drivers:geo:${(vehicleType || 'sari').toLowerCase()}`;
 }
 
 module.exports = (io, socket) => {
@@ -78,8 +78,15 @@ module.exports = (io, socket) => {
     socket.on('driver:update_location', async (payload) => {
         try {
             if (role !== 'driver') return;
-            const { lat, lng, vehicle_type } = payload;
-            const key = geoKeyForVehicle(vehicle_type || 'sari');
+            const { lat, lng } = payload;
+
+            // Fix: Don't default to 'sari' immediately. Check Redis meta if missing.
+            let vType = payload.vehicle_type;
+            if (!vType) {
+                vType = await redis.hget(`driver:${userId}:meta`, 'vehicle_type');
+            }
+            const vehicle_type = vType || 'sari';
+            const key = geoKeyForVehicle(vehicle_type);
 
             Promise.all([
                 redis.geoadd(key, lng, lat, String(userId)),
