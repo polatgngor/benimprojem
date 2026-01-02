@@ -649,115 +649,13 @@ async function getActiveRide(req, res) {
   }
 }
 
-
-
-/*
-* GET /api/rides/unread-counts
-* Returns total unread messages and breakdown per ride for the user
-*/
-async function getUnreadCounts(req, res) {
-  try {
-    const user = req.user;
-
-    // Find all unread messages where the user is a participant but NOT the sender
-    // We need to join with Ride to ensure the user is part of the ride
-
-    const unreadMessages = await RideMessage.findAll({
-      where: {
-        is_read: false,
-        sender_id: { [Op.ne]: user.userId } // Message sent BY someone else
-      },
-      include: [
-        {
-          model: Ride,
-          as: 'ride',
-          attributes: ['id', 'passenger_id', 'driver_id'],
-          where: {
-            [Op.or]: [
-              { passenger_id: user.userId },
-              { driver_id: user.userId }
-            ]
-          },
-          required: true
-        }
-      ],
-      attributes: ['ride_id', [sequelize.fn('COUNT', sequelize.col('RideMessage.id')), 'count']],
-      group: ['ride_id']
-    });
-
-    const breakdown = {};
-    let total = 0;
-
-    unreadMessages.forEach(item => {
-      const rid = item.ride_id;
-      const count = parseInt(item.dataValues.count, 10);
-      breakdown[rid] = count;
-      total += count;
-    });
-
-    return res.json({ total, breakdown });
-
-  } catch (err) {
-    console.error('getUnreadCounts err', err);
-    return res.status(500).json({ message: 'Server error' });
-  }
-}
-
-/*
-* POST /api/rides/:id/messages/read
-* Marks all messages in this ride as read for the current user
-*/
-async function markMessagesAsRead(req, res) {
-  try {
-    const user = req.user;
-    const rideId = req.params.id;
-
-    const ride = await Ride.findByPk(rideId);
-    if (!ride) return res.status(404).json({ message: 'Ride not found' });
-
-    if (Number(ride.passenger_id) !== user.userId && Number(ride.driver_id) !== user.userId) {
-      return res.status(403).json({ message: 'Forbidden' });
-    }
-
-    // Update all unread messages in this ride that were NOT sent by me
-    await RideMessage.update(
-      { is_read: true, read_at: new Date() },
-      {
-        where: {
-          ride_id: rideId,
-          is_read: false,
-          sender_id: { [Op.ne]: user.userId }
-        }
-      }
-    );
-
-    // Notify the other party that messages were read (Optional, for "Blue Tick")
-    // We can emit to the ride room
-    const io = socketProvider.getIO();
-    if (io) {
-      io.to(`ride:${rideId}`).emit('messages:read', {
-        ride_id: rideId,
-        by_user_id: user.userId
-      });
-    }
-
-    return res.json({ ok: true });
-
-  } catch (err) {
-    console.error('markMessagesAsRead err', err);
-    return res.status(500).json({ message: 'Server error' });
-  }
-}
-
 module.exports = {
   createRide,
-  estimateRide,
   getRide,
   getRides,
   cancelRide,
   rateRide,
   getMessages,
   getActiveRide,
-  getUnreadCounts,
-  markMessagesAsRead
+  estimateRide
 };

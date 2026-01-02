@@ -8,7 +8,6 @@ import '../../../../core/services/socket_service.dart';
 import '../../../auth/data/auth_service.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../rides/data/ride_repository.dart';
-import '../../presentation/providers/unread_messages_provider.dart'; // Import Provider
 
 // Simple provider for chat messages
 class DriverChatMessagesNotifier extends Notifier<List<Map<String, dynamic>>> {
@@ -143,7 +142,6 @@ class _DriverChatScreenState extends ConsumerState<DriverChatScreen> {
       final messages = await ref.read(driverRideRepositoryProvider).getMessages(widget.rideId);
       if (mounted) {
         ref.read(driverChatMessagesProvider.notifier).set(messages);
-        ref.read(unreadMessagesProvider.notifier).markAsRead(int.parse(widget.rideId)); // Mark read
         setState(() => _isLoading = false);
         _scrollToBottom();
       }

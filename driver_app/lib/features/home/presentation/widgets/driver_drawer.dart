@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
-import '../providers/unread_messages_provider.dart'; // Import Provider
 import '../../../auth/data/auth_service.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../auth/presentation/auth_provider.dart';
@@ -191,31 +190,10 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                     context.push('/profile');
                   },
                 ),
-import '../providers/unread_messages_provider.dart'; // Import Provider
-
-// ... (in build)
-
                 _buildDrawerItem(
                   context,
                   icon: Icons.history_rounded,
                   title: 'drawer.history'.tr(),
-                  trailing: ref.watch(unreadMessagesProvider.select((s) => s.values.fold(0, (a, b) => a + b))) > 0
-                      ? Container(
-                          padding: const EdgeInsets.all(6),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Text(
-                            '${ref.watch(unreadMessagesProvider.select((s) => s.values.fold(0, (a, b) => a + b)))}', // Get Total
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        )
-                      : null,
                   onTap: () {
                     Navigator.pop(context);
                     context.push('/ride-history');
@@ -414,7 +392,6 @@ import '../providers/unread_messages_provider.dart'; // Import Provider
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
-    Widget? trailing, // Added
   }) {
     final color = isDestructive ? Colors.red : Colors.grey[800];
     
@@ -435,7 +412,6 @@ import '../providers/unread_messages_provider.dart'; // Import Provider
           fontSize: 16,
         ),
       ),
-      trailing: trailing, // Added
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

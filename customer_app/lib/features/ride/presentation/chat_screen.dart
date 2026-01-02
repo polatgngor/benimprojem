@@ -5,7 +5,6 @@ import '../../../core/services/socket_service.dart';
 import '../../auth/presentation/auth_provider.dart';
 import '../data/ride_repository.dart';
 import 'ride_state_provider.dart';
-import '../../home/presentation/providers/unread_messages_provider.dart'; // Import
 import '../../../core/widgets/custom_toast.dart';
 
 class ChatMessagesNotifier extends Notifier<List<Map<String, dynamic>>> {
@@ -123,7 +122,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       final messages = await ref.read(rideRepositoryProvider).getMessages(widget.rideId);
       if (mounted) {
         ref.read(chatMessagesProvider.notifier).set(messages);
-        ref.read(unreadMessagesProvider.notifier).markAsRead(int.parse(widget.rideId)); // Mark read
         setState(() => _isLoading = false);
         _scrollToBottom();
       }

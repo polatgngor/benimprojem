@@ -29,9 +29,6 @@ router.post('/', auth, validate(createRideSchema), ridesController.createRide);
 // Get active ride
 router.get('/active', auth, ridesController.getActiveRide);
 
-// Unread counts (Must be before /:id)
-router.get('/unread-counts', auth, ridesController.getUnreadCounts);
-
 // Get ride details
 router.get('/:id', auth, ridesController.getRide);
 
@@ -43,8 +40,5 @@ router.post('/:id/rate', auth, ridesController.rateRide);
 
 // Get messages
 router.get('/:id/messages', auth, ridesController.getMessages);
-
-// Mark messages as read
-router.post('/:id/messages/read', auth, ridesController.markMessagesAsRead);
 
 module.exports = router;

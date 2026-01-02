@@ -16,7 +16,6 @@ import '../../../core/services/notification_service.dart';
 import '../../ride/presentation/ride_state_provider.dart';
 import 'widgets/custom_drawer.dart';
 import '../../ride/presentation/widgets/rating_dialog.dart';
-import '../../home/presentation/providers/unread_messages_provider.dart'; // Import Provider
 import '../../ride/data/ride_repository.dart';
 import '../../ride/data/places_service.dart';
 import '../../ride/presentation/ride_controller.dart';
@@ -101,9 +100,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     // Smooth Transition Timer
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) {
-        // Init Unread messages
-        ref.read(unreadMessagesProvider.notifier).initialize();
-        
         FlutterNativeSplash.remove(); // Remove NATIVE splash now
         setState(() => _isLoading = false); // Fade out overlay
       }
