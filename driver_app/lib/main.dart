@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'core/router/app_router.dart';
 import 'features/auth/presentation/auth_provider.dart';
 import 'core/services/background_service.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/ringtone_service.dart';
 
 void main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
@@ -18,6 +20,34 @@ void main() async {
   NotificationService().initialize();
   BackgroundService.initializeService();
   
+  // CHECK FOR PENDING CALL SOUND
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final bool? pendingSound = prefs.getBool('pending_call_sound');
+    final String? timestampStr = prefs.getString('pending_call_timestamp');
+
+    if (pendingSound == true && timestampStr != null) {
+      final DateTime timestamp = DateTime.parse(timestampStr);
+      final DateTime now = DateTime.now();
+      // Only play if the trigger was recent (e.g., within last 30 seconds)
+      if (now.difference(timestamp).inSeconds < 30) {
+        debugPrint("Main: Pending call sound detected within valid time window. Playing Ringtone.");
+        // Play Ringtone Immediately
+        await RingtoneService().playRingtone();
+        
+        // Clear flag
+        await prefs.remove('pending_call_sound');
+        await prefs.remove('pending_call_timestamp');
+      } else {
+         debugPrint("Main: Pending call sound detected but expired. Clearing.");
+         await prefs.remove('pending_call_sound');
+         await prefs.remove('pending_call_timestamp');
+      }
+    }
+  } catch (e) {
+    debugPrint("Main: Error checking pending sound: $e");
+  }
+
   runApp(
     EasyLocalization(
       supportedLocales: const [Locale('tr'), Locale('en')],

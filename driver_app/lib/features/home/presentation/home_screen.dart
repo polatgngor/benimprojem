@@ -20,6 +20,7 @@ import 'widgets/driver_stats_sheet.dart';
 import 'screens/incoming_requests_screen.dart';
 import 'providers/incoming_requests_provider.dart';
 import 'providers/optimistic_ride_provider.dart';
+import 'providers/unread_messages_provider.dart'; // Import Provider
 import 'widgets/passenger_info_sheet.dart';
 import 'widgets/driver_drawer.dart';
 import '../../rides/presentation/widgets/rating_dialog.dart';
@@ -67,6 +68,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   // Lazy Loading for "Heavy" widgets (Map) to prevent transition freeze
   bool _readyForHeavyContent = false;
 
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>(); // ADDED KEY
+
   @override
   void initState() {
     super.initState();
@@ -94,6 +97,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     // Check for Overlay Permission (Critical for background launch)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkOverlayPermission();
+      // Init Unread messages
+      ref.read(unreadMessagesProvider.notifier).initialize();
     });
 
     // Smooth Transition Timer
@@ -210,6 +215,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     // Listen for Optimistic Updates (Zero Latency)
     ref.listen(optimisticRideProvider, (previous, next) {
       // Logic for Switching States
+      if (next.isMatching || next.activeRide != null) {
+         // Eğer drawer açıksa kapat (Kullanıcı isteği: drawer açık olsa bile ana ekrana dönmeli)
+         if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+            _scaffoldKey.currentState?.closeDrawer();
+         }
+      }
+
       if (next.isCompleting) {
         // Optimistic Completion: Clear sheet immediately ("Zınk")
         setState(() {
@@ -245,6 +257,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     });
 
     return Scaffold(
+      key: _scaffoldKey, // Attach Key
       resizeToAvoidBottomInset: false, // PERFORMANCE FIX: Prevent Map resize when keyboard opens
       drawer: const DriverDrawer(),
       body: LayoutBuilder(

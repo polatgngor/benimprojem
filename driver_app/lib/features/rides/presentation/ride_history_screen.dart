@@ -48,9 +48,13 @@ class RideHistoryScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             itemCount: rides.length,
             separatorBuilder: (context, index) => const SizedBox(height: 16),
+import '../../home/presentation/providers/unread_messages_provider.dart';
+
+// ... (in builder)
+
             itemBuilder: (context, index) {
               final ride = rides[index];
-              return _buildRideCard(context, ride);
+              return _buildRideCard(context, ride, ref); // Pass ref
             },
           );
         },
@@ -60,13 +64,17 @@ class RideHistoryScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildRideCard(BuildContext context, Map<String, dynamic> ride) {
+  Widget _buildRideCard(BuildContext context, Map<String, dynamic> ride, WidgetRef ref) { // Added ref
     final date = DateTime.tryParse(ride['created_at'] ?? '') ?? DateTime.now();
     final status = ride['status'];
     final fare = ride['fare_actual'] ?? ride['fare_estimated'];
     final pickup = ride['start_address'] ?? 'history.unknown'.tr();
     final dropoff = ride['end_address'] ?? 'history.unknown'.tr();
     final statusColor = _getStatusColor(status);
+    
+    // Check Unread
+    final rideId = ride['id'];
+    final unreadCount = ref.watch(unreadMessagesProvider.select((s) => s[rideId] ?? 0));
 
     return Container(
       clipBehavior: Clip.antiAlias,
@@ -115,6 +123,20 @@ class RideHistoryScreen extends ConsumerWidget {
                                   color: Theme.of(context).primaryColor
                                 ),
                               ),
+                              if (unreadCount > 0) ...[
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    '$unreadCount',
+                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                              ],
                             ],
                           ),
                           

@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:android_intent_plus/android_intent.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
@@ -14,6 +16,17 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
      // FCM is the FAIL-SAFE. If Background Service is dead, this wakes the system.
      // We use ACTION_MAIN to force the app to the front reliably.
      debugPrint("FCM Message received (type=request_incoming). Triggering FORCE LAUNCH.");
+     
+     try {
+       // SAVE PENDING CALL FLAG
+       final prefs = await SharedPreferences.getInstance();
+       await prefs.setBool('pending_call_sound', true);
+       await prefs.setString('pending_call_timestamp', DateTime.now().toIso8601String());
+       debugPrint("FCM: Pending call flag saved.");
+     } catch (e) {
+       debugPrint("FCM: Failed to save pending call flag: $e");
+     }
+
      try {
         if (Platform.isAndroid) {
             const intent = AndroidIntent(

@@ -6,6 +6,8 @@ import '../widgets/ride_request_card.dart';
 import '../../../../core/services/ringtone_service.dart';
 import 'package:easy_localization/easy_localization.dart';
 
+import '../providers/optimistic_ride_provider.dart'; // Import Added
+
 class IncomingRequestsScreen extends ConsumerStatefulWidget {
   const IncomingRequestsScreen({super.key});
 
@@ -36,8 +38,19 @@ class _IncomingRequestsScreenState extends ConsumerState<IncomingRequestsScreen>
     // Listen for empty list to auto-close
     ref.listen(incomingRequestsProvider, (previous, next) {
       if (next.isEmpty) {
-        if (mounted && Navigator.canPop(context)) {
-          Navigator.pop(context);
+        if (mounted) {
+           final isMatching = ref.read(optimisticRideProvider).isMatching;
+           final hasRide = ref.read(optimisticRideProvider).activeRide != null;
+
+           if (isMatching || hasRide) {
+              // Ride Accepted -> Go to Home (Pop all intermediate screens like Settings)
+              Navigator.of(context).popUntil((route) => route.isFirst);
+           } else {
+              // Rejected/Timeout -> Just Pop this screen
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+           }
         }
       }
     });

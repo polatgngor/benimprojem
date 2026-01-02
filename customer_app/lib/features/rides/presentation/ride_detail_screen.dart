@@ -7,7 +7,9 @@ import '../../ride/presentation/chat_screen.dart';
 import '../../ride/presentation/widgets/rating_dialog.dart';
 import '../../../core/utils/string_utils.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/services/directions_service.dart';
+import '../../home/presentation/providers/unread_messages_provider.dart'; // Import Provider
 
 class RideDetailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> ride;
@@ -313,15 +315,43 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                           ),
                           // Actions
                           if (canChat)
-                            IconButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => ChatScreen(rideId: ride['id'].toString()))
-                                );
-                              },
-                              icon: const Icon(Icons.chat_bubble_outline),
-                              color: Theme.of(context).primaryColor,
+                            Stack(
+                              clipBehavior: Clip.none,
+                              children: [
+                                IconButton(
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => ChatScreen(rideId: ride['id'].toString()))
+                                    );
+                                  },
+                                  icon: const Icon(Icons.chat_bubble_outline),
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                                if (ref.watch(unreadMessagesProvider.select((s) => (s[ride['id']] ?? 0) > 0)))
+                                  Positioned(
+                                    right: 8,
+                                    top: 8,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: Colors.red,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                      child: Center(
+                                        child: Text(
+                                          '${ref.watch(unreadMessagesProvider)[ride['id']]}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
                         ],
                       ),

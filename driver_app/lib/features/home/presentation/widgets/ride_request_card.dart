@@ -229,11 +229,11 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with TickerPr
       _isAccepting = true;
     });
 
+    // 2. Trigger Global Logic (Background) - FIRST to set optimistic state
+    ref.read(optimisticRideProvider.notifier).acceptRide(widget.request);
+
     // 1. Close this screen IMMEDIATELY ("Zınk" diye kapansın)
     ref.read(incomingRequestsProvider.notifier).clearRequests();
-
-    // 2. Trigger Global Logic (Background)
-    ref.read(optimisticRideProvider.notifier).acceptRide(widget.request);
   }
 
    @override

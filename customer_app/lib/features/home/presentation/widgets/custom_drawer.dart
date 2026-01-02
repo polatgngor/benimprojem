@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../providers/unread_messages_provider.dart'; // Import Provider
 import '../../../../core/constants/app_constants.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../../core/constants/legal_constants.dart';
@@ -168,10 +169,31 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                   },
                 ),
                 
+import '../providers/unread_messages_provider.dart';
+
+// ... (in build)
+
                 _buildDrawerItem(
                   context,
                   icon: Icons.history_rounded,
                   title: 'drawer.rides'.tr(),
+                  trailing: ref.watch(unreadMessagesProvider.select((s) => s.values.fold(0, (a, b) => a + b))) > 0
+                      ? Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '${ref.watch(unreadMessagesProvider.select((s) => s.values.fold(0, (a, b) => a + b)))}', 
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        )
+                      : null,
                   onTap: () {
                     Navigator.pop(context);
                     context.push('/ride-history');
@@ -360,6 +382,7 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
+    Widget? trailing, // Added
   }) {
     final color = isDestructive ? Colors.red : Colors.grey[800];
     
@@ -380,6 +403,7 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
           fontSize: 16,
         ),
       ),
+      trailing: trailing, // Added
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
