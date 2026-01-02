@@ -15,8 +15,6 @@ const WalletModel = require('./Wallet');
 const WalletTransactionModel = require('./WalletTransaction');
 const VehicleChangeRequestModel = require('./vehicleChangeRequest');
 const AnnouncementModel = require('./Announcement');
-const SupportTicketModel = require('./supportTicket');
-const SupportMessageModel = require('./supportMessage');
 
 const sequelize = new Sequelize(
   process.env.DB_NAME || 'taksibu',
@@ -56,9 +54,7 @@ const models = {
   Wallet: WalletModel(sequelize),
   WalletTransaction: WalletTransactionModel(sequelize),
   VehicleChangeRequest: VehicleChangeRequestModel(sequelize),
-  Announcement: AnnouncementModel(sequelize),
-  SupportTicket: SupportTicketModel(sequelize),
-  SupportMessage: SupportMessageModel(sequelize)
+  Announcement: AnnouncementModel(sequelize)
 };
 
 // Associations
@@ -91,13 +87,6 @@ models.UserDevice.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
 // NEW: User <-> SavedPlace
 models.User.hasMany(models.SavedPlace, { foreignKey: 'user_id', as: 'saved_places' });
 models.SavedPlace.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
-
-// NEW: Support System
-models.SupportTicket.belongsTo(models.User, { foreignKey: 'user_id', as: 'user' });
-models.User.hasMany(models.SupportTicket, { foreignKey: 'user_id', as: 'tickets' });
-
-models.SupportTicket.hasMany(models.SupportMessage, { foreignKey: 'ticket_id', as: 'messages' });
-models.SupportMessage.belongsTo(models.SupportTicket, { foreignKey: 'ticket_id', as: 'ticket' });
 
 module.exports = {
   sequelize,

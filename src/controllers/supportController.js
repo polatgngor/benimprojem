@@ -1,4 +1,4 @@
-const { SupportTicket, SupportMessage } = require('../models');
+const db = require('../db');
 const socketProvider = require('../lib/socketProvider');
 const { hasProfanity } = require('../utils/profanityFilter');
 
@@ -18,21 +18,19 @@ exports.createTicket = async (req, res) => {
         }
 
         // 1. Create Ticket
-        const ticket = await SupportTicket.create({
-            user_id: userId,
-            subject,
-            status: 'open'
-        });
+        const [ticketResult] = await db.query(
+            'INSERT INTO support_tickets (user_id, subject, status) VALUES (?, ?, ?)',
+            [userId, subject, 'open']
+        );
+        const ticketId = ticketResult.insertId;
 
         // 2. Add First Message
-        await SupportMessage.create({
-            ticket_id: ticket.id,
-            sender_id: userId,
-            sender_type: 'user',
-            message
-        });
+        await db.query(
+            'INSERT INTO support_messages (ticket_id, sender_id, sender_type, message) VALUES (?, ?, ?, ?)',
+            [ticketId, userId, 'user', message]
+        );
 
-        res.status(201).json({ message: 'Ticket created successfully.', ticketId: ticket.id });
+        res.status(201).json({ message: 'Ticket created successfully.', ticketId });
     } catch (error) {
         console.error('Create Ticket Error:', error);
         res.status(500).json({ error: 'Internal server error.' });
@@ -43,10 +41,10 @@ exports.createTicket = async (req, res) => {
 exports.getMyTickets = async (req, res) => {
     const userId = req.user.userId;
     try {
-        const tickets = await SupportTicket.findAll({
-            where: { user_id: userId },
-            order: [['created_at', 'DESC']]
-        });
+        const [tickets] = await db.query(
+            'SELECT * FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC',
+            [userId]
+        );
         res.json(tickets);
     } catch (error) {
         console.error('Get Tickets Error:', error);
@@ -61,14 +59,14 @@ exports.getTicketMessages = async (req, res) => {
 
     try {
         // Check if ticket belongs to user (Security)
-        const ticket = await SupportTicket.findByPk(ticketId);
-        if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
-        if (ticket.user_id !== userId) return res.status(403).json({ error: 'Unauthorized.' });
+        const [ticket] = await db.query('SELECT user_id FROM support_tickets WHERE id = ?', [ticketId]);
+        if (ticket.length === 0) return res.status(404).json({ error: 'Ticket not found.' });
+        if (ticket[0].user_id !== userId) return res.status(403).json({ error: 'Unauthorized.' });
 
-        const messages = await SupportMessage.findAll({
-            where: { ticket_id: ticketId },
-            order: [['created_at', 'ASC']]
-        });
+        const [messages] = await db.query(
+            'SELECT * FROM support_messages WHERE ticket_id = ? ORDER BY created_at ASC',
+            [ticketId]
+        );
         res.json(messages);
     } catch (error) {
         console.error('Get Messages Error:', error);
@@ -86,32 +84,34 @@ exports.sendMessage = async (req, res) => {
 
     try {
         // Verify ownership
-        const ticket = await SupportTicket.findByPk(ticketId);
-        if (!ticket) return res.status(404).json({ error: 'Ticket not found.' });
-        if (ticket.user_id !== userId) return res.status(403).json({ error: 'Unauthorized.' });
+        const [ticket] = await db.query('SELECT * FROM support_tickets WHERE id = ?', [ticketId]);
+        if (ticket.length === 0) return res.status(404).json({ error: 'Ticket not found.' });
+        if (ticket[0].user_id !== userId) return res.status(403).json({ error: 'Unauthorized.' });
 
         if (hasProfanity(message)) {
             return res.status(400).json({ error: 'Mesajınız uygunsuz içerik barındırıyor.' });
         }
 
         // Insert Message
-        const newMsg = await SupportMessage.create({
-            ticket_id: ticketId,
-            sender_id: userId,
-            sender_type: 'user',
-            message
-        });
+        const [result] = await db.query(
+            'INSERT INTO support_messages (ticket_id, sender_id, sender_type, message) VALUES (?, ?, ?, ?)',
+            [ticketId, userId, 'user', message]
+        );
+
+        // If ticket was closed/answered, maybe reopen it? (Optional logic, keeping simple for now)
+
+        // Fetch the new message to emit
+        const [newMsg] = await db.query('SELECT * FROM support_messages WHERE id = ?', [result.insertId]);
 
         // Emit Real-time Event
         const io = socketProvider.getIO();
         if (io) {
-            io.to(`ticket_${ticketId}`).emit('new_support_message', newMsg.toJSON());
+            io.to(`ticket_${ticketId}`).emit('new_support_message', newMsg[0]);
         }
 
-        res.status(201).json(newMsg);
+        res.status(201).json(newMsg[0]);
     } catch (error) {
         console.error('Send Message Error:', error);
         res.status(500).json({ error: 'Internal server error.' });
     }
 };
-

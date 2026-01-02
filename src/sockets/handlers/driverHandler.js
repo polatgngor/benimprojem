@@ -17,9 +17,6 @@ module.exports = (io, socket) => {
     const { userId, role } = socket.user;
 
     // 1. Set Availability
-    // -------------------------
-    // DRIVER: SET AVAILABILITY
-    // -------------------------
     socket.on('driver:set_availability', async (payload) => {
         try {
             if (role !== 'driver') return;

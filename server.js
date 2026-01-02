@@ -8,8 +8,9 @@ const { rideTimeoutQueue } = require('./src/queues/rideTimeoutQueue');
 const metrics = require('./src/metrics');
 const Redis = require('ioredis');
 
-// Workers and Cron are initialized in startup folders
-
+// start worker (side-effect require)
+require('./src/workers/rideTimeoutWorker');
+const cleanupStaleDrivers = require('./src/cron/cleanupDrivers');
 
 
 const PORT = process.env.PORT || 3000;
@@ -72,7 +73,10 @@ async function start() {
       }
     }, parseInt(process.env.METRICS_POLL_INTERVAL_MS || '5000', 10));
 
-
+    // Cleanup Job (Every 1 minute)
+    setInterval(() => {
+      cleanupStaleDrivers();
+    }, 60 * 1000);
 
   } catch (err) {
     logger.error({ err }, 'Startup error');

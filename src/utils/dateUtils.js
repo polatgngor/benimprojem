@@ -30,32 +30,4 @@ function formatTurkeyDate(dateInput) {
     return `${day}.${month}.${year} ${hour}:${minute}`;
 }
 
-/**
- * Calculates start date for a given period based on Turkey Time (UTC+3).
- * Returns UTC Date object corresponding to the start of the period in Turkey.
- * @param {string} period 'daily' | 'weekly' | 'monthly'
- * @returns {Date} UTC Date object
- */
-function getTurkeyPeriodStart(period) {
-    const now = new Date();
-    const turkeyTime = new Date(now.getTime() + TR_OFFSET);
-
-    if (period === 'daily') {
-        turkeyTime.setUTCHours(0, 0, 0, 0);
-    } else if (period === 'weekly') {
-        const day = turkeyTime.getUTCDay(); // 0 (Sun) to 6 (Sat)
-        const diff = turkeyTime.getUTCDate() - day + (day === 0 ? -6 : 1); // Adjust to get Monday
-        turkeyTime.setUTCDate(diff);
-        turkeyTime.setUTCHours(0, 0, 0, 0);
-    } else if (period === 'monthly') {
-        turkeyTime.setUTCDate(1);
-        turkeyTime.setUTCHours(0, 0, 0, 0);
-    } else {
-        return null;
-    }
-
-    // Convert back to real UTC
-    return new Date(turkeyTime.getTime() - TR_OFFSET);
-}
-
-module.exports = { formatTurkeyDate, getTurkeyPeriodStart, TR_OFFSET };
+module.exports = { formatTurkeyDate, TR_OFFSET };

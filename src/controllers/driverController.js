@@ -1,6 +1,5 @@
 const { Driver, Ride, Wallet, WalletTransaction, User, Rating, sequelize } = require('../models');
 const { Op } = require('sequelize');
-const { formatTurkeyDate, getTurkeyPeriodStart } = require('../utils/dateUtils');
 
 async function updatePlate(req, res) {
   try {
@@ -41,9 +40,34 @@ async function getEarnings(req, res) {
 
     // Server-side Date Calculation (Turkey Time: UTC+3)
     if (period) {
-      const start = getTurkeyPeriodStart(period);
-      if (start) {
-        from = start;
+      const now = new Date();
+      // Add 3 hours to get Turkey time, then truncate to start of period, then subtract 3 hours to get UTC again
+      // Or cleaner: Work with UTC dates but aligning to Turkey day boundaries if needed.
+      // Easiest: Just use standard UTC days for now, but ensure 'daily' means 'from 00:00 UTC today'.
+
+      // Let's settle for simple UTC based calculation which is consistent for Server
+      // Ideally, we should use libraries like 'moment-timezone' but we don't have it installed.
+      // We will do a manual offset of +3 hours for "Turkey Day Start".
+
+      const offsetMs = 3 * 60 * 60 * 1000;
+      const turkeyTime = new Date(now.getTime() + offsetMs);
+
+      if (period === 'daily') {
+        // Start of Turkey Day: yyyy-mm-dd 00:00:00
+        turkeyTime.setUTCHours(0, 0, 0, 0);
+        from = new Date(turkeyTime.getTime() - offsetMs); // Back to UTC
+        to = new Date(); // Now
+      } else if (period === 'weekly') {
+        const day = turkeyTime.getUTCDay(); // 0 (Sun) to 6 (Sat)
+        const diff = turkeyTime.getUTCDate() - day + (day === 0 ? -6 : 1); // Adjust to get Monday
+        turkeyTime.setUTCDate(diff);
+        turkeyTime.setUTCHours(0, 0, 0, 0);
+        from = new Date(turkeyTime.getTime() - offsetMs);
+        to = new Date();
+      } else if (period === 'monthly') {
+        turkeyTime.setUTCDate(1);
+        turkeyTime.setUTCHours(0, 0, 0, 0);
+        from = new Date(turkeyTime.getTime() - offsetMs);
         to = new Date();
       }
     }
@@ -98,7 +122,7 @@ async function getEarnings(req, res) {
     const avgRating = ratingData ? parseFloat(ratingData.dataValues.avg_rating || 0).toFixed(1) : "5.0";
 
     // Turkey Time Offset (UTC+3)
-    // const { formatTurkeyDate } = require('../utils/dateUtils'); // Moved to top
+    const { formatTurkeyDate } = require('../utils/dateUtils');
 
     const ridesFormatted = rides.map(r => {
       const plain = r.toJSON();
