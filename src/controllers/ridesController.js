@@ -649,10 +649,7 @@ async function getActiveRide(req, res) {
   }
 }
 
-estimateRide,
-  getUnreadCounts,
-  markMessagesAsRead
-};
+
 
 /*
 * GET /api/rides/unread-counts
@@ -751,3 +748,16 @@ async function markMessagesAsRead(req, res) {
     return res.status(500).json({ message: 'Server error' });
   }
 }
+
+module.exports = {
+  createRide,
+  estimateRide,
+  getRide,
+  getRides,
+  cancelRide,
+  rateRide,
+  getMessages,
+  getActiveRide,
+  getUnreadCounts,
+  markMessagesAsRead
+};
