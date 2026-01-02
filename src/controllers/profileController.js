@@ -1,4 +1,4 @@
-const { User, Driver, UserDevice, Wallet } = require('../models');
+const { User, Driver, UserDevice, Wallet, Rating, sequelize } = require('../models');
 const { hashPassword, comparePassword } = require('../utils/hash');
 const { blacklistToken } = require('../utils/tokenBlacklist');
 const jwt = require('jsonwebtoken');
@@ -51,6 +51,22 @@ async function getProfile(req, res) {
         driver.wallet_balance = wallet ? wallet.balance : 0.00;
       }
     }
+
+    // Get Rating Stats
+    // Get Rating Stats
+    const ratingStats = await Rating.findOne({
+      where: { rated_id: userId },
+      attributes: [
+        [sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating'],
+        [sequelize.fn('COUNT', sequelize.col('id')), 'rating_count']
+      ]
+    });
+
+    const avgRating = ratingStats && ratingStats.dataValues.avg_rating ? parseFloat(ratingStats.dataValues.avg_rating).toFixed(1) : "0.0";
+    const ratingCount = ratingStats && ratingStats.dataValues.rating_count ? parseInt(ratingStats.dataValues.rating_count) : 0;
+
+    userJson.avg_rating = avgRating;
+    userJson.rating_count = ratingCount;
 
     return res.json({ user: userJson, driver });
   } catch (err) {
