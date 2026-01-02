@@ -107,12 +107,25 @@ async function createRide(req, res) {
 
     const radiusKm = getPassengerRadiusKmByLevel(passenger.level || 1);
 
+    // Calculate Passenger Rating
+    const { Rating } = require('../models');
+    const ratingData = await Rating.findOne({
+      attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating']],
+      where: { rated_id: userId },
+      transaction: t
+    });
+
+    const passengerRating = ratingData && ratingData.dataValues.avg_rating
+      ? parseFloat(ratingData.dataValues.avg_rating).toFixed(1)
+      : '5.0';
+
     const passenger_info = {
       id: passenger.id,
       first_name: passenger.first_name,
       last_name: passenger.last_name,
       phone: passenger.phone,
-      level: passenger.level
+      level: passenger.level,
+      rating: parseFloat(passengerRating) // Send as number
     };
 
     // Commit the DB structure first so the Ride is visible to others
@@ -595,12 +608,18 @@ async function getActiveRide(req, res) {
       // Parallelize fetches: Driver Details, Average Rating. 
       // Note: We cannot defer geo fetch properly in parallel if it depends on vehicle_type from driverDetails.
       // So detailed approach:
-      const [driverDetails, ratingData] = await Promise.all([
+      // Parallelize fetches: Driver Details, Driver Rating, Passenger Rating
+      const [driverDetails, driverRatingData, passengerRatingData] = await Promise.all([
         Driver.findOne({ where: { user_id: ride.driver.id } }),
         Rating.findOne({
           attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating']],
           where: { rated_id: ride.driver.id }
-        })
+        }),
+        // Fetch Passenger Rating too (User fix)
+        ride.passenger ? Rating.findOne({
+          attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating']],
+          where: { rated_id: ride.passenger.id }
+        }) : Promise.resolve(null)
       ]);
 
       // redis.geopos moved after we have driverDetails (to know vehicle_type)
@@ -610,16 +629,27 @@ async function getActiveRide(req, res) {
 
       // Let's refactor: Fetch Driver & Rating parallel. Then Geo. still 2 steps instead of 3.
 
-      const realRating = ratingData && ratingData.dataValues.avg_rating
-        ? parseFloat(ratingData.dataValues.avg_rating).toFixed(1)
+      const driverRealRating = driverRatingData && driverRatingData.dataValues.avg_rating
+        ? parseFloat(driverRatingData.dataValues.avg_rating).toFixed(1)
+        : '5.0';
+
+      const passengerRealRating = passengerRatingData && passengerRatingData.dataValues.avg_rating
+        ? parseFloat(passengerRatingData.dataValues.avg_rating).toFixed(1)
         : '5.0';
 
       driverInfo = {
         ...ride.driver.toJSON(),
         vehicle_plate: driverDetails ? driverDetails.vehicle_plate : null,
         vehicle_type: driverDetails ? driverDetails.vehicle_type : null,
-        rating: realRating
+        rating: driverRealRating
       };
+
+      // Prepare passenger info with rating
+      const passengerInfo = ride.passenger ? {
+        ...ride.passenger.toJSON(),
+        profile_photo: ride.passenger.profile_picture,
+        rating: parseFloat(passengerRealRating)
+      } : null;
 
       // Now fetch Geo
       try {
@@ -631,6 +661,54 @@ async function getActiveRide(req, res) {
           driverInfo.driver_lat = geoPos[0][1];
         }
       } catch (geoErr) { }
+    } else {
+      // Even if no driver is assigned (rare for active ride API but possible if just requested?), 
+      // we should technically fetch passenger rating if we want to be consistent,
+      // but getActiveRide usually implies standard active flow. 
+      // If driver is null, we might be in 'requested' state? 
+      // The logic above handles driver attachment.
+      // Let's ensure passenger rating is attached even if driver is null?
+      // Usually getActiveRide is called when a ride is in progress.
+
+      // For safety, let's fetch passenger rating if driver is null too.
+      // Refactoring to be cleaner would be better but for minimal diff:
+
+      if (ride.passenger) {
+        const pRatingData = await Rating.findOne({
+          attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating']],
+          where: { rated_id: ride.passenger.id }
+        });
+        const pRating = pRatingData && pRatingData.dataValues.avg_rating
+          ? parseFloat(pRatingData.dataValues.avg_rating).toFixed(1)
+          : '5.0';
+
+        // We need to override the response construction below
+        // See simplified return below
+      }
+    }
+
+    // RE-CALCULATE PASSENGER RATING IF DRIVER WAS NULL (FALLBACK or CLEANUP)
+    // To avoid complex nesting, let's just do a quick check if passengerInfo is undefined
+    let finalPassengerInfo = null;
+
+    // If we already calculated it above (when driver existed)
+    if (typeof passengerInfo !== 'undefined') {
+      finalPassengerInfo = passengerInfo;
+    } else if (ride.passenger) {
+      // Driver was null, so we didn't calculate it above. Do it now.
+      const pRatingData = await Rating.findOne({
+        attributes: [[sequelize.fn('AVG', sequelize.col('stars')), 'avg_rating']],
+        where: { rated_id: ride.passenger.id }
+      });
+      const pRating = pRatingData && pRatingData.dataValues.avg_rating
+        ? parseFloat(pRatingData.dataValues.avg_rating).toFixed(1)
+        : '5.0';
+
+      finalPassengerInfo = {
+        ...ride.passenger.toJSON(),
+        profile_photo: ride.passenger.profile_picture,
+        rating: parseFloat(pRating)
+      };
     }
 
     const { formatTurkeyDate } = require('../utils/dateUtils');
@@ -639,7 +717,12 @@ async function getActiveRide(req, res) {
 
     return res.json({
       active: true,
-      ride: { ...plainRide, passenger: plainRide.passenger ? { ...plainRide.passenger, profile_photo: plainRide.passenger.profile_picture } : null, driver: plainRide.driver ? { ...plainRide.driver, profile_photo: plainRide.driver.profile_picture } : null },
+      ride: {
+        ...plainRide,
+        // Use our enriched passenger info
+        passenger: finalPassengerInfo,
+        driver: plainRide.driver ? { ...plainRide.driver, profile_photo: plainRide.driver.profile_picture } : null
+      },
       driver: driverInfo ? { ...driverInfo, profile_photo: driverInfo.profile_picture } : null
     });
 
