@@ -18,6 +18,10 @@ class UserModel {
   final int? refCount;
   @JsonKey(name: 'profile_photo')
   final String? profilePhoto;
+  @JsonKey(name: 'avg_rating')
+  final dynamic avgRating; // Can be String or double from JSON
+  @JsonKey(name: 'rating_count')
+  final int? ratingCount;
 
   UserModel({
     required this.id,
@@ -29,6 +33,8 @@ class UserModel {
     this.refCode,
     this.refCount,
     this.profilePhoto,
+    this.avgRating,
+    this.ratingCount,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) =>

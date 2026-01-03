@@ -245,7 +245,85 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                   _buildAddressRow(Icons.radio_button_checked, ride['start_address'] ?? 'Başlangıç', isStart: true),
                   _buildAddressRow(Icons.location_on, ride['end_address'] ?? 'Varış', isStart: false),
                   
-                  const Divider(height: 48),
+                  // Rating Section (Moved Above)
+                    if (status == 'completed') ...[
+                       if (myRating != null) ...[
+                         const Align(
+                           alignment: Alignment.centerLeft,
+                           child: Text(
+                              'Yolcuya Verdiğiniz Puan', 
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                           ),
+                         ),
+                         const SizedBox(height: 16),
+                         Container(
+                           width: double.infinity,
+                           padding: const EdgeInsets.all(16),
+                           decoration: BoxDecoration(
+                             borderRadius: BorderRadius.circular(16),
+                             border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                           ),
+                           child: Column(
+                             children: [
+                               Row(
+                                 mainAxisAlignment: MainAxisAlignment.center,
+                                 children: List.generate(5, (index) => Icon(
+                                   index < (myRating['stars'] ?? 0) ? Icons.star_rounded : Icons.star_outline_rounded,
+                                   color: Colors.amber,
+                                   size: 32,
+                                 )),
+                               ),
+                               if (myRating['comment'] != null && myRating['comment'].isNotEmpty) ...[
+                                 const SizedBox(height: 12),
+                                 Text(
+                                   '"${myRating['comment']}"',
+                                   style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey[600], fontSize: 13),
+                                   textAlign: TextAlign.center,
+                                 ),
+                               ]
+                             ],
+                           ),
+                         ), // Added closing
+                         const SizedBox(height: 32),
+                       ] else 
+                         Column(
+                           children: [
+                             SizedBox(
+                               width: double.infinity,
+                               child: ElevatedButton.icon(
+                                 onPressed: () async {
+                                    final result = await showDialog(
+                                      context: context,
+                                      builder: (_) => DriverRatingDialog(rideId: ride['id'].toString(), passengerName: passengerName ?? ''),
+                                    );
+                                    
+                                     if (result != null && result is int && mounted) {
+                                        setState(() {
+                                           ride['my_rating'] = {
+                                             'stars': result,
+                                             'comment': '', // Placeholder
+                                           };
+                                        });
+                                     }
+                                 },
+                                  style: ElevatedButton.styleFrom(
+                                   backgroundColor: Colors.black,
+                                   foregroundColor: Colors.white,
+                                   padding: const EdgeInsets.symmetric(vertical: 16),
+                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                   elevation: 0,
+                                 ),
+                                 icon: const Icon(Icons.star, size: 20),
+                                 label: const Text('Yolculuyu Puanla', style: TextStyle(fontWeight: FontWeight.bold)),
+                               ),
+                             ),
+                             const SizedBox(height: 32),
+                           ],
+                         ),
+                    ],
+
+                  const Divider(height: 1), 
+                  const SizedBox(height: 32),
 
                   // Passenger Card
                   if (passenger != null) ...[
@@ -305,78 +383,6 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    
-                    // Rating Section
-                    if (status == 'completed') ...[
-                       if (myRating != null) ...[
-                         const Align(
-                           alignment: Alignment.centerLeft,
-                           child: Text(
-                              'Yolcuya Verdiğiniz Puan', 
-                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
-                           ),
-                         ),
-                         const SizedBox(height: 16),
-                         Container(
-                           width: double.infinity,
-                           padding: const EdgeInsets.all(16),
-                           decoration: BoxDecoration(
-                             borderRadius: BorderRadius.circular(16),
-                             border: Border.all(color: Colors.grey.withOpacity(0.2)),
-                           ),
-                           child: Column(
-                             children: [
-                               Row(
-                                 mainAxisAlignment: MainAxisAlignment.center,
-                                 children: List.generate(5, (index) => Icon(
-                                   index < (myRating['stars'] ?? 0) ? Icons.star_rounded : Icons.star_outline_rounded,
-                                   color: Colors.amber,
-                                   size: 32,
-                                 )),
-                               ),
-                               if (myRating['comment'] != null && myRating['comment'].isNotEmpty) ...[
-                                 const SizedBox(height: 12),
-                                 Text(
-                                   '"${myRating['comment']}"',
-                                   style: TextStyle(fontStyle: FontStyle.italic, color: Colors.grey[600], fontSize: 13),
-                                   textAlign: TextAlign.center,
-                                 ),
-                               ]
-                             ],
-                           ),
-                         ), // Added closing
-                       ] else 
-                         SizedBox(
-                           width: double.infinity,
-                           child: ElevatedButton.icon(
-                             onPressed: () async {
-                                final result = await showDialog(
-                                  context: context,
-                                  builder: (_) => DriverRatingDialog(rideId: ride['id'].toString(), passengerName: passengerName ?? ''),
-                                );
-                                
-                                 if (result != null && result is int && mounted) {
-                                    setState(() {
-                                       ride['my_rating'] = {
-                                         'stars': result,
-                                         'comment': '', // Placeholder
-                                       };
-                                    });
-                                 }
-                             },
-                              style: ElevatedButton.styleFrom(
-                               backgroundColor: Colors.black,
-                               foregroundColor: Colors.white,
-                               padding: const EdgeInsets.symmetric(vertical: 16),
-                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                               elevation: 0,
-                             ),
-                             icon: const Icon(Icons.star, size: 20),
-                             label: const Text('Yolculuyu Puanla', style: TextStyle(fontWeight: FontWeight.bold)),
-                           ),
-                         ),
-                    ],
                   ],
                 ],
               ),

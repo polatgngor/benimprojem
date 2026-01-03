@@ -37,6 +37,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _firstNameController = TextEditingController();
     _lastNameController = TextEditingController();
     
+
+    // Force refresh profile data to get latest ratings
+    Future.microtask(() => ref.invalidate(driverProfileProvider));
+
     _firstNameController.addListener(_checkForChanges);
     _lastNameController.addListener(_checkForChanges);
   }
@@ -234,7 +238,30 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
         ),
-        const SizedBox(height: 30),
+
+        const SizedBox(height: 16),
+        // Rating Display
+        Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.star_rounded, color: Colors.amber, size: 32),
+                const SizedBox(width: 4),
+                Text(
+                  user['avg_rating']?.toString() ?? '0.0',
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${user['rating_count'] ?? 0} değerlendirme',
+              style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
 
          // --- Personal Info Section ---
         Text(

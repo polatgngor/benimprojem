@@ -131,46 +131,77 @@ class DriverAssignedSheet extends ConsumerWidget {
                const SizedBox(width: 8),
 
                // RIGHT: Stats Card (Blue Chip)
-               if (showStats)
-                 Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Theme.of(context).primaryColor,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Theme.of(context).primaryColor.withOpacity(0.3),
-                          blurRadius: 4, 
-                          offset: const Offset(0, 2),
-                        )
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.access_time_filled, color: Colors.white, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${durationMins.ceil()} dk',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+               // RIGHT: Stats Card & Cancel Button
+               Column(
+                 crossAxisAlignment: CrossAxisAlignment.end,
+                 children: [
+                   if (showStats)
+                     Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).primaryColor,
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Theme.of(context).primaryColor.withOpacity(0.3),
+                              blurRadius: 4, 
+                              offset: const Offset(0, 2),
+                            )
+                          ],
                         ),
-                        
-                        Container(
-                          width: 1, 
-                          height: 12, 
-                          color: Colors.white.withOpacity(0.5),
-                          margin: const EdgeInsets.symmetric(horizontal: 8),
-                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.access_time_filled, color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${durationMins.ceil()} dk',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                            
+                            Container(
+                              width: 1, 
+                              height: 12, 
+                              color: Colors.white.withOpacity(0.5),
+                              margin: const EdgeInsets.symmetric(horizontal: 8),
+                            ),
 
-                        const Icon(Icons.directions_car, color: Colors.white, size: 14),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${distanceKm.toStringAsFixed(1)} km',
-                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            const Icon(Icons.directions_car, color: Colors.white, size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${distanceKm.toStringAsFixed(1)} km',
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                 ),
+                     ),
+                    
+                    if (isStarted) ...[
+                      const SizedBox(height: 8),
+                      // Cancel Button (Small)
+                      OutlinedButton.icon(
+                         onPressed: () {
+                            showModalBottomSheet(
+                             context: context,
+                             isScrollControlled: true,
+                             backgroundColor: Colors.transparent,
+                             builder: (context) => const CancellationReasonSheet(),
+                           );
+                         },
+                         icon: const Icon(Icons.close, size: 14, color: Colors.red),
+                         label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 11)),
+                         style: OutlinedButton.styleFrom(
+                           side: const BorderSide(color: Colors.red),
+                           padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                           minimumSize: Size.zero, 
+                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                           backgroundColor: Colors.transparent,
+                         ),
+                      ),
+                    ]
+                 ],
+               ),
             ],
           ),
         ),
@@ -274,26 +305,6 @@ class DriverAssignedSheet extends ConsumerWidget {
                   ),
                 ),
               ],
-            )
-          else
-            // Cancel (Started - Outlined)
-            OutlinedButton.icon(
-               onPressed: () {
-                  showModalBottomSheet(
-                   context: context,
-                   isScrollControlled: true,
-                   backgroundColor: Colors.transparent,
-                   builder: (context) => const CancellationReasonSheet(),
-                 );
-               },
-               icon: const Icon(Icons.close, size: 16, color: Colors.red),
-               label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
-               style: OutlinedButton.styleFrom(
-                 side: const BorderSide(color: Colors.red),
-                 padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                 backgroundColor: Colors.transparent,
-               ),
             ),
             
           const SizedBox(height: 12),

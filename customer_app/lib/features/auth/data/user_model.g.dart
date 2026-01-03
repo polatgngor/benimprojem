@@ -16,6 +16,8 @@ UserModel _$UserModelFromJson(Map<String, dynamic> json) => UserModel(
   refCode: json['ref_code'] as String?,
   refCount: (json['ref_count'] as num?)?.toInt(),
   profilePhoto: json['profile_photo'] as String?,
+  avgRating: json['avg_rating'],
+  ratingCount: (json['rating_count'] as num?)?.toInt(),
 );
 
 Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
@@ -28,4 +30,6 @@ Map<String, dynamic> _$UserModelToJson(UserModel instance) => <String, dynamic>{
   'ref_code': instance.refCode,
   'ref_count': instance.refCount,
   'profile_photo': instance.profilePhoto,
+  'avg_rating': instance.avgRating,
+  'rating_count': instance.ratingCount,
 };

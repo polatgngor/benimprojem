@@ -20,7 +20,6 @@ import 'widgets/driver_stats_sheet.dart';
 import 'screens/incoming_requests_screen.dart';
 import 'providers/incoming_requests_provider.dart';
 import 'providers/optimistic_ride_provider.dart';
-import 'providers/unread_messages_provider.dart'; // Import Provider
 import 'widgets/passenger_info_sheet.dart';
 import 'widgets/driver_drawer.dart';
 import '../../rides/presentation/widgets/rating_dialog.dart';
@@ -92,14 +91,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     // Sync state on startup
     _syncState();
     
-    // Start Service REMOVED (Manual Control)
-
-    // Check for Overlay Permission (Critical for background launch)
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _checkOverlayPermission();
-      // Init Unread messages
-      ref.read(unreadMessagesProvider.notifier).initialize();
-    });
 
     // Smooth Transition Timer
     Future.delayed(const Duration(milliseconds: 2500), () {
@@ -663,7 +654,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         });
         
         _setDriverAvailable(); // Auto-available in background
+        _setDriverAvailable(); // Auto-available in background
         debugPrint('Yolculuk iptal edildi. (${data['reason'] ?? 'Sebep belirtilmedi'})');
+        
+        // RESET SHEET POSITION
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_statsSheetController.isAttached) {
+               // Calculate optimal fractional height
+               final double screenHeight = MediaQuery.of(context).size.height;
+               final double safeAreaBottom = MediaQuery.of(context).viewPadding.bottom;
+               final double targetHeight = 250.0 + safeAreaBottom; // Matches the constant in driver_stats_sheet.dart
+               final double targetFraction = (targetHeight / screenHeight).clamp(0.15, 0.85);
+               
+               _statsSheetController.jumpTo(targetFraction);
+            }
+        });
       }
     });
 
@@ -728,6 +733,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         _setDriverAvailable(); // Force availability
 
         debugPrint('Yolculuk tamamlandı.');
+        
+        // RESET SHEET POSITION
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_statsSheetController.isAttached) {
+               // Calculate optimal fractional height
+               final double screenHeight = MediaQuery.of(context).size.height;
+               final double safeAreaBottom = MediaQuery.of(context).viewPadding.bottom;
+               final double targetHeight = 250.0 + safeAreaBottom; // Matches the constant in driver_stats_sheet.dart
+               final double targetFraction = (targetHeight / screenHeight).clamp(0.15, 0.85);
+               
+               _statsSheetController.jumpTo(targetFraction);
+            }
+        });
         
         // Show Rating Dialog
         if (rideId != null) {

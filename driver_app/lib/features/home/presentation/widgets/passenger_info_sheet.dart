@@ -366,12 +366,14 @@ class _PassengerInfoSheetState extends ConsumerState<PassengerInfoSheet> {
                                         _showCancelDialog(context, ref, rideId);
                                       }
                                     },
-                                    icon: const Icon(Icons.close, size: 16, color: Colors.red),
-                                    label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
+                                    icon: const Icon(Icons.close, size: 14, color: Colors.red),
+                                    label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 11)),
                                     style: OutlinedButton.styleFrom(
                                       side: const BorderSide(color: Colors.red),
-                                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+                                      minimumSize: Size.zero, 
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                                       backgroundColor: Colors.transparent,
                                     ),
                                   ),
