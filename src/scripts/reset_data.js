@@ -27,11 +27,13 @@ async function resetData() {
         const models = Object.keys(sequelize.models);
         logger.info(`MySQL: Truncating ${models.length} tables...`);
 
-        for (const modelName of models) {
-            const model = sequelize.models[modelName];
-            await model.truncate({ cascade: true, restartIdentity: true, force: true });
-            // logger.info(`   - Truncated ${model.tableName}`);
-        }
+        // DROP and Re-create tables (Fixes 'Too many keys' and schema drift)
+        logger.info('MySQL: Dropping and Re-syncing tables (Nuclear Option)...');
+        await sequelize.sync({ force: true });
+        // for (const modelName of models) {
+        //     const model = sequelize.models[modelName];
+        //     await model.truncate({ cascade: true, restartIdentity: true, force: true });
+        // }
 
         logger.info('MySQL: Enabling Foreign Key Checks...');
         await sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { raw: true });
