@@ -6,6 +6,7 @@ import '../../auth/presentation/auth_provider.dart';
 import '../data/ride_repository.dart';
 import 'ride_state_provider.dart';
 import '../../../core/widgets/custom_toast.dart';
+import '../../notifications/presentation/notification_provider.dart';
 
 class ChatMessagesNotifier extends Notifier<List<Map<String, dynamic>>> {
   @override
@@ -51,10 +52,18 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _loadMessages();
     _setupSocketListener();
     _joinChatRoom();
+    
+    // Notify provider we are active
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       ref.read(notificationNotifierProvider.notifier).enterChat(int.tryParse(widget.rideId) ?? 0);
+    });
   }
 
   @override
   void dispose() {
+    // Notify provider we left
+    ref.read(notificationNotifierProvider.notifier).leaveChat();
+    
     _leaveChatRoom();
      final socketService = ref.read(socketServiceProvider);
     socketService.off('ride:message');

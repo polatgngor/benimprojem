@@ -7,7 +7,9 @@ import '../../ride/presentation/chat_screen.dart';
 import '../../ride/presentation/widgets/rating_dialog.dart';
 import '../../../core/utils/string_utils.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/services/directions_service.dart';
+import '../../notifications/presentation/notification_provider.dart';
 
 class RideDetailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> ride;
@@ -389,15 +391,31 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                           ),
                           // Actions
                           if (canChat)
-                            IconButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => ChatScreen(rideId: ride['id'].toString()))
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final unreadCount = ref.watch(notificationNotifierProvider)
+                                    .unreadRideCounts[int.tryParse(ride['id'].toString()) ?? 0] ?? 0;
+                                
+                                return IconButton(
+                                  onPressed: () {
+                                    final rideId = int.tryParse(ride['id'].toString()) ?? 0;
+                                    ref.read(notificationNotifierProvider.notifier).markRideRead(rideId);
+                                    
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => ChatScreen(rideId: ride['id'].toString()))
+                                    );
+                                  },
+                                  icon: unreadCount > 0 
+                                      ? Badge.count(
+                                          count: unreadCount,
+                                          backgroundColor: Colors.red,
+                                          child: const Icon(Icons.chat_bubble_outline),
+                                        )
+                                      : const Icon(Icons.chat_bubble_outline),
+                                  color: Theme.of(context).primaryColor,
                                 );
-                              },
-                              icon: const Icon(Icons.chat_bubble_outline),
-                              color: Theme.of(context).primaryColor,
+                              }
                             ),
                         ],
                       ),

@@ -14,6 +14,7 @@ import '../../../core/services/directions_service.dart';
 import '../../ride/presentation/ride_booking_sheet.dart';
 import '../../../core/services/notification_service.dart';
 import '../../ride/presentation/ride_state_provider.dart';
+import '../../notifications/presentation/notification_provider.dart';
 import 'widgets/custom_drawer.dart';
 import '../../ride/presentation/widgets/rating_dialog.dart';
 import '../../ride/data/ride_repository.dart';
@@ -512,8 +513,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               Positioned(
                 top: 50,
                 left: 16,
-                child: Builder(
-                  builder: (context) => Container(
+                  child: Builder(
+                  builder: (context) {
+                    final notifState = ref.watch(notificationNotifierProvider);
+                    return Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
@@ -526,12 +529,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       ],
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.black),
+                      icon: notifState.total > 0
+                          ? Badge.count(
+                              count: notifState.total,
+                              backgroundColor: Colors.red,
+                              child: const Icon(Icons.menu, color: Colors.black),
+                            )
+                          : const Icon(Icons.menu, color: Colors.black),
                       onPressed: () {
                         Scaffold.of(context).openDrawer();
                       },
                     ),
-                  ),
+                  );
+                 }
                 ),
               ),
 

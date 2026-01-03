@@ -322,6 +322,23 @@ async function getRides(req, res) {
       }
     });
 
+    // Fetch unread messages count per ride
+    const { RideMessage } = require('../models');
+    const unreadCounts = await RideMessage.findAll({
+      attributes: ['ride_id', [sequelize.fn('COUNT', sequelize.col('id')), 'count']],
+      where: {
+        ride_id: { [Op.in]: rideIds },
+        sender_id: { [Op.ne]: user.userId },
+        read_at: null
+      },
+      group: ['ride_id']
+    });
+
+    const unreadMap = {};
+    unreadCounts.forEach(c => {
+      unreadMap[c.ride_id] = c.dataValues.count;
+    });
+
     // Map ride_id -> rating
     const ratingMap = {};
     myRatings.forEach(r => {
@@ -340,6 +357,9 @@ async function getRides(req, res) {
 
       // Attach my_rating
       plain.my_rating = ratingMap[plain.id] || null;
+
+      // Attach unread_count
+      plain.unread_count = parseInt(unreadMap[plain.id] || 0);
 
       return plain;
     });

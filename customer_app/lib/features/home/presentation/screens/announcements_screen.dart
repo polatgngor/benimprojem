@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../../core/api/api_client.dart';
+import '../../../notifications/presentation/notification_provider.dart';
 
 // Key: type (announcement, campaign, or null for all)
 final announcementsProvider = FutureProvider.family<List<Map<String, dynamic>>, String?>((ref, type) async {
@@ -21,18 +22,33 @@ final announcementsProvider = FutureProvider.family<List<Map<String, dynamic>>, 
   }
 });
 
-class AnnouncementsScreen extends ConsumerWidget {
+class AnnouncementsScreen extends ConsumerStatefulWidget {
   final String? type; // 'announcement' or 'campaign' or null
 
   const AnnouncementsScreen({super.key, this.type});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final announcementsAsync = ref.watch(announcementsProvider(type));
+  ConsumerState<AnnouncementsScreen> createState() => _AnnouncementsScreenState();
+}
+
+class _AnnouncementsScreenState extends ConsumerState<AnnouncementsScreen> {
+
+  @override
+  void initState() {
+    super.initState();
+    // Mark as read when screen opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+       ref.read(notificationNotifierProvider.notifier).markAnnouncementsRead();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final announcementsAsync = ref.watch(announcementsProvider(widget.type));
     
     String title = 'announcements.title_all'.tr();
-    if (type == 'announcement') title = 'announcements.title_announcements'.tr();
-    if (type == 'campaign') title = 'announcements.title_campaigns'.tr();
+    if (widget.type == 'announcement') title = 'announcements.title_announcements'.tr();
+    if (widget.type == 'campaign') title = 'announcements.title_campaigns'.tr();
 
     return Scaffold(
       backgroundColor: Colors.grey[50],

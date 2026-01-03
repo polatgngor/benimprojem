@@ -29,6 +29,7 @@ module.exports = (sequelize) =>
         allowNull: false,
         defaultValue: 'standard'
       },
+      last_announcement_view_at: { type: DataTypes.DATE, allowNull: true },
 
       // FCM Token removed (using UserDevice table)
     },

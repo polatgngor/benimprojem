@@ -6,6 +6,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../../core/constants/legal_constants.dart';
 import '../../../../core/presentation/screens/legal_viewer_screen.dart';
+import '../../../notifications/presentation/notification_provider.dart';
 
 class CustomDrawer extends ConsumerStatefulWidget {
   const CustomDrawer({super.key});
@@ -54,6 +55,8 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
     final user = authState.value;
     final name = user != null ? '${user.firstName} ${user.lastName}' : 'Misafir';
 
+    final notifState = ref.watch(notificationNotifierProvider);
+    
     return Drawer(
       backgroundColor: Colors.white,
       width: MediaQuery.of(context).size.width * 0.75, // %75 Width
@@ -63,96 +66,77 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
           children: [
             // Header
             Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1A77F6), Color(0xFF4C94FA)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF1A77F6).withOpacity(0.3),
-                  blurRadius: 15,
-                  offset: const Offset(0, 8),
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(24, 60, 24, 24),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF1A77F6), Color(0xFF4C94FA)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                ScaleTransition(
-                  scale: _scaleAnimation,
-                  child: Container(
-                    padding: const EdgeInsets.all(3),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.3),
-                      shape: BoxShape.circle,
-                    ),
+                boxShadow: [
+                  BoxShadow(
+                     color: const Color(0xFF1A77F6).withOpacity(0.3),
+                     blurRadius: 15,
+                     offset: const Offset(0, 8),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ScaleTransition(
+                    scale: _scaleAnimation,
                     child: Container(
-                      width: 64, 
-                      height: 64,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
+                      padding: const EdgeInsets.all(4), 
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.3),
                         shape: BoxShape.circle,
                       ),
-                      child: ClipOval(
-                        child: (user?.profilePhoto != null && user!.profilePhoto!.isNotEmpty)
-                          ? Image.network(
-                              user.profilePhoto!.startsWith('http') ? user.profilePhoto! : '${AppConstants.baseUrl}/${user.profilePhoto}',
-                              fit: BoxFit.cover,
-                              width: 64,
-                              height: 64,
-                              errorBuilder: (context, error, stackTrace) {
-                                return Center(
-                                  child: Text(
-                                    name.isNotEmpty ? name[0].toUpperCase() : 'M',
-                                    style: const TextStyle(
-                                      fontSize: 26,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF1A77F6),
-                                    ),
-                                  ),
-                                );
-                              },
-                            )
-                          : Center(
-                              child: Text(
-                                name.isNotEmpty ? name[0].toUpperCase() : 'M',
-                                style: const TextStyle(
-                                  fontSize: 26,
-                                  fontWeight: FontWeight.bold,
-                                  color: Color(0xFF1A77F6),
-                                ),
+                      child: Container(
+                        width: 64, // Radius 32 * 2
+                        height: 64,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          shape: BoxShape.circle,
+                        ),
+                        child: ClipOval(
+                          child: Center(
+                            child: Text(
+                              name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                              style: const TextStyle(
+                                fontSize: 26,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1A77F6),
                               ),
                             ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  _getGreeting(),
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
+                  const SizedBox(height: 16),
+                  Text(
+                    _getGreeting(),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  name,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                  const SizedBox(height: 6),
+                  Text(
+                    name.isNotEmpty ? name : 'Misafir',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          ),
 
+                ],
+              ),
+            ),
           // Menu Items
           Expanded(
             child: ListView(
@@ -172,6 +156,9 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                   context,
                   icon: Icons.history_rounded,
                   title: 'drawer.rides'.tr(),
+                  trailing: notifState.totalUnreadMessages > 0 
+                      ? Badge.count(count: notifState.totalUnreadMessages, backgroundColor: Colors.red) 
+                      : null,
                   onTap: () {
                     Navigator.pop(context);
                     context.push('/ride-history');
@@ -181,6 +168,9 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                   context,
                   icon: Icons.notifications_active_outlined,
                   title: 'drawer.announcements'.tr(),
+                  trailing: notifState.unreadAnnouncementCount > 0 
+                      ? Badge.count(count: notifState.unreadAnnouncementCount, backgroundColor: Colors.red) 
+                      : null,
                   onTap: () {
                     Navigator.pop(context);
                     context.push(Uri(path: '/announcements', queryParameters: {'type': 'announcement'}).toString());
@@ -360,10 +350,12 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
+    Widget? trailing,
   }) {
     final color = isDestructive ? Colors.red : Colors.grey[800];
     
     return ListTile(
+      trailing: trailing,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(

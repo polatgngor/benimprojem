@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:easy_localization/easy_localization.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../notifications/presentation/notification_provider.dart';
 import 'ride_detail_screen.dart';
 import '../../../core/widgets/shimmer_loading.dart';
 import '../../../core/widgets/custom_toast.dart';
@@ -175,6 +176,33 @@ class _RideHistoryScreenState extends ConsumerState<RideHistoryScreen> {
                                   fontWeight: FontWeight.w800, 
                                   color: Theme.of(context).primaryColor
                                 ),
+                              ),
+                              Builder(
+                                builder: (context) {
+                                  // Logic: Prefer realtime, fallback to static
+                                  final rideId = int.tryParse(ride['id'].toString()) ?? 0;
+                                  final realtimeCount = ref.watch(notificationNotifierProvider).unreadRideCounts[rideId];
+                                  final staticCount = int.tryParse(ride['unread_count']?.toString() ?? '0') ?? 0;
+                                  final displayCount = realtimeCount ?? staticCount;
+
+                                  if (displayCount > 0) {
+                                    return Padding(
+                                      padding: const EdgeInsets.only(left: 8.0),
+                                      child: Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: const BoxDecoration(
+                                          color: Colors.red,
+                                          shape: BoxShape.circle,
+                                        ),
+                                        child: Text(
+                                          displayCount.toString(),
+                                          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                  return const SizedBox.shrink();
+                                }
                               ),
                             ],
                           ),

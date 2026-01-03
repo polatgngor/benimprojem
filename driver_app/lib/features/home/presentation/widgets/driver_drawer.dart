@@ -7,7 +7,9 @@ import '../../../auth/presentation/auth_provider.dart';
 import '../../../auth/presentation/auth_provider.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/legal_constants.dart';
+import '../../../../core/constants/legal_constants.dart';
 import '../../../../core/presentation/screens/legal_viewer_screen.dart';
+import '../../../notifications/presentation/notification_provider.dart';
 
 
 // Update provider to return Map instead of String
@@ -71,6 +73,8 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
     final lastName = user?['last_name'] ?? '';
     final fullName = '$firstName $lastName'.trim();
     final photoUrl = user?['profile_photo'];
+
+    final notifState = ref.watch(notificationNotifierProvider);
 
     return Drawer(
       backgroundColor: Colors.white,
@@ -194,6 +198,9 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                   context,
                   icon: Icons.history_rounded,
                   title: 'drawer.history'.tr(),
+                  trailing: notifState.totalUnreadMessages > 0 
+                      ? Badge.count(count: notifState.totalUnreadMessages, backgroundColor: Colors.red) 
+                      : null,
                   onTap: () {
                     Navigator.pop(context);
                     context.push('/ride-history');
@@ -212,6 +219,9 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                   context,
                   icon: Icons.notifications_active_outlined,
                   title: 'drawer.announcements'.tr(),
+                  trailing: notifState.unreadAnnouncementCount > 0 
+                      ? Badge.count(count: notifState.unreadAnnouncementCount, backgroundColor: Colors.red) 
+                      : null,
                   onTap: () {
                     Navigator.pop(context);
                     context.push(Uri(path: '/announcements', queryParameters: {'type': 'announcement'}).toString());
@@ -392,10 +402,12 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
     required String title,
     required VoidCallback onTap,
     bool isDestructive = false,
+    Widget? trailing,
   }) {
     final color = isDestructive ? Colors.red : Colors.grey[800];
     
     return ListTile(
+      trailing: trailing,
       leading: Container(
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
