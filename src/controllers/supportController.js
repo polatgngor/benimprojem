@@ -5,7 +5,13 @@ const { hasProfanity } = require('../utils/profanityFilter');
 // Create a new ticket
 exports.createTicket = async (req, res) => {
     const { subject, message } = req.body;
-    const userId = req.user.userId;
+    // Robust User ID extraction: Check both possible keys
+    const userId = req.user.userId || req.user.id;
+
+    if (!userId) {
+        console.error('[Support] Create Ticket Failed: User ID missing in token', req.user);
+        return res.status(401).json({ error: 'Unauthorized: User ID missing.' });
+    }
 
     if (!subject || !message) {
         return res.status(400).json({ error: 'Subject and message are required.' });
@@ -39,7 +45,12 @@ exports.createTicket = async (req, res) => {
 
 // Get tickets for the logged user
 exports.getMyTickets = async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user.id;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized.' });
+    }
+
     try {
         const [tickets] = await db.query(
             'SELECT * FROM support_tickets WHERE user_id = ? ORDER BY created_at DESC',
@@ -54,14 +65,20 @@ exports.getMyTickets = async (req, res) => {
 
 // Get messages for a specific ticket
 exports.getTicketMessages = async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user.id;
     const { ticketId } = req.params;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized.' });
+    }
 
     try {
         // Check if ticket belongs to user (Security)
         const [ticket] = await db.query('SELECT user_id FROM support_tickets WHERE id = ?', [ticketId]);
         if (ticket.length === 0) return res.status(404).json({ error: 'Ticket not found.' });
-        if (ticket[0].user_id !== userId) return res.status(403).json({ error: 'Unauthorized.' });
+
+        // Strict equality check for security
+        if (String(ticket[0].user_id) !== String(userId)) return res.status(403).json({ error: 'Unauthorized.' });
 
         const [messages] = await db.query(
             'SELECT * FROM support_messages WHERE ticket_id = ? ORDER BY created_at ASC',
@@ -76,9 +93,13 @@ exports.getTicketMessages = async (req, res) => {
 
 // Send a message
 exports.sendMessage = async (req, res) => {
-    const userId = req.user.userId;
+    const userId = req.user.userId || req.user.id;
     const { ticketId } = req.params;
     const { message } = req.body;
+
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized.' });
+    }
 
     if (!message) return res.status(400).json({ error: 'Message cannot be empty.' });
 
@@ -86,7 +107,8 @@ exports.sendMessage = async (req, res) => {
         // Verify ownership
         const [ticket] = await db.query('SELECT * FROM support_tickets WHERE id = ?', [ticketId]);
         if (ticket.length === 0) return res.status(404).json({ error: 'Ticket not found.' });
-        if (ticket[0].user_id !== userId) return res.status(403).json({ error: 'Unauthorized.' });
+
+        if (String(ticket[0].user_id) !== String(userId)) return res.status(403).json({ error: 'Unauthorized.' });
 
         if (hasProfanity(message)) {
             return res.status(400).json({ error: 'Mesajınız uygunsuz içerik barındırıyor.' });
