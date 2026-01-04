@@ -23,7 +23,7 @@ class SearchingRideSheet extends ConsumerWidget {
         AnimatedSwitcher(
           duration: const Duration(milliseconds: 300),
           child: Text(
-            isFound ? 'Sürücü Bulundu!' : 'sheet.searching.title'.tr(),
+            isFound ? 'home.driver_found'.tr() : 'sheet.searching.title'.tr(),
             key: ValueKey(isFound ? 'found_title' : 'search_title'),
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),

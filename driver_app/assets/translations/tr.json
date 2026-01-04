@@ -8,10 +8,12 @@
         "announcements": "Duyurular",
         "campaigns": "Kampanyalar",
         "terms": "Kullanım Koşulları",
-        "privacy": "Gizlilik",
+        "privacy": "Gizlilik Politikası",
         "logout": "Çıkış Yap",
         "support": "Destek & Yardım",
-        "legal_info": "Yasal Bilgiler"
+        "legal_info": "Yasal Bilgiler",
+        "clarification": "Aydınlatma Metni",
+        "profile_reviews": "{} değerlendirme"
     },
     "announcements": {
         "title_all": "Duyurular ve Kampanyalar",
@@ -34,7 +36,9 @@
         "waiting_requests": "Yolcu Bekleniyor...",
         "incoming_request": "Yeni Yolculuk İsteği",
         "accept": "Kabul Et",
-        "reject": "Reddet"
+        "reject": "Reddet",
+        "matching_message": "Yolcuyla eşleştiriliyorsunuz...",
+        "please_wait": "Lütfen bekleyin..."
     },
     "ride": {
         "passenger": "Yolcu",
@@ -123,6 +127,16 @@
             "completed": "Tamamlandı",
             "cancelled": "İptal Edildi",
             "started": "Sürüyor"
+        },
+        "detail": {
+            "title": "Yolculuk Detayı",
+            "pickup": "Alış Noktası",
+            "dropoff": "Varış Noktası",
+            "passenger": "Yolcu",
+            "rating_given": "Yolcuya Verdiğiniz Puan",
+            "rate_passenger": "Yolcuyu Puanla",
+            "payment_cash": "Nakit",
+            "payment_pos": "Kredi Kartı (POS)"
         }
     },
     "button": {
@@ -165,7 +179,52 @@
         "working_region": "Çalışma Bölgesi",
         "update_plate": "Plaka Güncelle",
         "new_plate": "Yeni Plaka",
-        "plate_updated": "Plaka güncellendi"
+        "plate_updated": "Plaka güncellendi",
+        "vehicle_management": "Araç Yönetimi",
+        "no_plate": "Plaka Yok",
+        "loading": "Yükleniyor...",
+        "pending_request": "Onay Bekleyen Talep",
+        "actions": "İşlemler",
+        "change_taxi": "Taksi Değiştir",
+        "change_taxi_desc": "Başka bir taksiye geçtiyseniz buradan bildirin.",
+        "pending_warning": "Zaten bekleyen bir talebiniz var.",
+        "update_docs": "Belgelerimi Güncelle",
+        "update_docs_desc": "Ruhsat, sigorta vb. süresi dolan belgeleri yenileyin.",
+        "coming_soon": "Yakında",
+        "change_phone_title": "Telefon Numarası Değiştir",
+        "current_phone": "Şu anki Numaranız",
+        "new_phone": "Yeni Telefon Numarası",
+        "phone_updated": "Telefon numaranız başarıyla güncellendi.",
+        "valid_phone_error": "Geçerli bir telefon numarası giriniz",
+        "send_code_btn": "Doğrulama Kodu Gönder",
+        "otp_info": "Yeni numaranıza bir doğrulama kodu (OTP) gönderilecektir.",
+        "change_taxi_title": "Taksi Değiştir",
+        "new_car_info": "Yeni Aracınızın Bilgileri",
+        "manager_approval_note": "Bu işlem yönetici onayı gerektirir. Onaylanana kadar mevcut aracınızla çalışmaya devam edebilirsiniz.",
+        "plate_label": "Plaka",
+        "brand_label": "Araç Markası",
+        "model_label": "Araç Modeli",
+        "type_label": "Araç Tipi",
+        "brand_select_error": "Lütfen marka seçiniz",
+        "model_select_error": "Lütfen model seçiniz",
+        "documents_title": "Belgeler",
+        "documents_optional": "Belgeler (Opsiyonel)",
+        "documents_optional_desc": "Sadece güncellemek istediğiniz belgeleri yükleyin.",
+        "submit_approval": "Onaya Gönder",
+        "submit_changes": "Değişiklikleri Onaya Gönder",
+        "file_selected": "Dosya seçildi",
+        "tap_to_upload": "Fotoğraf çek veya yükle",
+        "upload_error": "Lütfen tüm belgeleri yükleyiniz.",
+        "phone_error": "Telefon numarası bulunamadı.",
+        "success_request": "Talebiniz başarıyla gönderildi.",
+        "success_update": "Güncelleme talebiniz başarıyla gönderildi. Onay bekleniyor.",
+        "current_plate": "Mevcut Plaka",
+        "plate_change_note": "Plaka değişikliği için 'Taksi Değiştir' menüsünü kullanın.",
+        "update_vehicle_info": "Araç Bilgilerini Güncelle",
+        "vehicle_license": "Araç Ruhsatı",
+        "ibb_license": "İBB Çalışma Ruhsatı",
+        "driver_license": "Sürücü Belgesi",
+        "identity_card": "Kimlik Kartı"
     },
     "earnings": {
         "title": "Kazançlarım",
@@ -178,7 +237,7 @@
         "no_earnings": "Bu dönemde kazanç yok.",
         "ride_id": "Yolculuk #{}",
         "payment_cash": "Nakit Ödeme",
-        "payment_pos": "Kart ile Ödeme"
+        "payment_pos": "Kart İle Ödeme"
     },
     "auth": {
         "welcome_title": "Hoşgeldiniz",

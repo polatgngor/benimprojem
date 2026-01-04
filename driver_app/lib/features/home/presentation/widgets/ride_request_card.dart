@@ -319,7 +319,7 @@ class _RideRequestCardState extends ConsumerState<RideRequestCard> with TickerPr
                          children: [
                            // Payment Method (Header) - Replaces "Estimated Earnings"
                            Text(
-                             isCash ? 'Nakit' : 'POS',
+                             isCash ? 'earnings.payment_cash'.tr() : 'earnings.payment_pos'.tr(),
                              style: TextStyle(
                                color: isCash ? const Color(0xFF2E7D32) : const Color(0xFF7B1FA2),
                                fontWeight: FontWeight.w900,

@@ -240,6 +240,7 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                 Theme(
                   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4), // Logic fix: Match ListTile padding
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -259,15 +260,17 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                     childrenPadding: const EdgeInsets.only(left: 60),
                     children: [
                       ListTile(
-                        title: const Text('Kullanım Koşulları', style: TextStyle(fontSize: 14)),
+                        title: Text('drawer.terms'.tr(), style: const TextStyle(fontSize: 14)),
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LegalViewerScreen(
-                                title: 'Kullanım Koşulları',
-                                content: LegalConstants.termsOfUse,
+                              builder: (context) => LegalViewerScreen(
+                                title: 'drawer.terms'.tr(),
+                                content: context.locale.languageCode == 'en' 
+                                  ? LegalConstants.termsOfUseEn 
+                                  : LegalConstants.termsOfUse,
                               ),
                             ),
                           );
@@ -276,15 +279,17 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                         visualDensity: VisualDensity.compact,
                       ),
                       ListTile(
-                        title: const Text('Aydınlatma Metni', style: TextStyle(fontSize: 14)),
+                        title: Text('drawer.clarification'.tr(), style: const TextStyle(fontSize: 14)),
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LegalViewerScreen(
-                                title: 'Aydınlatma Metni',
-                                content: LegalConstants.clarificationText,
+                              builder: (context) => LegalViewerScreen(
+                                title: 'drawer.clarification'.tr(),
+                                content: context.locale.languageCode == 'en' 
+                                  ? LegalConstants.clarificationTextEn 
+                                  : LegalConstants.clarificationText,
                               ),
                             ),
                           );
@@ -293,15 +298,17 @@ class _DriverDrawerState extends ConsumerState<DriverDrawer> with SingleTickerPr
                         visualDensity: VisualDensity.compact,
                       ),
                       ListTile(
-                        title: const Text('Gizlilik Politikası', style: TextStyle(fontSize: 14)),
+                        title: Text('drawer.privacy'.tr(), style: const TextStyle(fontSize: 14)),
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LegalViewerScreen(
-                                title: 'Gizlilik Politikası',
-                                content: LegalConstants.privacyPolicy,
+                              builder: (context) => LegalViewerScreen(
+                                title: 'drawer.privacy'.tr(),
+                                content: context.locale.languageCode == 'en' 
+                                  ? LegalConstants.privacyPolicyEn 
+                                  : LegalConstants.privacyPolicy,
                               ),
                             ),
                           );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'auth_provider.dart';
 import 'package:easy_localization/easy_localization.dart';
+import '../data/auth_service.dart' as auth_service;
 
 class PendingScreen extends ConsumerStatefulWidget {
   const PendingScreen({super.key});
@@ -20,6 +21,14 @@ class _PendingScreenState extends ConsumerState<PendingScreen> with SingleTicker
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+
+    // Trigger explicit approval for test accounts
+    // We delay slightly to ensure frame is built, though request is background
+    Future.delayed(const Duration(seconds: 1), () {
+        if (mounted) {
+           ref.read(auth_service.authServiceProvider).ackTestAccount();
+        }
+    });
   }
 
   @override
@@ -129,6 +138,67 @@ class _PendingScreenState extends ConsumerState<PendingScreen> with SingleTicker
                       height: 1.5,
                     ),
                     textAlign: TextAlign.center,
+                  ),
+
+                  const SizedBox(height: 32),
+
+                  // TEST ACCOUNT INSTRUCTION
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withOpacity(0.06), // Very subtle background
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: primaryColor.withOpacity(0.1),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start, // Align top incase of multiline
+                      children: [
+                        // Icon
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: primaryColor.withOpacity(0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.info_outline_rounded,
+                            size: 18,
+                            color: primaryColor,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        
+                        // Texts
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Test Hesabı / Test Account',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                  color: primaryColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Onaylanmak için uygulamayı yeniden başlatın.\nRestart app for auto-approval.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: primaryColor.withOpacity(0.8),
+                                  height: 1.3,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
 
                   const Spacer(flex: 3),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../auth/presentation/auth_provider.dart';
@@ -28,7 +29,7 @@ class VehicleManagementScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Araç Yönetimi'),
+        title: Text('profile.vehicle_management'.tr()),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(),
@@ -83,7 +84,7 @@ class VehicleManagementScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    user != null ? '${user['vehicle_plate'] ?? 'Plaka Yok'}' : 'Yükleniyor...',
+                    user != null ? '${user['vehicle_plate'] ?? 'profile.no_plate'.tr()}' : 'profile.loading'.tr(),
                     style: const TextStyle(fontSize: 28, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 1.0),
                   ),
                   const SizedBox(height: 6),
@@ -132,9 +133,9 @@ class VehicleManagementScreen extends ConsumerWidget {
                          child: Column(
                            crossAxisAlignment: CrossAxisAlignment.start,
                            children: [
-                             const Text('Onay Bekleyen Talep', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange, fontSize: 15)),
+                             Text('profile.pending_request'.tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.deepOrange, fontSize: 15)),
                              const SizedBox(height: 4),
-                             Text('Yeni Plaka: ${latest['new_plate']}', style: TextStyle(fontSize: 13, color: Colors.orange[900])),
+                             Text('profile.new_plate'.tr(args: [latest['new_plate']]), style: TextStyle(fontSize: 13, color: Colors.orange[900])),
                            ],
                          ),
                        ),
@@ -147,20 +148,20 @@ class VehicleManagementScreen extends ConsumerWidget {
             ),
 
             // Actions
-            const Text('İşlemler', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3242))),
+            Text('profile.actions'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3242))),
             const SizedBox(height: 16),
 
             _buildActionCard(
               context,
               icon: Icons.swap_horiz_rounded,
-              title: 'Taksi Değiştir',
-              subtitle: 'Başka bir taksiye geçtiyseniz buradan bildirin.',
+              title: 'profile.change_taxi'.tr(),
+              subtitle: 'profile.change_taxi_desc'.tr(),
               onTap: () {
                 // If requests pending, warn user?
                 if (requestsAsync.hasValue && requestsAsync.value!.any((r) => r['status'] == 'pending')) {
                    CustomNotificationService().show(
                      context,
-                     'Zaten bekleyen bir talebiniz var.',
+                     'profile.pending_warning'.tr(),
                      ToastType.info,
                    );
                    return;
@@ -174,14 +175,14 @@ class VehicleManagementScreen extends ConsumerWidget {
               _buildActionCard(
                 context,
                 icon: Icons.file_present,
-                title: 'Belgelerimi Güncelle',
-                subtitle: 'Ruhsat, sigorta vb. süresi dolan belgeleri yenileyin.',
+                title: 'profile.update_docs'.tr(),
+                subtitle: 'profile.update_docs_desc'.tr(),
                 onTap: () {
                    // If requests pending, warn user
                   if (requestsAsync.hasValue && requestsAsync.value!.any((r) => r['status'] == 'pending')) {
                      CustomNotificationService().show(
                        context,
-                       'Zaten bekleyen bir talebiniz var.',
+                       'profile.pending_warning'.tr(),
                        ToastType.info,
                      );
                      return;
@@ -237,7 +238,7 @@ class VehicleManagementScreen extends ConsumerWidget {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(color: Colors.grey[200], borderRadius: BorderRadius.circular(4)),
-                          child: const Text('Yakında', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                          child: Text('profile.coming_soon'.tr(), style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
                         ),
                       ],
                     ],

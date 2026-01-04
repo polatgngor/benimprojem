@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/services/socket_service.dart';
@@ -38,11 +39,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _isLoading = true;
 
   final List<String> _quickReplies = [
-    'Geliyorum!',
-    'Yoldayım',
-    'Trafikteyim',
-    'Neredesiniz?',
-    'Tamam',
+    'chat.quick_reply_1'.tr(),
+    'chat.quick_reply_2'.tr(),
+    'chat.quick_reply_3'.tr(),
+    'chat.quick_reply_4'.tr(),
+    'chat.quick_reply_5'.tr(),
   ];
 
   @override
@@ -75,12 +76,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   void _joinChatRoom() {
     final socket = ref.read(socketServiceProvider).socket;
-    socket.emit('ride:join', {'ride_id': widget.rideId});
+    socket?.emit('ride:join', {'ride_id': widget.rideId});
   }
 
   void _leaveChatRoom() {
     final socket = ref.read(socketServiceProvider).socket;
-    socket.emit('ride:leave', {'ride_id': widget.rideId});
+    socket?.emit('ride:leave', {'ride_id': widget.rideId});
   }
 
   void _setupSocketListener() {
@@ -163,7 +164,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _scrollToBottom();
 
     final socket = ref.read(socketServiceProvider).socket;
-    socket.emit('ride:message', {
+    socket?.emit('ride:message', {
       'ride_id': widget.rideId,
       'text': text,
     });
@@ -194,9 +195,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text(
-          'Sürücü ile Sohbet',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+        title: Text(
+          'chat.title'.tr(),
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         centerTitle: true,
         backgroundColor: Colors.white,
@@ -294,11 +295,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     ),
                     child: TextField(
                       controller: _controller,
-                      decoration: const InputDecoration(
-                        hintText: 'Bir mesaj yazın...',
-                        hintStyle: TextStyle(color: Colors.grey, fontSize: 14),
+                      decoration: InputDecoration(
+                        hintText: 'chat.placeholder'.tr(),
+                        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
                         isDense: true,
                       ),
                       onSubmitted: (_) => _sendMessage(),
@@ -321,7 +322,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                   child: IconButton(
                     icon: const Icon(Icons.send_rounded, color: Colors.white, size: 22),
                     onPressed: () => _sendMessage(),
-                    tooltip: 'Gönder',
+                    tooltip: 'chat.send'.tr(),
                   ),
                 ),
               ],

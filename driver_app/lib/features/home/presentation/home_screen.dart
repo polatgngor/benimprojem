@@ -28,6 +28,7 @@ import '../../../core/services/ringtone_service.dart';
 import '../../../core/services/directions_service.dart';
 import '../../splash/presentation/home_loading_screen.dart'; // Import Loading Screen
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import '../../notifications/presentation/notification_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -297,7 +298,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       ],
                     ),
                     child: IconButton(
-                      icon: const Icon(Icons.menu, color: Colors.black),
+                      icon: Consumer(
+                        builder: (context, ref, child) {
+                          final notifState = ref.watch(notificationNotifierProvider);
+                          final count = notifState.totalUnreadMessages;
+                          
+                          if (count > 0) {
+                             return Badge(
+                               label: Text('$count'),
+                               backgroundColor: Colors.red,
+                               child: const Icon(Icons.menu, color: Colors.black),
+                             );
+                          }
+                          return const Icon(Icons.menu, color: Colors.black);
+                        }
+                      ),
                       onPressed: () {
                         Scaffold.of(context).openDrawer();
                       },

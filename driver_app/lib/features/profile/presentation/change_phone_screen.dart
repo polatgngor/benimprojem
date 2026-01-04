@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/widgets/custom_toast.dart';
@@ -59,7 +60,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
       if (mounted) {
         CustomNotificationService().show(
           context,
-          'Telefon numaranız başarıyla güncellendi.',
+          'profile.phone_updated'.tr(),
           ToastType.success,
         );
         Navigator.pop(context); // Go back to Profile
@@ -82,7 +83,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     if (phone.isEmpty || phone.length < 10) {
       CustomNotificationService().show(
         context,
-        'Geçerli bir telefon numarası giriniz',
+        'profile.valid_phone_error'.tr(),
         ToastType.error,
       );
       return;
@@ -97,7 +98,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Telefon Numarası Değiştir'),
+        title: Text('profile.change_phone_title'.tr()),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
@@ -107,9 +108,9 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-             const Text(
-              'Şu anki Numaranız',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              Text(
+              'profile.current_phone'.tr(),
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
             const SizedBox(height: 8),
             // Display current phone if available
@@ -126,9 +127,9 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
             
             const SizedBox(height: 32),
             
-            const Text(
-              'Yeni Telefon Numarası',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
+            Text(
+              'profile.new_phone'.tr(),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.grey),
             ),
             const SizedBox(height: 8),
             Container(
@@ -161,7 +162,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Yeni numaranıza bir doğrulama kodu (OTP) gönderilecektir.',
+                      'profile.otp_info'.tr(),
                       style: TextStyle(fontSize: 12, color: Colors.blue[800], height: 1.3),
                     ),
                   ),
@@ -182,7 +183,7 @@ class _ChangePhoneScreenState extends ConsumerState<ChangePhoneScreen> {
                 ),
                 child: _isLoading 
                   ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
-                  : const Text('Doğrulama Kodu Gönder', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                  : Text('profile.send_code_btn'.tr(), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
             ),
           ],

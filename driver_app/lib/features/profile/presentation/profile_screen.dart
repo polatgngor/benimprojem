@@ -256,7 +256,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
             const SizedBox(height: 4),
             Text(
-              '${user['rating_count'] ?? 0} değerlendirme',
+              'drawer.profile_reviews'.tr(args: [(user['rating_count'] ?? 0).toString()]),
               style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
             ),
           ],
@@ -329,7 +329,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
            child: ListTile(
              contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
              leading: Icon(Icons.local_taxi_rounded, color: Colors.grey[600], size: 22),
-             title: const Text('Araç Bilgilerim', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+             title: Text('profile.vehicle_management'.tr(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
              trailing: Icon(Icons.arrow_forward_ios_rounded, size: 16, color: Colors.grey[400]),
              onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const VehicleManagementScreen())),
            ),

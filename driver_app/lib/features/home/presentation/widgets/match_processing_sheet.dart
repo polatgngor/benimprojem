@@ -73,8 +73,8 @@ class MatchProcessingSheet extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Text(
                     isError 
-                      ? (statusMessage ?? 'Hata oluştu') 
-                      : (statusMessage ?? 'Yolcuyla eşleştiriliyorsunuz...'),
+                      ? (statusMessage ?? 'announcements.error'.tr()) 
+                      : (statusMessage ?? 'home.matching_message'.tr()),
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 18,
@@ -88,7 +88,7 @@ class MatchProcessingSheet extends StatelessWidget {
                 
                  if (!isError)
                   Text(
-                    "Lütfen bekleyin...",
+                    "home.please_wait".tr(),
                     style: TextStyle(color: Colors.grey[600], fontSize: 14),
                   ),
                   

@@ -145,7 +145,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Yolculuk Detayı'),
+        title: Text('history.detail.title'.tr()),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         leading: IconButton(
@@ -228,7 +228,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end, // Right align date & time
                               children: [
                                 Text(
-                                  DateFormat('dd MMM yyyy', 'tr').format(DateTime.tryParse(ride['created_at'] ?? '') ?? DateTime.now()),
+                                  DateFormat('dd MMM yyyy', context.locale.languageCode).format(DateTime.tryParse(ride['created_at'] ?? '') ?? DateTime.now()),
                                   style: TextStyle(color: Colors.grey[900], fontSize: 15, fontWeight: FontWeight.w900),
                                 ),
                                 Text(
@@ -252,10 +252,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                   // Rating Section (Moved Above)
                    if (status == 'completed') ...[
                        if (myRating != null) ...[
-                         const Align(
+                         Align(
                            alignment: Alignment.centerLeft,
                            child: Text(
-                              'Sürücüye Verdiğiniz Puan', 
+                              'history.detail.rating_given'.tr(), 
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
                            ),
                          ),
@@ -316,7 +316,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                    ),
                                    icon: const Icon(Icons.star_outline, size: 20, color: Colors.black),
-                                   label: const Text('Sürücüyü Puanla', style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+                                   label: Text('history.detail.rate_driver'.tr(), style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
                                  ),
                              ),
                              const SizedBox(height: 32), // Spacing after button
@@ -330,10 +330,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                   // Driver Card
                   if (driver != null) ...[
                     // Clean Header
-                    const Text(
-                       'Sürücü', 
-                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
-                    ),
+                       Text(
+                          'history.detail.driver'.tr(), 
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                       ),
                     const SizedBox(height: 16),
                     Container(
                       padding: const EdgeInsets.all(16),
@@ -365,7 +365,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  driverName ?? 'Sürücü',
+                                  driverName ?? 'history.detail.driver'.tr(),
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                                 const SizedBox(height: 4),
@@ -433,7 +433,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   Widget _buildPaymentText(String? method) {
     bool isCard = method == 'card' || method == 'credit_card';
     return Text(
-      isCard ? 'POS' : 'Nakit',
+      isCard ? 'history.detail.payment_pos'.tr() : 'history.detail.payment_cash'.tr(),
       style: TextStyle(
         color: isCard ? const Color(0xFF6366F1) : const Color(0xFF22C55E),
         fontSize: 22, // Reduced from 28
@@ -460,7 +460,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isStart ? 'Alış Noktası' : 'Varış Noktası',
+                isStart ? 'history.detail.pickup'.tr() : 'history.detail.dropoff'.tr(),
                 style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),

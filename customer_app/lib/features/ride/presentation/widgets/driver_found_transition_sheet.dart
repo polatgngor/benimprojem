@@ -28,7 +28,7 @@ class DriverFoundTransitionSheet extends StatelessWidget {
           const SizedBox(height: 24),
           
           Text(
-            'Sürücü Bulundu!', // Localization keys could be added later: 'ride.driver_found'.tr()
+            'home.driver_found'.tr(),
             style: const TextStyle(
               fontSize: 22,
               fontWeight: FontWeight.bold,

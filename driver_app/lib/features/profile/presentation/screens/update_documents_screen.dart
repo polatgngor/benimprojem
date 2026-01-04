@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:easy_localization/easy_localization.dart';
 
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -78,7 +79,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
     if (_selectedBrand == null || _selectedModel == null) {
        CustomNotificationService().show(
         context,
-        'Lütfen araç marka ve modelini seçiniz.',
+        'profile.brand_select_error'.tr(),
         ToastType.error,
       );
       return;
@@ -96,7 +97,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
     if (phone == null) {
         CustomNotificationService().show(
           context,
-          'Telefon numarası bulunamadı.',
+          'profile.phone_error'.tr(),
           ToastType.error,
         );
       return;
@@ -146,7 +147,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
       if (mounted) {
         CustomNotificationService().show(
           context,
-          'Güncelleme talebiniz başarıyla gönderildi. Onay bekleniyor.',
+          'profile.success_update'.tr(),
           ToastType.success,
         );
         // Force refresh of auth state to catch 'pending' status
@@ -186,7 +187,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Bilgilerimi Güncelle'),
+        title: Text('profile.update_docs'.tr()),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         leading: IconButton(
@@ -222,9 +223,9 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
                         child: const Icon(Icons.directions_car_filled_rounded, color: Color(0xFF1A77F6)),
                       ),
                       const SizedBox(width: 12),
-                      const Text(
-                        "Mevcut Plaka",
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
+                      Text(
+                        "profile.current_plate".tr(),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.black87),
                       ),
                     ],
                   ),
@@ -239,14 +240,14 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
                   const SizedBox(height: 12),
                   const Divider(),
                   const SizedBox(height: 8),
-                  const Row(
+                  Row(
                     children: [
-                       Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey),
-                       SizedBox(width: 6),
+                       const Icon(Icons.info_outline_rounded, size: 16, color: Colors.grey),
+                       const SizedBox(width: 6),
                        Expanded(
                          child: Text(
-                          "Plaka değişikliği için 'Taksi Değiştir' menüsünü kullanın.",
-                          style: TextStyle(fontSize: 13, color: Colors.grey, height: 1.3),
+                          "profile.plate_change_note".tr(),
+                          style: const TextStyle(fontSize: 13, color: Colors.grey, height: 1.3),
                          ),
                        ),
                     ],
@@ -256,24 +257,24 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
             ),
             const SizedBox(height: 32),
 
-            const Text('Araç Bilgilerini Güncelle', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3242))),
+            Text('profile.update_vehicle_info'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3242))),
             const SizedBox(height: 16),
 
              // Vehicle Type Dropdown
             DropdownButtonFormField<String>(
               value: _selectedVehicleType,
               decoration: InputDecoration(
-                labelText: 'Araç Tipi',
+                labelText: 'profile.type_label'.tr(),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                 filled: true,
                 fillColor: const Color(0xFFF9FAFB),
                 enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
               ),
               items: [
-                DropdownMenuItem(value: 'sari', child: Text('Sarı Taksi')),
-                DropdownMenuItem(value: 'turkuaz', child: Text('Turkuaz Taksi')),
-                DropdownMenuItem(value: 'vip', child: Text('Siyah Taksi (VIP)')),
-                DropdownMenuItem(value: '8+1', child: Text('8+1 Taksi')),
+                DropdownMenuItem(value: 'sari', child: Text('auth.vehicle_sari'.tr())),
+                DropdownMenuItem(value: 'turkuaz', child: Text('auth.vehicle_turkuaz'.tr())),
+                DropdownMenuItem(value: 'vip', child: Text('auth.vehicle_vip'.tr())),
+                DropdownMenuItem(value: '8+1', child: Text('auth.vehicle_8plus1'.tr())),
               ],
               onChanged: (v) => setState(() => _selectedVehicleType = v!),
             ),
@@ -283,7 +284,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
             DropdownButtonFormField<String>(
               value: _selectedBrand,
               decoration: InputDecoration(
-                labelText: 'Araç Markası',
+                labelText: 'profile.brand_label'.tr(),
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                 filled: true,
                 fillColor: const Color(0xFFF9FAFB),
@@ -293,7 +294,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
                 return DropdownMenuItem(value: brand, child: Text(brand));
               }).toList(),
               onChanged: (val) => setState(() { _selectedBrand = val; _selectedModel = null; }),
-               validator: (v) => v == null ? 'Lütfen marka seçiniz' : null,
+               validator: (v) => v == null ? 'profile.brand_select_error'.tr() : null,
             ),
             const SizedBox(height: 16),
 
@@ -301,7 +302,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
             DropdownButtonFormField<String>(
               value: _selectedModel,
               decoration: InputDecoration(
-                labelText: 'Araç Modeli',
+                labelText: 'profile.model_label'.tr(),
                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                  filled: true,
                  fillColor: const Color(0xFFF9FAFB),
@@ -313,37 +314,37 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
                     }).toList()
                   : [],
               onChanged: (val) => setState(() => _selectedModel = val),
-              validator: (v) => v == null ? 'Lütfen model seçiniz' : null,
+              validator: (v) => v == null ? 'profile.model_select_error'.tr() : null,
             ),
             
             const SizedBox(height: 32),
             
-            const Text(
-              'Belgeler (Opsiyonel)',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3242)),
+            Text(
+              'profile.documents_optional'.tr(),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF2D3242)),
             ),
-            const Padding(
-               padding: EdgeInsets.only(top: 4, bottom: 16),
-               child: Text("Sadece güncellemek istediğiniz belgeleri yükleyin.", style: TextStyle(color: Colors.grey)),
+            Padding(
+               padding: const EdgeInsets.only(top: 4, bottom: 16),
+               child: Text("profile.documents_optional_desc".tr(), style: const TextStyle(color: Colors.grey)),
             ),
 
             _buildFilePicker(
-              label: 'Ruhsat Fotoğrafı',
+              label: 'profile.vehicle_license'.tr(),
               file: _vehicleLicenseFile,
               onPicked: (f) => _vehicleLicenseFile = f,
             ),
             _buildFilePicker(
-              label: 'İBB Kartı',
+              label: 'profile.ibb_license'.tr(),
               file: _ibbCardFile,
               onPicked: (f) => _ibbCardFile = f,
             ),
             _buildFilePicker(
-              label: 'Sürücü Belgesi',
+              label: 'profile.driver_license'.tr(),
               file: _drivingLicenseFile,
               onPicked: (f) => _drivingLicenseFile = f,
             ),
             _buildFilePicker(
-              label: 'Kimlik Kartı',
+              label: 'profile.identity_card'.tr(),
               file: _identityCardFile,
               onPicked: (f) => _identityCardFile = f,
             ),
@@ -365,9 +366,9 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
                 ),
                 child: _isLoading
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text(
-                        'Değişiklikleri Onaya Gönder',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    : Text(
+                        'profile.submit_changes'.tr(),
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
               ),
             ),
@@ -431,7 +432,7 @@ class _UpdateDocumentsScreenState extends ConsumerState<UpdateDocumentsScreen> {
                      )
                    else
                     Text(
-                      'Yüklemek için dokunun',
+                      'profile.tap_to_upload'.tr(),
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                     ),
                  ],

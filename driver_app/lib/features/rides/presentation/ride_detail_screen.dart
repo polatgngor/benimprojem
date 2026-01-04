@@ -7,6 +7,7 @@ import '../../rides/presentation/widgets/rating_dialog.dart';
 import '../../../core/utils/string_utils.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../core/services/directions_service.dart';
+import '../../notifications/presentation/notification_provider.dart';
 
 class RideDetailScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic> ride;
@@ -40,7 +41,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
         markerId: const MarkerId('start'),
         position: LatLng(startLat, startLng),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        infoWindow: const InfoWindow(title: 'Alış Noktası'),
+        infoWindow: InfoWindow(title: 'history.detail.pickup'.tr()),
       ));
     }
 
@@ -49,7 +50,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
         markerId: const MarkerId('end'),
         position: LatLng(endLat, endLng),
         icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-        infoWindow: const InfoWindow(title: 'Varış Noktası'),
+        infoWindow: InfoWindow(title: 'history.detail.dropoff'.tr()),
       ));
     }
   }
@@ -141,7 +142,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Yolculuk Detayı'),
+        title: Text('history.detail.title'.tr()),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         leading: IconButton(
@@ -224,7 +225,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.end, // Right align
                               children: [
                                 Text(
-                                  DateFormat('dd MMM yyyy', 'tr').format(DateTime.tryParse(ride['created_at'] ?? '') ?? DateTime.now()),
+                                  DateFormat('dd MMM yyyy', context.locale.languageCode).format(DateTime.tryParse(ride['created_at'] ?? '') ?? DateTime.now()),
                                   style: TextStyle(color: Colors.grey[900], fontSize: 15, fontWeight: FontWeight.w900),
                                 ),
                                 Text(
@@ -248,10 +249,10 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                   // Rating Section (Moved Above)
                     if (status == 'completed') ...[
                        if (myRating != null) ...[
-                         const Align(
+                         Align(
                            alignment: Alignment.centerLeft,
                            child: Text(
-                              'Yolcuya Verdiğiniz Puan', 
+                              'history.detail.rating_given'.tr(), 
                               style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
                            ),
                          ),
@@ -314,7 +315,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                                    elevation: 0,
                                  ),
                                  icon: const Icon(Icons.star, size: 20),
-                                 label: const Text('Yolculuyu Puanla', style: TextStyle(fontWeight: FontWeight.bold)),
+                                 label: Text('history.detail.rate_passenger'.tr(), style: const TextStyle(fontWeight: FontWeight.bold)),
                                ),
                              ),
                              const SizedBox(height: 32),
@@ -327,9 +328,9 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
 
                   // Passenger Card
                   if (passenger != null) ...[
-                    const Text(
-                       'Yolcu', 
-                       style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
+                    Text(
+                       'history.detail.passenger'.tr(), 
+                       style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)
                     ),
                     const SizedBox(height: 16),
                     Container(
@@ -362,7 +363,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  passengerName ?? 'Yolcu',
+                                  passengerName ?? 'history.detail.passenger'.tr(),
                                   style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                                 ),
                               ],
@@ -370,15 +371,28 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
                           ),
                           // Actions
                           if (canChat)
-                            IconButton(
-                              onPressed: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => DriverChatScreen(rideId: ride['id'].toString()))
+                            Consumer(
+                              builder: (context, ref, child) {
+                                final rideIdInt = int.tryParse(ride['id'].toString()) ?? 0;
+                                final notifState = ref.watch(notificationNotifierProvider);
+                                final unreadCount = (notifState.unreadRideCounts[rideIdInt] ?? 0) + (int.tryParse(ride['unread_count']?.toString() ?? '0') ?? 0);
+                                
+                                return IconButton(
+                                  onPressed: () {
+                                    ref.read(notificationNotifierProvider.notifier).markRideRead(rideIdInt);
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => DriverChatScreen(rideId: ride['id'].toString()))
+                                    );
+                                  },
+                                  icon: unreadCount > 0 ? Badge(
+                                    label: Text('$unreadCount'),
+                                    backgroundColor: Colors.red,
+                                    child: const Icon(Icons.chat_bubble_outline),
+                                  ) : const Icon(Icons.chat_bubble_outline),
+                                  color: Theme.of(context).primaryColor,
                                 );
-                              },
-                              icon: const Icon(Icons.chat_bubble_outline),
-                              color: Theme.of(context).primaryColor,
+                              }
                             ),
                         ],
                       ),
@@ -396,7 +410,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
   Widget _buildPaymentText(String? method) {
     bool isCard = method == 'card' || method == 'credit_card';
     return Text(
-      isCard ? 'POS' : 'Nakit',
+      isCard ? 'history.detail.payment_pos'.tr() : 'history.detail.payment_cash'.tr(),
       style: TextStyle(
         color: isCard ? const Color(0xFF6366F1) : const Color(0xFF22C55E),
         fontSize: 22, // Reduced size
@@ -423,7 +437,7 @@ class _RideDetailScreenState extends ConsumerState<RideDetailScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                isStart ? 'Alış Noktası' : 'Varış Noktası',
+                isStart ? 'history.detail.pickup'.tr() : 'history.detail.dropoff'.tr(),
                 style: const TextStyle(color: Colors.grey, fontSize: 12, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 4),

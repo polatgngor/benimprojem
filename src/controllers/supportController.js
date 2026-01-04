@@ -25,7 +25,7 @@ exports.createTicket = async (req, res) => {
 
         // 1. Create Ticket
         const [ticketResult] = await db.query(
-            'INSERT INTO support_tickets (user_id, subject, status, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
+            'INSERT INTO support_tickets (user_id, subject, status, created_at) VALUES (?, ?, ?, NOW())',
             [userId, subject, 'open']
         );
         const ticketId = ticketResult.insertId;

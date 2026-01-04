@@ -40,18 +40,23 @@ class NotificationNotifier extends Notifier<NotificationState> {
 
   Future<void> _init() async {
     // Only init if user is logged in
-    final authState = ref.watch(authProvider);
+    final authState = ref.read(authProvider); // Changed from watch to read to avoid loop, we rely on parent to rebuild if auth flows.
+    
     if (authState.value == null) return;
     
     // Fetch initial counts
     await fetchCounts();
 
     // Listen to Socket
-    final socket = ref.read(socketServiceProvider);
+    final socketService = ref.read(socketServiceProvider);
+    
+    // Remove existing listener to prevent duplicates
+    socketService.off('notification:new_message');
     
     // Listen for new messages targeting me (Global Alert)
-    socket.on('notification:new_message', (data) {
+    socketService.on('notification:new_message', (data) {
       if (data == null) return;
+      debugPrint('Driver Notification Received: $data');
       final rideId = data['ride_id'];
       if (rideId != null) {
         // If we are currently in this chat, don't show badge
@@ -63,6 +68,8 @@ class NotificationNotifier extends Notifier<NotificationState> {
         incrementMessageCount(rideId);
       }
     });
+
+    // Handle ride:mark_read locally if needed via socket? No, better via method calls.
   }
 
   Future<void> fetchCounts() async {

@@ -154,7 +154,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
              else if (status == RideStatus.driverFound) pixelHeight = 370.0; 
              else if (status == RideStatus.rideStarted) pixelHeight = 230.0; 
              else if (status == RideStatus.driverFoundTransition) pixelHeight = 240.0;
-             else if (status == RideStatus.noDriverFound) pixelHeight = 240.0;
+             else if (status == RideStatus.noDriverFound) pixelHeight = 320.0;
              else pixelHeight = 410.0; // Reduced from 460 (Removed bottom padding)
 
              // Strict clamp to ensure it fits but doesn't overflow
@@ -393,7 +393,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 pixelHeight = 240.0;
                 break;
               case RideStatus.noDriverFound:
-                pixelHeight = 240.0;
+                pixelHeight = 320.0; // Increased from 240.0
                 break;
               case RideStatus.driverFoundTransition:
                 pixelHeight = 240.0;

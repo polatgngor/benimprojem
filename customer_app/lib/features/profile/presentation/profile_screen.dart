@@ -226,7 +226,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 4),
               Text(
-                '${user.ratingCount ?? 0} değerlendirme',
+                'drawer.profile_reviews'.tr(args: [(user.ratingCount ?? 0).toString()]),
                 style: TextStyle(fontSize: 14, color: Colors.grey[600], fontWeight: FontWeight.w500),
               ),
             ],

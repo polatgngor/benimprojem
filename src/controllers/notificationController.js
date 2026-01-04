@@ -80,6 +80,7 @@ async function getCounts(req, res) {
       },
       include: [{
         model: Ride,
+        as: 'ride',
         attributes: [],
         where: {
           [Op.or]: [

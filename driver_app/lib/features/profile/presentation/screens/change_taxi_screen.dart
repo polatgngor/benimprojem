@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:easy_localization/easy_localization.dart';
-import 'package:easy_localization/easy_localization.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../auth/data/vehicle_repository.dart';
 import '../../../auth/presentation/auth_provider.dart';
@@ -83,7 +82,7 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
     if (_vehicleLicense == null || _ibbCard == null || _drivingLicense == null || _identityCard == null) {
         CustomNotificationService().show(
           context,
-          'Lütfen tüm belgeleri yükleyiniz.',
+          'profile.upload_error'.tr(),
           ToastType.error,
         );
        return;
@@ -96,7 +95,7 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
     if (phone == null) {
         CustomNotificationService().show(
           context,
-          'Telefon numarası bulunamadı.',
+          'profile.phone_error'.tr(),
           ToastType.error,
         );
       return;
@@ -151,7 +150,7 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
       if (mounted) {
         CustomNotificationService().show(
           context,
-          'Talebiniz başarıyla gönderildi.',
+          'profile.success_request'.tr(),
           ToastType.success,
         );
         // Refresh auth to catch pending status
@@ -188,7 +187,7 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: const Text('Taksi Değiştir'),
+        title: Text('profile.change_taxi_title'.tr()),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios_rounded, size: 20),
           onPressed: () => Navigator.of(context).pop(),
@@ -201,19 +200,19 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-               const Text(
-                 'Yeni Aracınızın Bilgileri',
-                 style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-               ),
-               const SizedBox(height: 8),
-               Text(
-                 'Bu işlem yönetici onayı gerektirir. Onaylanana kadar mevcut aracınızla çalışmaya devam edebilirsiniz.',
-                 style: TextStyle(color: Colors.grey[600]),
-               ),
+                 Text(
+                   'profile.new_car_info'.tr(),
+                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                 ),
+                const SizedBox(height: 8),
+                  Text(
+                    'profile.manager_approval_note'.tr(),
+                    style: TextStyle(color: Colors.grey[600]),
+                  ),
                const SizedBox(height: 24),
 
                // Plate Input
-                const Text('Plaka', style: TextStyle(fontSize: 14, color: Colors.grey)),
+                Text('profile.plate_label'.tr(), style: const TextStyle(fontSize: 14, color: Colors.grey)),
                 const SizedBox(height: 8),
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,7 +303,7 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
                 DropdownButtonFormField<String>(
                   value: _selectedBrand,
                   decoration: InputDecoration(
-                    labelText: 'Araç Markası',
+                    labelText: 'profile.brand_label'.tr(),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                     filled: true,
                     fillColor: const Color(0xFFF9FAFB),
@@ -314,7 +313,7 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
                     return DropdownMenuItem(value: brand, child: Text(brand));
                   }).toList(),
                   onChanged: (val) => setState(() { _selectedBrand = val; _selectedModel = null; }),
-                   validator: (v) => v == null ? 'Lütfen marka seçiniz' : null,
+                   validator: (v) => v == null ? 'profile.brand_select_error'.tr() : null,
                 ),
                 const SizedBox(height: 16),
 
@@ -323,7 +322,7 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
                 DropdownButtonFormField<String>(
                   value: _selectedModel,
                   decoration: InputDecoration(
-                    labelText: 'Araç Modeli',
+                    labelText: 'profile.model_label'.tr(),
                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                      filled: true,
                      fillColor: const Color(0xFFF9FAFB),
@@ -335,39 +334,39 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
                         }).toList()
                       : [],
                   onChanged: (val) => setState(() => _selectedModel = val),
-                  validator: (v) => v == null ? 'Lütfen model seçiniz' : null,
+                  validator: (v) => v == null ? 'profile.model_select_error'.tr() : null,
                 ),
                 const SizedBox(height: 16),
 
                 DropdownButtonFormField<String>(
                   value: _selectedVehicleType,
                   decoration: InputDecoration(
-                    labelText: 'Araç Tipi',
+                    labelText: 'profile.type_label'.tr(),
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
                     filled: true,
                     fillColor: const Color(0xFFF9FAFB),
                     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey.shade200)),
                   ),
                   items: [
-                    DropdownMenuItem(value: 'sari', child: Text('Sarı Taksi')),
-                    DropdownMenuItem(value: 'turkuaz', child: Text('Turkuaz Taksi')),
-                    DropdownMenuItem(value: 'vip', child: Text('Siyah Taksi (VIP)')),
-                    DropdownMenuItem(value: '8+1', child: Text('8+1 Taksi')),
+                    DropdownMenuItem(value: 'sari', child: Text('auth.vehicle_sari'.tr())),
+                    DropdownMenuItem(value: 'turkuaz', child: Text('auth.vehicle_turkuaz'.tr())),
+                    DropdownMenuItem(value: 'vip', child: Text('auth.vehicle_vip'.tr())),
+                    DropdownMenuItem(value: '8+1', child: Text('auth.vehicle_8plus1'.tr())),
                   ],
                   onChanged: (v) => setState(() => _selectedVehicleType = v!),
                 ),
 
                 const SizedBox(height: 32),
-                const Text('Belgeler', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text('profile.documents_title'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 16),
 
-                _buildUploadButton('Araç Ruhsatı', _vehicleLicense, () => _pickImage('vehicle')),
+                _buildUploadButton('profile.vehicle_license'.tr(), _vehicleLicense, () => _pickImage('vehicle')),
                 const SizedBox(height: 12),
-                _buildUploadButton('İBB Çalışma Ruhsatı', _ibbCard, () => _pickImage('ibb')),
+                _buildUploadButton('profile.ibb_license'.tr(), _ibbCard, () => _pickImage('ibb')),
                 const SizedBox(height: 12),
-                _buildUploadButton('Sürücü Belgesi', _drivingLicense, () => _pickImage('driving')),
+                _buildUploadButton('profile.driver_license'.tr(), _drivingLicense, () => _pickImage('driving')),
                 const SizedBox(height: 12),
-                _buildUploadButton('Kimlik Kartı', _identityCard, () => _pickImage('identity')),
+                _buildUploadButton('profile.identity_card'.tr(), _identityCard, () => _pickImage('identity')),
 
                 const SizedBox(height: 32),
                 ElevatedButton(
@@ -380,7 +379,7 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
                   ),
                   child: _isLoading 
                     ? const CircularProgressIndicator(color: Colors.white) 
-                    : const Text('Onaya Gönder', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    : Text('profile.submit_approval'.tr(), style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 ),
                 const SizedBox(height: 20),
             ],
@@ -435,13 +434,13 @@ class _ChangeTaxiScreenState extends ConsumerState<ChangeTaxiScreen> {
                    if (isSelected) Padding(
                      padding: const EdgeInsets.only(top: 2),
                      child: Text(
-                        'Dosya seçildi',
+                        'profile.file_selected'.tr(),
                         style: TextStyle(fontSize: 12, color: Colors.green[700]),
                      ),
                    ) else Padding(
                      padding: const EdgeInsets.only(top: 2),
                      child: Text(
-                        'Fotoğraf çek veya yükle',
+                        'profile.tap_to_upload'.tr(),
                         style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                      ),
                    ),

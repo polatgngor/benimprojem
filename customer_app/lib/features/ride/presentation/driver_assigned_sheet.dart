@@ -189,7 +189,7 @@ class DriverAssignedSheet extends ConsumerWidget {
                            );
                          },
                          icon: const Icon(Icons.close, size: 14, color: Colors.red),
-                         label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 11)),
+                         label: Text('button.cancel'.tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 11)),
                          style: OutlinedButton.styleFrom(
                            side: const BorderSide(color: Colors.red),
                            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
@@ -274,7 +274,7 @@ class DriverAssignedSheet extends ConsumerWidget {
                       }
                   },
                   icon: Icon(Icons.chat_bubble_outline_rounded, size: 16, color: Theme.of(context).primaryColor),
-                  label: Text('Mesaj Gönder', style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor, fontSize: 13)),
+                  label: Text('button.message'.tr(), style: TextStyle(fontWeight: FontWeight.bold, color: Theme.of(context).primaryColor, fontSize: 13)),
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Theme.of(context).primaryColor),
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
@@ -296,7 +296,7 @@ class DriverAssignedSheet extends ConsumerWidget {
                      );
                   },
                   icon: const Icon(Icons.close, size: 16, color: Colors.red),
-                  label: const Text('İptal Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
+                  label: Text('button.cancel'.tr(), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.red, fontSize: 13)),
                   style: OutlinedButton.styleFrom(
                     side: const BorderSide(color: Colors.red),
                     padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),

@@ -29,7 +29,14 @@ async function resetData() {
 
         // DROP and Re-create tables (Fixes 'Too many keys' and schema drift)
         logger.info('MySQL: Dropping and Re-syncing tables (Nuclear Option)...');
-        await sequelize.sync({ force: true });
+
+        // Explicitly drop bad tables if sync force fails on them
+        await sequelize.query('DROP TABLE IF EXISTS users CASCADE', { raw: true }).catch(() => { });
+        await sequelize.query('DROP TABLE IF EXISTS RideMessages CASCADE', { raw: true }).catch(() => { }); // Just in case
+        await sequelize.query('DROP TABLE IF EXISTS Rides CASCADE', { raw: true }).catch(() => { });
+
+        await sequelize.drop({ force: true }); // Drop all defined models
+        await sequelize.sync({ force: true }); // Recreate
         // for (const modelName of models) {
         //     const model = sequelize.models[modelName];
         //     await model.truncate({ cascade: true, restartIdentity: true, force: true });

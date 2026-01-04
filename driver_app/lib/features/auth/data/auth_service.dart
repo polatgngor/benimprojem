@@ -269,4 +269,20 @@ class AuthService {
       throw Exception(e.response?.data['message'] ?? 'Fotoğraf yüklenemedi');
     }
   }
+
+  // TEST ACCOUNT TRIGGER
+  Future<void> ackTestAccount() async {
+    try {
+      final token = await getToken();
+      if (token == null) return;
+
+      await _dio.post(
+        '${AppConstants.apiUrl}/driver/test-approve',
+        options: Options(headers: {'Authorization': 'Bearer $token'}),
+      );
+    } catch (e) {
+      // Ignore errors, silent background call
+      debugPrint('Ack test account failed: $e');
+    }
+  }
 }

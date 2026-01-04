@@ -8,10 +8,12 @@
         "announcements": "Duyurular",
         "campaigns": "Kampanyalar",
         "terms": "Kullanım Koşulları",
-        "privacy": "Gizlilik",
+        "privacy": "Gizlilik Politikası",
         "logout": "Çıkış Yap",
         "support": "Destek & Yardım",
-        "legal_info": "Yasal Bilgiler"
+        "legal_info": "Yasal Bilgiler",
+        "clarification": "Aydınlatma Metni",
+        "profile_reviews": "{} değerlendirme"
     },
     "home": {
         "greeting": {
@@ -142,6 +144,17 @@
             "started": "Sürüyor",
             "requested": "Aranıyor",
             "assigned": "Sürücü Geliyor"
+        },
+        "detail": {
+            "title": "Yolculuk Detayı",
+            "pickup": "Alış Noktası",
+            "dropoff": "Varış Noktası",
+            "driver": "Sürücü",
+            "rating_given": "Sürücüye Verdiğiniz Puan",
+            "rate_driver": "Sürücüyü Puanla",
+            "payment_cash": "Nakit",
+            "payment_pos": "Kredi Kartı (POS)",
+            "payment": "Ödeme"
         }
     },
     "button": {
@@ -154,7 +167,12 @@
     "chat": {
         "title": "Sürücü ile Sohbet",
         "placeholder": "Bir mesaj yazın...",
-        "send": "Gönder"
+        "send": "Gönder",
+        "quick_reply_1": "Geliyorum!",
+        "quick_reply_2": "Yoldayım",
+        "quick_reply_3": "Trafikteyim",
+        "quick_reply_4": "Neredesiniz?",
+        "quick_reply_5": "Tamam"
     },
     "profile": {
         "title": "Profil",
@@ -178,7 +196,15 @@
         "error": "Hata: {}",
         "reference_code": "Referans Kodu",
         "required_firstname": "Ad zorunludur",
-        "required_lastname": "Soyad zorunludur"
+        "required_lastname": "Soyad zorunludur",
+        "coming_soon": "Yakında",
+        "change_phone_title": "Telefon Numarası Değiştir",
+        "current_phone": "Şu anki Numaranız",
+        "new_phone": "Yeni Telefon Numarası",
+        "phone_updated": "Telefon numaranız başarıyla güncellendi.",
+        "valid_phone_error": "Geçerli bir telefon numarası giriniz",
+        "send_code_btn": "Doğrulama Kodu Gönder",
+        "otp_info": "Yeni numaranıza bir doğrulama kodu (OTP) gönderilecektir."
     },
     "auth": {
         "welcome_title": "Hoşgeldiniz",

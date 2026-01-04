@@ -40,19 +40,22 @@ class NotificationNotifier extends Notifier<NotificationState> {
 
   Future<void> _init() async {
     // Only init if user is logged in
-    final authState = ref.watch(authProvider);
+    final authState = ref.read(authProvider); // Read only
     if (authState.value == null) return;
     
     // Fetch initial counts
     await fetchCounts();
 
     // Listen to Socket
-    final socket = ref.read(socketServiceProvider);
+    final socketService = ref.read(socketServiceProvider);
+    
+    // Remove existing listener to prevent duplicates
+    socketService.off('notification:new_message');
     
     // Listen for new messages targeting me (Global Alert)
-    // The backend emits 'notification:new_message' with { ride_id, text, sender_id }
-    socket.on('notification:new_message', (data) {
+    socketService.on('notification:new_message', (data) {
       if (data == null) return;
+      debugPrint('Customer Notification Received: $data');
       final rideId = data['ride_id'];
       if (rideId != null) {
         // If we are currently in this chat, don't show badge
@@ -64,12 +67,8 @@ class NotificationNotifier extends Notifier<NotificationState> {
         incrementMessageCount(rideId);
       }
     });
-    
-    // Also listen to 'ride:message' if we assume we might be in the room?
-    // Actually, if we are in the room, we are "reading" it?
-    // If we are in ChatScreen, we should call 'markRead'.
-    // Use the backend event 'notification:new_message' as the source of truth for "Receive".
-  }
+  }  
+
 
   Future<void> fetchCounts() async {
     try {

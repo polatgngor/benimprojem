@@ -84,7 +84,7 @@ class PlacesService {
         'key': AppConstants.googleMapsApiKey,
         'sessiontoken': token,
         'language': 'tr',
-        'components': 'country:tr', // Restrict to Turkey
+        // 'components': 'country:tr', // REMOVED to allow global search for Google Play
       });
 
       if (response.statusCode == 200) {

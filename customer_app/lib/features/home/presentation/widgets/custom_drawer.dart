@@ -101,16 +101,37 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                           shape: BoxShape.circle,
                         ),
                         child: ClipOval(
-                          child: Center(
-                            child: Text(
-                              name.isNotEmpty ? name[0].toUpperCase() : 'M',
-                              style: const TextStyle(
-                                fontSize: 26,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1A77F6),
-                              ),
-                            ),
-                          ),
+                          child: (user?.profilePhoto != null && user!.profilePhoto!.isNotEmpty)
+                              ? Image.network(
+                                  user.profilePhoto!.startsWith('http') 
+                                    ? user.profilePhoto! 
+                                    : 'https://api.taksibu.com${user.profilePhoto}',
+                                  fit: BoxFit.cover,
+                                  width: 64,
+                                  height: 64,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Center(
+                                      child: Text(
+                                        name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                                        style: const TextStyle(
+                                          fontSize: 26,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF1A77F6),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Center(
+                                  child: Text(
+                                    name.isNotEmpty ? name[0].toUpperCase() : 'M',
+                                    style: const TextStyle(
+                                      fontSize: 26,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1A77F6),
+                                    ),
+                                  ),
+                                ),
                         ),
                       ),
                     ),
@@ -189,6 +210,7 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                 Theme(
                   data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
                   child: ExpansionTile(
+                    tilePadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4), // Logic fix: Match ListTile padding
                     leading: Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
@@ -208,15 +230,17 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                     childrenPadding: const EdgeInsets.only(left: 60),
                     children: [
                       ListTile(
-                        title: const Text('Kullanım Koşulları', style: TextStyle(fontSize: 14)),
+                        title: Text('drawer.terms'.tr(), style: const TextStyle(fontSize: 14)),
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LegalViewerScreen(
-                                title: 'Kullanım Koşulları',
-                                content: LegalConstants.termsOfUse,
+                              builder: (context) => LegalViewerScreen(
+                                title: 'drawer.terms'.tr(),
+                                content: context.locale.languageCode == 'en' 
+                                  ? LegalConstants.termsOfUseEn 
+                                  : LegalConstants.termsOfUse,
                               ),
                             ),
                           );
@@ -225,15 +249,17 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                         visualDensity: VisualDensity.compact,
                       ),
                       ListTile(
-                        title: const Text('Aydınlatma Metni', style: TextStyle(fontSize: 14)),
+                        title: Text('drawer.clarification'.tr(), style: const TextStyle(fontSize: 14)),
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LegalViewerScreen(
-                                title: 'Aydınlatma Metni',
-                                content: LegalConstants.clarificationText,
+                              builder: (context) => LegalViewerScreen(
+                                title: 'drawer.clarification'.tr(),
+                                content: context.locale.languageCode == 'en' 
+                                  ? LegalConstants.clarificationTextEn 
+                                  : LegalConstants.clarificationText,
                               ),
                             ),
                           );
@@ -242,15 +268,17 @@ class _CustomDrawerState extends ConsumerState<CustomDrawer> with SingleTickerPr
                         visualDensity: VisualDensity.compact,
                       ),
                       ListTile(
-                        title: const Text('Gizlilik Politikası', style: TextStyle(fontSize: 14)),
+                        title: Text('drawer.privacy'.tr(), style: const TextStyle(fontSize: 14)),
                         onTap: () {
                           Navigator.pop(context);
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) => const LegalViewerScreen(
-                                title: 'Gizlilik Politikası',
-                                content: LegalConstants.privacyPolicy,
+                              builder: (context) => LegalViewerScreen(
+                                title: 'drawer.privacy'.tr(),
+                                content: context.locale.languageCode == 'en' 
+                                  ? LegalConstants.privacyPolicyEn 
+                                  : LegalConstants.privacyPolicy,
                               ),
                             ),
                           );
