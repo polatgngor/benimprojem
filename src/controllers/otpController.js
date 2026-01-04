@@ -24,6 +24,16 @@ async function sendOtp(req, res) {
 
         phone = phone.trim();
 
+        // --- GOOGLE PLAY TEST ACCOUNT LOGIC ---
+        const TEST_ACCOUNTS = ['1234567890', '0987654321'];
+        if (TEST_ACCOUNTS.includes(phone)) {
+            console.log(`[Test Account] Bypassing SMS for ${phone}. Use OTP: 000000`);
+            return res.json({
+                ok: true,
+                message: 'OTP sent (Test Account)'
+            });
+        }
+
         // 1. Generate OTP
         const otp = generateOtp();
 
@@ -69,15 +79,27 @@ async function verifyOtp(req, res) {
         phone = phone.trim();
         code = code.trim();
 
-        const key = `otp:${phone}`;
-        const storedOtp = await redis.get(key);
+        // --- GOOGLE PLAY TEST ACCOUNT LOGIC ---
+        const TEST_ACCOUNTS = ['1234567890', '0987654321'];
+        const FIXED_OTP = '000000';
 
-        if (!storedOtp) {
-            return res.status(400).json({ message: 'OTP expired or not found' });
-        }
+        if (TEST_ACCOUNTS.includes(phone)) {
+            if (code !== FIXED_OTP) {
+                return res.status(400).json({ message: 'Invalid OTP' });
+            }
+            // Bypass Redis check and proceed
+        } else {
+            // Normal User Flow
+            const key = `otp:${phone}`;
+            const storedOtp = await redis.get(key);
 
-        if (storedOtp !== code) {
-            return res.status(400).json({ message: 'Invalid OTP' });
+            if (!storedOtp) {
+                return res.status(400).json({ message: 'OTP expired or not found' });
+            }
+
+            if (storedOtp !== code) {
+                return res.status(400).json({ message: 'Invalid OTP' });
+            }
         }
 
         // Check if user exists
