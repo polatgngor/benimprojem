@@ -82,7 +82,9 @@ async function verifyOtp(req, res) {
         phone = phone.trim();
         code = code.trim();
 
-        // --- GOOGLE PLAY TEST ACCOUNT LOGIC ---
+        // Variable to hold Redis key, if applicable.
+        let key = null;
+
         // --- GOOGLE PLAY TEST ACCOUNT LOGIC ---
         // Normalize for check
         const cleanPhone = phone.replace(/\D/g, '');
@@ -93,10 +95,10 @@ async function verifyOtp(req, res) {
             if (code !== FIXED_OTP) {
                 return res.status(400).json({ message: 'Invalid OTP' });
             }
-            // Bypass Redis check and proceed
+            // Bypass Redis check and proceed (key remains null)
         } else {
             // Normal User Flow
-            const key = `otp:${phone}`;
+            key = `otp:${phone}`;
             const storedOtp = await redis.get(key);
 
             if (!storedOtp) {
