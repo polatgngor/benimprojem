@@ -159,7 +159,7 @@ async function verifyOtp(req, res) {
             }
 
             // OTP Verified & Checks Passed. NOW delete it.
-            await redis.del(key);
+            if (key) await redis.del(key);
 
             // Generate Session ID (Single Device Logic)
             const sessionId = Date.now().toString(36) + Math.random().toString(36).substr(2);
@@ -196,7 +196,7 @@ async function verifyOtp(req, res) {
             // to allow the user to call /register endpoint.
 
             // OTP Verified. Delete it.
-            await redis.del(key);
+            if (key) await redis.del(key);
 
             // We can use the same signAccessToken but maybe with a different scope or payload.
             // For simplicity, let's sign a token that expires quickly (e.g., 10 mins).
