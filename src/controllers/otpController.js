@@ -83,10 +83,13 @@ async function verifyOtp(req, res) {
         code = code.trim();
 
         // --- GOOGLE PLAY TEST ACCOUNT LOGIC ---
-        const TEST_ACCOUNTS = ['1234567890', '0987654321'];
+        // --- GOOGLE PLAY TEST ACCOUNT LOGIC ---
+        // Normalize for check
+        const cleanPhone = phone.replace(/\D/g, '');
+        const TEST_NUMBERS = ['1234567890', '0987654321'];
         const FIXED_OTP = '000000';
 
-        if (TEST_ACCOUNTS.includes(phone)) {
+        if (TEST_NUMBERS.some(num => cleanPhone.endsWith(num))) {
             if (code !== FIXED_OTP) {
                 return res.status(400).json({ message: 'Invalid OTP' });
             }
