@@ -19,14 +19,14 @@ exports.createTicket = async (req, res) => {
 
         // 1. Create Ticket
         const [ticketResult] = await db.query(
-            'INSERT INTO support_tickets (user_id, subject, status) VALUES (?, ?, ?)',
+            'INSERT INTO support_tickets (user_id, subject, status, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())',
             [userId, subject, 'open']
         );
         const ticketId = ticketResult.insertId;
 
         // 2. Add First Message
         await db.query(
-            'INSERT INTO support_messages (ticket_id, sender_id, sender_type, message) VALUES (?, ?, ?, ?)',
+            'INSERT INTO support_messages (ticket_id, sender_id, sender_type, message, created_at) VALUES (?, ?, ?, ?, NOW())',
             [ticketId, userId, 'user', message]
         );
 
@@ -94,7 +94,7 @@ exports.sendMessage = async (req, res) => {
 
         // Insert Message
         const [result] = await db.query(
-            'INSERT INTO support_messages (ticket_id, sender_id, sender_type, message) VALUES (?, ?, ?, ?)',
+            'INSERT INTO support_messages (ticket_id, sender_id, sender_type, message, created_at) VALUES (?, ?, ?, ?, NOW())',
             [ticketId, userId, 'user', message]
         );
 
