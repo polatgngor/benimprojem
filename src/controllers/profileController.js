@@ -37,6 +37,29 @@ async function getProfile(req, res) {
     // if driver, include driver details
     let driver = null;
     if (user.role === 'driver') {
+
+      // --- GOOGLE PLAY TEST ACCOUNT AUTO-APPROVE LOGIC ---
+      // Check if test number + driver is pending
+      const TEST_NUMBERS = ['1234567890', '0987654321'];
+      // Normalization is good but 'phone' here comes from DB which is usually exact match of what we saved.
+      // But let's be safe and check if it ends with test numbers.
+      const cleanPhone = user.phone.replace(/\D/g, '');
+      const isTestUser = TEST_NUMBERS.some(num => cleanPhone.endsWith(num));
+
+      if (isTestUser) {
+        // Check current status directly from DB to decide if update is needed
+        const currentDriver = await Driver.findOne({ where: { user_id: userId } });
+        if (currentDriver && currentDriver.status === 'pending') {
+          console.log(`[Test Account] Auto-approving driver ${user.phone}`);
+          currentDriver.status = 'approved';
+          currentDriver.is_available = true; // Auto avaliable
+          await currentDriver.save();
+          // Update local variable for response
+          // driverRecord below will refetch or we can just pass the updated object
+        }
+      }
+      // ---------------------------------------------------
+
       // Parallel Fetch: Driver Details + Wallet
       const [driverRecord, wallet] = await Promise.all([
         Driver.findOne({
