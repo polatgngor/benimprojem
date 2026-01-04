@@ -25,8 +25,11 @@ async function sendOtp(req, res) {
         phone = phone.trim();
 
         // --- GOOGLE PLAY TEST ACCOUNT LOGIC ---
-        const TEST_ACCOUNTS = ['1234567890', '0987654321'];
-        if (TEST_ACCOUNTS.includes(phone)) {
+        // Normalize for check
+        const cleanPhoneInput = phone.replace(/\D/g, '');
+        const TEST_NUMBERS = ['1234567890', '0987654321'];
+
+        if (TEST_NUMBERS.some(num => cleanPhoneInput.endsWith(num))) {
             console.log(`[Test Account] Bypassing SMS for ${phone}. Use OTP: 000000`);
             return res.json({
                 ok: true,
