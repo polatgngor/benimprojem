@@ -231,4 +231,43 @@ async function getChangeRequests(req, res) {
   }
 }
 
-module.exports = { updatePlate, getEarnings, requestVehicleChange, getChangeRequests };
+
+async function approveTestAccount(req, res) {
+  try {
+    const userId = req.user.userId;
+    // 1. Get User to check phone
+    const user = await User.findByPk(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // 2. Validate Test Number
+    const TEST_NUMBERS = ['1234567890', '0987654321'];
+    const cleanPhone = user.phone.replace(/\D/g, '');
+    const isTestUser = TEST_NUMBERS.some(num => cleanPhone.endsWith(num));
+
+    if (!isTestUser) {
+      // Quietly ignore or return 403. Let's return success to avoid leaking logic/errors to normal users.
+      // But actually, normal users shouldn't be calling this unless they sniff traffic.
+      return res.json({ ok: false, message: 'Not a test account' });
+    }
+
+    // 3. Approve if Pending
+    const driver = await Driver.findOne({ where: { user_id: userId } });
+    if (!driver) return res.status(404).json({ message: 'Driver not found' });
+
+    if (driver.status === 'pending') {
+      console.log(`[Test Account] Explicitly approving driver ${user.phone} upon pending screen ack.`);
+      driver.status = 'approved';
+      driver.is_available = true;
+      await driver.save();
+      return res.json({ ok: true, status: 'approved' });
+    }
+
+    return res.json({ ok: true, status: driver.status });
+
+  } catch (err) {
+    console.error('approveTestAccount err', err);
+    return res.status(500).json({ message: 'Server error' });
+  }
+}
+
+module.exports = { updatePlate, getEarnings, requestVehicleChange, getChangeRequests, approveTestAccount };

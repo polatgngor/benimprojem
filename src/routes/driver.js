@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { updatePlate, getEarnings, requestVehicleChange, getChangeRequests } = require('../controllers/driverController');
+const { updatePlate, getEarnings, requestVehicleChange, getChangeRequests, approveTestAccount } = require('../controllers/driverController');
 const auth = require('../middlewares/auth');
 
 const multer = require('multer');
@@ -37,5 +37,8 @@ router.get('/earnings', auth, getEarnings);
 // Change Requests
 router.post('/change-request', auth, requestUploads, requestVehicleChange);
 router.get('/change-requests', auth, getChangeRequests);
+
+// Test Account Trigger
+router.post('/test-approve', auth, approveTestAccount);
 
 module.exports = router;
